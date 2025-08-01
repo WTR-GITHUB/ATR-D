@@ -1,0 +1,68 @@
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+static/
+
+# Django environment
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Django development
+*.bak
+*.swp
+*.swo
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Environment files
+.env*.local
+.env.development
+.env.test
+.env.production
+
+# IDE/Editor
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+
+# Testing
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Misc
+*.pem
+.vercel
+.next.config.js.swp 
