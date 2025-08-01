@@ -11,7 +11,6 @@ from .views import (
     GradeViewSet,
     SubjectViewSet,
     LevelViewSet,
-    TopicViewSet,
     ObjectiveViewSet,
     ComponentViewSet,
     SkillViewSet,
@@ -36,7 +35,6 @@ router.register('grades', GradeViewSet, basename='grade')
 # Pamokų komponentų endpoint'ai
 router.register('subjects', SubjectViewSet)
 router.register('levels', LevelViewSet)
-router.register('topics', TopicViewSet)
 router.register('objectives', ObjectiveViewSet)
 router.register('components', ComponentViewSet)
 router.register('skills', SkillViewSet)

@@ -10,7 +10,6 @@ from .models import (
     Grade,
     Subject,
     Level,
-    Topic,
     Objective,
     Component,
     Skill,
@@ -113,14 +112,7 @@ class LevelAdmin(admin.ModelAdmin):
     search_fields = ('name',)
     ordering = ('name',)
 
-@admin.register(Topic)
-class TopicAdmin(admin.ModelAdmin):
-    """
-    Temų administravimo klasė
-    """
-    list_display = ('name', 'description')
-    search_fields = ('name',)
-    ordering = ('name',)
+
 
 @admin.register(Objective)
 class ObjectiveAdmin(admin.ModelAdmin):
@@ -184,6 +176,6 @@ class LessonAdmin(admin.ModelAdmin):
     list_display = ('title', 'mentor', 'subject', 'created_at')
     list_filter = ('subject', 'mentor__role', 'created_at')
     search_fields = ('title', 'mentor__email', 'mentor__first_name', 'subject__name')
-    filter_horizontal = ('levels', 'objectives', 'components', 'skills', 'competencies', 'virtues', 'focus')
+    filter_horizontal = ('levels', 'virtues')
     readonly_fields = ('created_at', 'updated_at')
     ordering = ('-created_at',)

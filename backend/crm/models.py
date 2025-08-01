@@ -335,21 +335,7 @@ class Level(models.Model):
     def __str__(self):
         return self.name
 
-# Topic Model
-class Topic(models.Model):
-    """
-    Temos modelis - pamokų temos kategorijos
-    """
-    name = models.CharField(max_length=255, unique=True, verbose_name="Pavadinimas")
-    description = models.TextField(blank=True, verbose_name="Aprašymas")
-    
-    class Meta:
-        verbose_name = "Tema"
-        verbose_name_plural = "Temos"
-        ordering = ['name']
-    
-    def __str__(self):
-        return self.name
+
 
 # Objective Model
 class Objective(models.Model):
@@ -473,42 +459,40 @@ class Lesson(models.Model):
     )
     description = models.TextField(blank=True, verbose_name="Aprašymas")
     assessment_criteria = models.TextField(blank=True, verbose_name="Vertinimo kriterijai")
-    topic = models.ForeignKey(
-        Topic, 
-        on_delete=models.SET_NULL, 
-        null=True, 
+    topic = models.CharField(
+        max_length=255,
         blank=True,
         verbose_name="Tema"
     )
-    objectives = models.ManyToManyField(
-        Objective, 
+    objectives = models.TextField(
         blank=True,
-        verbose_name="Tikslai"
+        verbose_name="Tikslai",
+        help_text="Tikslai JSON formatu"
     )
-    components = models.ManyToManyField(
-        Component, 
+    components = models.TextField(
         blank=True,
-        verbose_name="Komponentai"
+        verbose_name="Komponentai",
+        help_text="Komponentai JSON formatu"
     )
-    skills = models.ManyToManyField(
-        Skill, 
+    skills = models.TextField(
         blank=True,
-        verbose_name="Gebėjimai"
+        verbose_name="Gebėjimai",
+        help_text="Gebėjimai JSON formatu"
     )
-    competencies = models.ManyToManyField(
-        Competency, 
+    competencies = models.TextField(
         blank=True,
-        verbose_name="Kompetencijos"
+        verbose_name="Kompetencijos",
+        help_text="Kompetencijos JSON formatu"
     )
     virtues = models.ManyToManyField(
         Virtue, 
         blank=True,
         verbose_name="Dorybės"
     )
-    focus = models.ManyToManyField(
-        Focus, 
+    focus = models.TextField(
         blank=True,
-        verbose_name="Dėmesio kryptys"
+        verbose_name="Dėmesio kryptys",
+        help_text="Dėmesio kryptys JSON formatu"
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Sukurta")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atnaujinta")

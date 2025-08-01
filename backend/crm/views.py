@@ -14,7 +14,6 @@ from .serializers import (
     GradeSerializer,
     SubjectSerializer,
     LevelSerializer,
-    TopicSerializer,
     ObjectiveSerializer,
     ComponentSerializer,
     SkillSerializer,
@@ -32,7 +31,6 @@ from .models import (
     Grade,
     Subject,
     Level,
-    Topic,
     Objective,
     Component,
     Skill,
@@ -169,13 +167,7 @@ class LevelViewSet(viewsets.ModelViewSet):
     serializer_class = LevelSerializer
     permission_classes = [IsAuthenticated]
 
-class TopicViewSet(viewsets.ModelViewSet):
-    """
-    Temų viewset - valdo pamokų temų informaciją
-    """
-    queryset = Topic.objects.all()
-    serializer_class = TopicSerializer
-    permission_classes = [IsAuthenticated]
+
 
 class ObjectiveViewSet(viewsets.ModelViewSet):
     """
