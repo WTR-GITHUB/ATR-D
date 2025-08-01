@@ -5,11 +5,10 @@ from .models import (
     User,
     StudentParent,
     StudentCurator,
-    Subject,
-    Level,
     StudentSubjectLevel,
     MentorSubject
 )
+from lessons.models import Subject, Level
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
@@ -45,15 +44,7 @@ class StudentCuratorAdmin(admin.ModelAdmin):
     list_filter = ('start_date', 'end_date', 'student__role', 'curator__role')
     search_fields = ('student__email', 'curator__email', 'student__first_name', 'curator__first_name')
 
-@admin.register(Subject)
-class SubjectAdmin(admin.ModelAdmin):
-    list_display = ('name',)
-    search_fields = ('name',)
 
-@admin.register(Level)
-class LevelAdmin(admin.ModelAdmin):
-    list_display = ('name',)
-    search_fields = ('name',)
 
 @admin.register(StudentSubjectLevel)
 class StudentSubjectLevelAdmin(admin.ModelAdmin):

@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
+from lessons.models import Subject, Level
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -129,29 +130,7 @@ class StudentCurator(models.Model):
     def __str__(self):
         return f"{self.student} - {self.curator} ({self.start_date})"
 
-class Subject(models.Model):
-    name = models.CharField(_('name'), max_length=100, unique=True)
-    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
-    updated_at = models.DateTimeField(_('updated at'), auto_now=True)
 
-    class Meta:
-        verbose_name = _('subject')
-        verbose_name_plural = _('subjects')
-
-    def __str__(self):
-        return self.name
-
-class Level(models.Model):
-    name = models.CharField(_('name'), max_length=100, unique=True)
-    created_at = models.DateTimeField(_('created at'), auto_now_add=True)
-    updated_at = models.DateTimeField(_('updated at'), auto_now=True)
-
-    class Meta:
-        verbose_name = _('level')
-        verbose_name_plural = _('levels')
-
-    def __str__(self):
-        return self.name
 
 class StudentSubjectLevel(models.Model):
     student = models.ForeignKey(

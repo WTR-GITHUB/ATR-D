@@ -4,11 +4,10 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import (
     StudentParent,
     StudentCurator,
-    Subject,
-    Level,
     StudentSubjectLevel,
     MentorSubject
 )
+from lessons.models import Subject, Level
 
 User = get_user_model()
 
@@ -54,15 +53,7 @@ class StudentCuratorSerializer(serializers.ModelSerializer):
         model = StudentCurator
         fields = '__all__'
 
-class SubjectSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Subject
-        fields = '__all__'
 
-class LevelSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Level
-        fields = '__all__'
 
 class StudentSubjectLevelSerializer(serializers.ModelSerializer):
     class Meta:

@@ -6,8 +6,6 @@ from .views import (
     UserViewSet,
     StudentParentViewSet,
     StudentCuratorViewSet,
-    SubjectViewSet,
-    LevelViewSet,
     StudentSubjectLevelViewSet,
     MentorSubjectViewSet,
     me
@@ -17,8 +15,6 @@ router = DefaultRouter()
 router.register('users', UserViewSet)
 router.register('student-parents', StudentParentViewSet)
 router.register('student-curators', StudentCuratorViewSet)
-router.register('subjects', SubjectViewSet)
-router.register('levels', LevelViewSet)
 router.register('student-subject-levels', StudentSubjectLevelViewSet)
 router.register('mentor-subjects', MentorSubjectViewSet)
 

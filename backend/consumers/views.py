@@ -9,19 +9,16 @@ from .serializers import (
     CustomTokenObtainPairSerializer,
     StudentParentSerializer,
     StudentCuratorSerializer,
-    SubjectSerializer,
-    LevelSerializer,
     StudentSubjectLevelSerializer,
     MentorSubjectSerializer
 )
 from .models import (
     StudentParent,
     StudentCurator,
-    Subject,
-    Level,
     StudentSubjectLevel,
     MentorSubject
 )
+from lessons.models import Subject, Level
 
 User = get_user_model()
 
@@ -71,15 +68,7 @@ class StudentCuratorViewSet(viewsets.ModelViewSet):
             return StudentCurator.objects.filter(student=self.request.user)
         return super().get_queryset()
 
-class SubjectViewSet(viewsets.ModelViewSet):
-    queryset = Subject.objects.all()
-    serializer_class = SubjectSerializer
-    permission_classes = [IsAuthenticated]
 
-class LevelViewSet(viewsets.ModelViewSet):
-    queryset = Level.objects.all()
-    serializer_class = LevelSerializer
-    permission_classes = [IsAuthenticated]
 
 class StudentSubjectLevelViewSet(viewsets.ModelViewSet):
     queryset = StudentSubjectLevel.objects.all()

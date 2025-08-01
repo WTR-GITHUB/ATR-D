@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     # Local apps
 
     'consumers',
+    'lessons',
     
     # Third party apps
     'rest_framework',
