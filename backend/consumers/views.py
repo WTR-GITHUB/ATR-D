@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import get_user_model
 from .serializers import (
@@ -23,6 +24,13 @@ from .models import (
 )
 
 User = get_user_model()
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def me(request):
+    """Grąžina dabartinio vartotojo informaciją"""
+    serializer = UserSerializer(request.user)
+    return Response(serializer.data)
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer

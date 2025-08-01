@@ -21,6 +21,7 @@ interface AuthActions {
   setError: (error: string | null) => void;
   setLoading: (loading: boolean) => void;
   clearError: () => void;
+  initializeAuth: () => Promise<void>;
 }
 
 type AuthStore = AuthState & AuthActions;
@@ -50,24 +51,38 @@ export const useAuth = create<AuthStore>()(
             localStorage.setItem('refresh_token', refresh);
           }
           
-          // Decode token to get user info (simplified)
-          const user = {
-            id: 0, // Will be fetched from backend
-            email: credentials.email,
-            first_name: '',
-            last_name: '',
-            role: 'student' as const,
-            is_active: true,
-            date_joined: new Date().toISOString(),
-          };
-          
-          set({
-            user,
-            token: access,
-            refreshToken: refresh,
-            isAuthenticated: true,
-            isLoading: false,
-          });
+          // Fetch user data from backend
+          try {
+            const userResponse = await authAPI.me();
+            const user = userResponse.data;
+            
+            set({
+              user,
+              token: access,
+              refreshToken: refresh,
+              isAuthenticated: true,
+              isLoading: false,
+            });
+          } catch (userError: any) {
+            // If fetching user data fails, use basic info from login
+            const user = {
+              id: 0,
+              email: credentials.email,
+              first_name: '',
+              last_name: '',
+              role: 'student' as const,
+              is_active: true,
+              date_joined: new Date().toISOString(),
+            };
+            
+            set({
+              user,
+              token: access,
+              refreshToken: refresh,
+              isAuthenticated: true,
+              isLoading: false,
+            });
+          }
         } catch (error: any) {
           set({
             error: error.response?.data?.detail || 'Login failed',
@@ -107,6 +122,40 @@ export const useAuth = create<AuthStore>()(
 
       clearError: () => {
         set({ error: null });
+      },
+
+      // Initialize user data from stored token
+      initializeAuth: async () => {
+        if (typeof window !== 'undefined') {
+          const token = localStorage.getItem('access_token');
+          if (token) {
+            try {
+              const userResponse = await authAPI.me();
+              const user = userResponse.data;
+              
+              set({
+                user,
+                token,
+                refreshToken: localStorage.getItem('refresh_token'),
+                isAuthenticated: true,
+                isLoading: false,
+              });
+            } catch (error) {
+              // Token is invalid, clear storage
+              localStorage.removeItem('access_token');
+              localStorage.removeItem('refresh_token');
+              set({
+                user: null,
+                token: null,
+                refreshToken: null,
+                isAuthenticated: false,
+                isLoading: false,
+              });
+            }
+          } else {
+            set({ isLoading: false });
+          }
+        }
       },
     }),
     {

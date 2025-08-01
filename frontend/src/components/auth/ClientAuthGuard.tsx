@@ -15,8 +15,13 @@ export default function ClientAuthGuard({
   requireAuth = true, 
   allowedRoles = [] 
 }: ClientAuthGuardProps) {
-  const { isAuthenticated, user, isLoading } = useAuth();
+  const { isAuthenticated, user, isLoading, initializeAuth } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    // Initialize auth on component mount
+    initializeAuth();
+  }, [initializeAuth]);
 
   useEffect(() => {
     if (isLoading) return; // Palaukti kol autentifikacija užsikraus

@@ -6,6 +6,24 @@ import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/ui/Button';
 import { User, LogOut, Menu } from 'lucide-react';
 
+// Funkcija rolių pavadinimams gauti
+const getRoleDisplayName = (role: string): string => {
+  switch (role) {
+    case 'admin':
+      return 'Administratorius';
+    case 'student':
+      return 'Studentas';
+    case 'parent':
+      return 'Tėvas';
+    case 'curator':
+      return 'Kuratorius';
+    case 'mentor':
+      return 'Mentorius';
+    default:
+      return 'A-DIENYNAS';
+  }
+};
+
 const Header: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
 
@@ -20,51 +38,80 @@ const Header: React.FC = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="text-xl font-bold text-gray-900">
-              A-DIENYNAS
+              {isAuthenticated && user ? getRoleDisplayName(user.role) : 'A-DIENYNAS'}
             </Link>
           </div>
 
           {/* Navigation */}
           <nav className="hidden md:flex space-x-8">
-            {isAuthenticated && (
+            {isAuthenticated && user && (
               <>
-                <Link
-                  href="/dashboard"
-                  className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href="/dashboard/students"
-                  className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Students
-                </Link>
-                <Link
-                  href="/dashboard/parents"
-                  className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Parents
-                </Link>
-                <Link
-                  href="/dashboard/curators"
-                  className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Curators
-                </Link>
-                <Link
-                  href="/dashboard/mentors"
-                  className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Mentors
-                </Link>
-                {user?.role === 'admin' && (
-                  <Link
-                    href="/admin"
-                    className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
-                  >
-                    Admin
-                  </Link>
+                {user.role === 'mentor' ? (
+                  // Mentorius meniu
+                  <>
+                    <Link
+                      href="/dashboard/mentors"
+                      className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                    >
+                      Darbastalis
+                    </Link>
+                    <Link
+                      href="/dashboard/mentors/lessons"
+                      className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                    >
+                      Pamokos
+                    </Link>
+                    <Link
+                      href="/dashboard/mentors/curriculum"
+                      className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                    >
+                      Ugdymo planai
+                    </Link>
+                  </>
+                ) : user.role === 'admin' ? (
+                  // Admin meniu
+                  <>
+                    <Link
+                      href="/admin"
+                      className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                    >
+                      Admin
+                    </Link>
+                  </>
+                ) : (
+                  // Kiti vartotojai - bendras meniu
+                  <>
+                    <Link
+                      href="/dashboard"
+                      className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                    >
+                      Dashboard
+                    </Link>
+                    <Link
+                      href="/dashboard/students"
+                      className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                    >
+                      Students
+                    </Link>
+                    <Link
+                      href="/dashboard/parents"
+                      className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                    >
+                      Parents
+                    </Link>
+                    <Link
+                      href="/dashboard/curators"
+                      className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                    >
+                      Curators
+                    </Link>
+                    <Link
+                      href="/dashboard/mentors"
+                      className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                    >
+                      Mentors
+                    </Link>
+                  </>
                 )}
               </>
             )}

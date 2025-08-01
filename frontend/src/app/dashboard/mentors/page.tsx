@@ -102,7 +102,7 @@ export default function MentorsDashboardPage() {
           Sveiki, {user?.first_name} {user?.last_name}!
         </h1>
         <p className="text-gray-600 mt-2">
-          Jūsų mentoriaus dashboard - {new Date().toLocaleDateString('lt-LT')}
+          Jūsų darbastalis - {new Date().toLocaleDateString('lt-LT')}
         </p>
       </div>
 

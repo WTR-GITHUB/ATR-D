@@ -9,7 +9,8 @@ from .views import (
     SubjectViewSet,
     LevelViewSet,
     StudentSubjectLevelViewSet,
-    MentorSubjectViewSet
+    MentorSubjectViewSet,
+    me
 )
 
 router = DefaultRouter()
@@ -25,4 +26,5 @@ urlpatterns = [
     path('', include(router.urls)),
     path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('me/', me, name='me'),
 ] 
