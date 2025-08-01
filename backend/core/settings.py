@@ -42,9 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     # Local apps
-
-    'consumers',
-    'lessons',
+    'crm',
+    
     
     # Third party apps
     'rest_framework',
@@ -191,4 +190,4 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Custom user model
-AUTH_USER_MODEL = 'consumers.User'
+AUTH_USER_MODEL = 'crm.User'
