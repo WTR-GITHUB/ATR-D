@@ -18,6 +18,7 @@ from .serializers import (
     ComponentSerializer,
     SkillSerializer,
     CompetencySerializer,
+    CompetencyAtcheveSerializer,
     VirtueSerializer,
     FocusSerializer,
     LessonSerializer
@@ -35,6 +36,7 @@ from .models import (
     Component,
     Skill,
     Competency,
+    CompetencyAtcheve,
     Virtue,
     Focus,
     Lesson
@@ -193,6 +195,13 @@ class SkillViewSet(viewsets.ModelViewSet):
     serializer_class = SkillSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        queryset = Skill.objects.all()
+        subject_id = self.request.query_params.get('subject_id', None)
+        if subject_id is not None:
+            queryset = queryset.filter(subject_id=subject_id)
+        return queryset
+
 class CompetencyViewSet(viewsets.ModelViewSet):
     """
     Kompetencijų viewset - valdo mokinių kompetencijų informaciją
@@ -200,6 +209,21 @@ class CompetencyViewSet(viewsets.ModelViewSet):
     queryset = Competency.objects.all()
     serializer_class = CompetencySerializer
     permission_classes = [IsAuthenticated]
+
+class CompetencyAtcheveViewSet(viewsets.ModelViewSet):
+    """
+    Kompetencijų pasiekimų viewset - valdo kompetencijų pasiekimų informaciją
+    """
+    queryset = CompetencyAtcheve.objects.all()
+    serializer_class = CompetencyAtcheveSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        queryset = CompetencyAtcheve.objects.all()
+        subject_id = self.request.query_params.get('subject_id', None)
+        if subject_id is not None:
+            queryset = queryset.filter(subject_id=subject_id)
+        return queryset
 
 class VirtueViewSet(viewsets.ModelViewSet):
     """

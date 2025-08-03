@@ -15,6 +15,7 @@ from .views import (
     ComponentViewSet,
     SkillViewSet,
     CompetencyViewSet,
+    CompetencyAtcheveViewSet,
     VirtueViewSet,
     FocusViewSet,
     LessonViewSet,
@@ -39,6 +40,7 @@ router.register('objectives', ObjectiveViewSet)
 router.register('components', ComponentViewSet)
 router.register('skills', SkillViewSet)
 router.register('competencies', CompetencyViewSet)
+router.register('competency-atcheves', CompetencyAtcheveViewSet)
 router.register('virtues', VirtueViewSet)
 router.register('focus', FocusViewSet)
 router.register('lessons', LessonViewSet, basename='lesson')

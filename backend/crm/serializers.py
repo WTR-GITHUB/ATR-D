@@ -14,6 +14,7 @@ from .models import (
     Component,
     Skill,
     Competency,
+    CompetencyAtcheve,
     Virtue,
     Focus,
     Lesson
@@ -146,6 +147,8 @@ class SkillSerializer(serializers.ModelSerializer):
     """
     Gebėjimų serializeris
     """
+    subject_name = serializers.CharField(source='subject.name', read_only=True)
+    
     class Meta:
         model = Skill
         fields = '__all__'
@@ -157,6 +160,31 @@ class CompetencySerializer(serializers.ModelSerializer):
     class Meta:
         model = Competency
         fields = '__all__'
+
+class CompetencyAtcheveSerializer(serializers.ModelSerializer):
+    """
+    Kompetencijų pasiekimų serializeris
+    """
+    competency_name = serializers.CharField(source='competency.name', read_only=True)
+    subject_name = serializers.CharField(source='subject.name', read_only=True)
+    virtues_names = serializers.SerializerMethodField()
+    todos_list = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = CompetencyAtcheve
+        fields = '__all__'
+    
+    def get_virtues_names(self, obj):
+        return [v.name for v in obj.virtues.all()]
+    
+    def get_todos_list(self, obj):
+        if obj.todos:
+            try:
+                import json
+                return json.loads(obj.todos)
+            except:
+                return []
+        return []
 
 class VirtueSerializer(serializers.ModelSerializer):
     """
@@ -190,6 +218,13 @@ class LessonSerializer(serializers.ModelSerializer):
     competencies_list = serializers.SerializerMethodField()
     virtues_names = serializers.SerializerMethodField()
     focus_list = serializers.SerializerMethodField()
+    # Pasiekimo lygiai
+    slenkstinis = serializers.CharField(required=False, allow_blank=True)
+    bazinis = serializers.CharField(required=False, allow_blank=True)
+    pagrindinis = serializers.CharField(required=False, allow_blank=True)
+    aukstesnysis = serializers.CharField(required=False, allow_blank=True)
+    # Kompetencijos pasiekimas
+    competency_atcheve_name = serializers.CharField(source='competency_atcheve.competency.name', read_only=True)
 
     class Meta:
         model = Lesson

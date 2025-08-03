@@ -374,30 +374,32 @@ class Skill(models.Model):
     """
     Gebėjimų modelis - mokinių gebėjimai ir įgūdžiai
     """
-    name = models.CharField(max_length=255, unique=True, verbose_name="Pavadinimas")
+    code = models.CharField(max_length=50, unique=True, verbose_name="Sutrumpintas kodas", null=True, blank=True)
+    name = models.CharField(max_length=255, verbose_name="Pavadinimas")
     description = models.TextField(blank=True, verbose_name="Aprašymas")
-    
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, verbose_name="Dalykas", null=True, blank=True)
+
     class Meta:
         verbose_name = "Gebėjimas"
         verbose_name_plural = "Gebėjimai"
         ordering = ['name']
-    
+
     def __str__(self):
-        return self.name
+        return f"{self.code} - {self.name}"
 
 # Competency Model
 class Competency(models.Model):
     """
     Kompetencijų modelis - mokinių kompetencijos
     """
-    name = models.CharField(max_length=255, unique=True, verbose_name="Pavadinimas")
+    name = models.CharField(max_length=255, verbose_name="Kompetencijos pavadinimas")
     description = models.TextField(blank=True, verbose_name="Aprašymas")
-    
+
     class Meta:
         verbose_name = "Kompetencija"
         verbose_name_plural = "Kompetencijos"
         ordering = ['name']
-    
+
     def __str__(self):
         return self.name
 
@@ -416,6 +418,22 @@ class Virtue(models.Model):
     
     def __str__(self):
         return self.name
+
+class CompetencyAtcheve(models.Model):
+    """
+    Kompetencijų pasiekimų modelis - apibrėžia kompetencijų pasiekimo veiksmus
+    """
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, verbose_name="Dalykas", null=True, blank=True)
+    competency = models.ForeignKey(Competency, on_delete=models.CASCADE, verbose_name="Kompetencija")
+    virtues = models.ManyToManyField(Virtue, verbose_name="Dorybės")
+    todos = models.TextField(blank=True, verbose_name="Todo sąrašas", help_text="Veiksmai, kuriuos reikia atlikti")
+
+    class Meta:
+        verbose_name = "Kompetencijos pasiekimas"
+        verbose_name_plural = "Kompetencijų pasiekimai"
+
+    def __str__(self):
+        return f"{self.competency.name} - {', '.join([v.name for v in self.virtues.all()])}"
 
 # Focus Model
 class Focus(models.Model):
@@ -493,6 +511,34 @@ class Lesson(models.Model):
         blank=True,
         verbose_name="Dėmesio kryptys",
         help_text="Dėmesio kryptys JSON formatu"
+    )
+    # Pasiekimo lygiai su procentais
+    slenkstinis = models.TextField(
+        blank=True,
+        verbose_name="Slenkstinis lygis (54%)",
+        help_text="Slenkstinio lygio reikalavimai"
+    )
+    bazinis = models.TextField(
+        blank=True,
+        verbose_name="Bazinis lygis (74%)",
+        help_text="Bazinio lygio reikalavimai"
+    )
+    pagrindinis = models.TextField(
+        blank=True,
+        verbose_name="Pagrindinis lygis (84%)",
+        help_text="Pagrindinio lygio reikalavimai"
+    )
+    aukstesnysis = models.TextField(
+        blank=True,
+        verbose_name="Aukštesnysis lygis (100%)",
+        help_text="Aukštesniojo lygio reikalavimai"
+    )
+    competency_atcheve = models.ForeignKey(
+        'CompetencyAtcheve', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        verbose_name="Kompetencijos pasiekimas"
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Sukurta")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atnaujinta")
