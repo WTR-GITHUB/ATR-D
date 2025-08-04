@@ -14,8 +14,8 @@ from .models import (
     Component,
     Skill,
     Competency,
+    CompetencyAtcheve,
     Virtue,
-    Focus,
     Lesson
 )
 
@@ -137,8 +137,9 @@ class SkillAdmin(admin.ModelAdmin):
     """
     Gebėjimų administravimo klasė
     """
-    list_display = ('name', 'description')
-    search_fields = ('name',)
+    list_display = ('code', 'name', 'subject', 'description')
+    list_filter = ('subject',)
+    search_fields = ('name', 'code', 'subject__name')
     ordering = ('name',)
 
 @admin.register(Competency)
@@ -150,6 +151,32 @@ class CompetencyAdmin(admin.ModelAdmin):
     search_fields = ('name',)
     ordering = ('name',)
 
+@admin.register(CompetencyAtcheve)
+class CompetencyAtcheveAdmin(admin.ModelAdmin):
+    """
+    BUP Kompetencijų administravimo klasė
+    """
+    list_display = ('competency', 'subject', 'virtues_display', 'todos_display')
+    list_filter = ('subject', 'competency')
+    search_fields = ('competency__name', 'subject__name')
+    filter_horizontal = ('virtues',)
+    ordering = ('competency__name',)
+    
+    def virtues_display(self, obj):
+        """Rodo dorybių sąrašą"""
+        return ', '.join([virtue.name for virtue in obj.virtues.all()])
+    virtues_display.short_description = 'Dorybės'
+    
+    def todos_display(self, obj):
+        """Rodo todo sąrašą"""
+        try:
+            import json
+            todos = json.loads(obj.todos) if obj.todos else []
+            return ', '.join(todos) if isinstance(todos, list) else obj.todos
+        except:
+            return obj.todos or '-'
+    todos_display.short_description = 'Todo sąrašas'
+
 @admin.register(Virtue)
 class VirtueAdmin(admin.ModelAdmin):
     """
@@ -159,14 +186,7 @@ class VirtueAdmin(admin.ModelAdmin):
     search_fields = ('name',)
     ordering = ('name',)
 
-@admin.register(Focus)
-class FocusAdmin(admin.ModelAdmin):
-    """
-    Dėmesio krypčių administravimo klasė
-    """
-    list_display = ('name', 'description')
-    search_fields = ('name',)
-    ordering = ('name',)
+
 
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
@@ -176,6 +196,6 @@ class LessonAdmin(admin.ModelAdmin):
     list_display = ('title', 'mentor', 'subject', 'created_at')
     list_filter = ('subject', 'mentor__role', 'created_at')
     search_fields = ('title', 'mentor__email', 'mentor__first_name', 'subject__name')
-    filter_horizontal = ('levels', 'virtues')
+    filter_horizontal = ('levels', 'virtues', 'skills', 'competency_atcheves')
     readonly_fields = ('created_at', 'updated_at')
     ordering = ('-created_at',)

@@ -16,7 +16,6 @@ from .models import (
     Competency,
     CompetencyAtcheve,
     Virtue,
-    Focus,
     Lesson
 )
 
@@ -192,14 +191,6 @@ class VirtueSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = Virtue
-        fields = '__all__'
-
-class FocusSerializer(serializers.ModelSerializer):
-    """
-    Dėmesio krypčių serializeris
-    """
-    class Meta:
-        model = Focus
         fields = '__all__'
 
 import json

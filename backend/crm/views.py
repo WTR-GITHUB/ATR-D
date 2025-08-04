@@ -20,7 +20,6 @@ from .serializers import (
     CompetencySerializer,
     CompetencyAtcheveSerializer,
     VirtueSerializer,
-    FocusSerializer,
     LessonSerializer
 )
 from .models import (
@@ -38,7 +37,6 @@ from .models import (
     Competency,
     CompetencyAtcheve,
     Virtue,
-    Focus,
     Lesson
 )
 
@@ -231,14 +229,6 @@ class VirtueViewSet(viewsets.ModelViewSet):
     """
     queryset = Virtue.objects.all()
     serializer_class = VirtueSerializer
-    permission_classes = [IsAuthenticated]
-
-class FocusViewSet(viewsets.ModelViewSet):
-    """
-    Dėmesio krypčių viewset - valdo pamokų dėmesio krypčių informaciją
-    """
-    queryset = Focus.objects.all()
-    serializer_class = FocusSerializer
     permission_classes = [IsAuthenticated]
 
 class LessonViewSet(viewsets.ModelViewSet):

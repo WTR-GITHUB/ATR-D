@@ -421,7 +421,7 @@ class Virtue(models.Model):
 
 class CompetencyAtcheve(models.Model):
     """
-    Kompetencijų pasiekimų modelis - apibrėžia kompetencijų pasiekimo veiksmus
+    BUP Kompetencijų modelis - apibrėžia kompetencijų pasiekimo veiksmus
     """
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, verbose_name="Dalykas", null=True, blank=True)
     competency = models.ForeignKey(Competency, on_delete=models.CASCADE, verbose_name="Kompetencija")
@@ -429,27 +429,13 @@ class CompetencyAtcheve(models.Model):
     todos = models.TextField(blank=True, verbose_name="Todo sąrašas", help_text="Veiksmai, kuriuos reikia atlikti")
 
     class Meta:
-        verbose_name = "Kompetencijos pasiekimas"
-        verbose_name_plural = "Kompetencijų pasiekimai"
+        verbose_name = "BUP Kompetencija"
+        verbose_name_plural = "BUP Kompetencijos"
 
     def __str__(self):
         return f"{self.competency.name} - {', '.join([v.name for v in self.virtues.all()])}"
 
-# Focus Model
-class Focus(models.Model):
-    """
-    Dėmesio krypčių modelis - pamokų dėmesio kryptys
-    """
-    name = models.CharField(max_length=255, unique=True, verbose_name="Pavadinimas")
-    description = models.TextField(blank=True, verbose_name="Aprašymas")
-    
-    class Meta:
-        verbose_name = "Dėmesio kryptis"
-        verbose_name_plural = "Dėmesio kryptys"
-        ordering = ['name']
-    
-    def __str__(self):
-        return self.name
+
 
 # Lesson Model
 class Lesson(models.Model):
@@ -509,8 +495,8 @@ class Lesson(models.Model):
     )
     focus = models.TextField(
         blank=True,
-        verbose_name="Dėmesio kryptys",
-        help_text="Dėmesio kryptys JSON formatu"
+        verbose_name="Fokusas veiksmai",
+        help_text="Fokusas veiksmai JSON formatu"
     )
     # Pasiekimo lygiai su procentais
     slenkstinis = models.TextField(
@@ -536,7 +522,7 @@ class Lesson(models.Model):
     competency_atcheves = models.ManyToManyField(
         'CompetencyAtcheve', 
         blank=True,
-        verbose_name="Kompetencijos pasiekimai"
+        verbose_name="BUP Kompetencijos"
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Sukurta")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atnaujinta")

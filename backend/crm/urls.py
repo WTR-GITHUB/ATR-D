@@ -17,7 +17,6 @@ from .views import (
     CompetencyViewSet,
     CompetencyAtcheveViewSet,
     VirtueViewSet,
-    FocusViewSet,
     LessonViewSet,
     me
 )
@@ -42,7 +41,7 @@ router.register('skills', SkillViewSet)
 router.register('competencies', CompetencyViewSet)
 router.register('competency-atcheves', CompetencyAtcheveViewSet)
 router.register('virtues', VirtueViewSet)
-router.register('focus', FocusViewSet)
+
 router.register('lessons', LessonViewSet, basename='lesson')
 
 # URL patterns - apibrėžia visus API endpoint'us
