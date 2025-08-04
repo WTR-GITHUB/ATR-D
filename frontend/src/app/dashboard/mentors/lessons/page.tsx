@@ -163,12 +163,14 @@ export default function MentorLessonsPage() {
               </div>
             </button>
             
-            <button className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center space-x-3">
-                <Users className="w-5 h-5 text-purple-600" />
-                <span className="text-sm font-medium">Studentų sąrašas</span>
-              </div>
-            </button>
+            <Link href="/dashboard/mentors/students" className="block">
+              <button className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors w-full">
+                <div className="flex items-center space-x-3">
+                  <Users className="w-5 h-5 text-purple-600" />
+                  <span className="text-sm font-medium">Studentų sąrašas</span>
+                </div>
+              </button>
+            </Link>
           </div>
         </CardContent>
       </Card>

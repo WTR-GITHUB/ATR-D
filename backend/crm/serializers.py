@@ -78,11 +78,20 @@ class StudentCuratorSerializer(serializers.ModelSerializer):
 
 class StudentSubjectLevelSerializer(serializers.ModelSerializer):
     """
-    Mokinio dalyko lygio serializeris
+    Mokinio dalyko lygio serializeris - valdo mokinių dalykų ir lygių duomenų serializavimą
     """
+    student_name = serializers.CharField(source='student.get_full_name', read_only=True)
+    student_email = serializers.CharField(source='student.email', read_only=True)
+    subject_name = serializers.CharField(source='subject.name', read_only=True)
+    level_name = serializers.CharField(source='level.name', read_only=True)
+    
     class Meta:
         model = StudentSubjectLevel
-        fields = '__all__'
+        fields = [
+            'id', 'student', 'subject', 'level', 'created_at', 'updated_at',
+            'student_name', 'student_email', 'subject_name', 'level_name'
+        ]
+        read_only_fields = ('created_at', 'updated_at')
 
 class MentorSubjectSerializer(serializers.ModelSerializer):
     """

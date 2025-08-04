@@ -361,3 +361,5 @@ uploads/
 # Static files (if needed)
 static/
 staticfiles/ 
+
+ADITIONAL/
