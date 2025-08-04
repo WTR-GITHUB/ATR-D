@@ -15,13 +15,17 @@ interface ReactDataTableProps {
   columns: Column[];
   title?: string;
   itemsPerPage?: number;
+  showFilters?: boolean;
+  filterableColumns?: string[];
 }
 
 const ReactDataTable: React.FC<ReactDataTableProps> = ({ 
   data, 
   columns, 
   title = "Duomenų lentelė",
-  itemsPerPage = 100 
+  itemsPerPage = 100,
+  showFilters = true,
+  filterableColumns
 }) => {
   const [filters, setFilters] = useState<{ [key: string]: string }>({});
   const [currentPage, setCurrentPage] = useState(1);
@@ -108,35 +112,39 @@ const ReactDataTable: React.FC<ReactDataTableProps> = ({
       </CardHeader>
       <CardContent>
         {/* Filtravimo laukeliai */}
-        <div className="filter-container mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-          <div className="filter-row flex items-end gap-4">
-            {columns.map((column, index) => (
-              <div key={index} className="flex-1 min-w-[150px]">
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  {column.title}
-                </label>
-                <input
-                  type="text"
-                  placeholder={`Ieškoti ${column.title}`}
-                  value={filters[column.data] || ''}
-                  onChange={(e) => handleFilterChange(column.data, e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                />
+        {showFilters && (
+          <div className="filter-container mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <div className="filter-row flex items-end gap-4">
+              {columns
+                .filter(column => !filterableColumns || filterableColumns.includes(column.data))
+                .map((column, index) => (
+                <div key={index} className="flex-1 min-w-[150px]">
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    {column.title}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={`Ieškoti ${column.title}`}
+                    value={filters[column.data] || ''}
+                    onChange={(e) => handleFilterChange(column.data, e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  />
+                </div>
+              ))}
+              
+              {/* Išvalyti mygtukas */}
+              <div className="flex-shrink-0">
+                <div className="h-6"></div>
+                <button
+                  onClick={clearFilters}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors text-sm whitespace-nowrap"
+                >
+                  Išvalyti
+                </button>
               </div>
-            ))}
-            
-            {/* Išvalyti mygtukas */}
-            <div className="flex-shrink-0">
-              <div className="h-6"></div>
-              <button
-                onClick={clearFilters}
-                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors text-sm whitespace-nowrap"
-              >
-                Išvalyti
-              </button>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Lentelė */}
         <div className="overflow-x-auto">
@@ -169,7 +177,9 @@ const ReactDataTable: React.FC<ReactDataTableProps> = ({
               {paginatedData.map((row, rowIndex) => (
                 <tr
                   key={rowIndex}
-                  className="border-b border-gray-200 hover:bg-gray-50"
+                  className={`border-b border-gray-200 hover:bg-gray-50 ${
+                    rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                  }`}
                 >
                   {columns.map((column, colIndex) => (
                     <td

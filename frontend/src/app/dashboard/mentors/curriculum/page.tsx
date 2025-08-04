@@ -3,7 +3,7 @@
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { GraduationCap, BookOpen, Calendar, Target } from 'lucide-react';
+import { GraduationCap, BookOpen, Calendar, Target, Plus, Users, Edit } from 'lucide-react';
 
 export default function MentorCurriculumPage() {
   const { user } = useAuth();
@@ -19,22 +19,22 @@ export default function MentorCurriculumPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
               <div className="flex items-center space-x-3">
-                <GraduationCap className="w-5 h-5 text-blue-600" />
-                <span className="text-sm font-medium">Sukurti naują ugdymo planą</span>
+                <Plus className="w-5 h-5 text-blue-600" />
+                <span className="text-sm font-medium">Sukurti ugdymo planą</span>
               </div>
             </button>
             
             <button className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
               <div className="flex items-center space-x-3">
-                <BookOpen className="w-5 h-5 text-green-600" />
-                <span className="text-sm font-medium">Dalykų sąrašas</span>
+                <Users className="w-5 h-5 text-green-600" />
+                <span className="text-sm font-medium">Priskirti ugdymo planą</span>
               </div>
             </button>
             
             <button className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
               <div className="flex items-center space-x-3">
-                <Target className="w-5 h-5 text-purple-600" />
-                <span className="text-sm font-medium">Tikslų valdymas</span>
+                <Edit className="w-5 h-5 text-purple-600" />
+                <span className="text-sm font-medium">Koreguoti priskirtą ugdymo planą</span>
               </div>
             </button>
           </div>
