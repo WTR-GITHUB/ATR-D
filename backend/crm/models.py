@@ -492,10 +492,10 @@ class Lesson(models.Model):
         verbose_name="Komponentai",
         help_text="Komponentai JSON formatu"
     )
-    skills = models.TextField(
+    skills = models.ManyToManyField(
+        Skill, 
         blank=True,
-        verbose_name="Gebėjimai",
-        help_text="Gebėjimai JSON formatu"
+        verbose_name="Gebėjimai"
     )
     competencies = models.TextField(
         blank=True,
@@ -533,12 +533,10 @@ class Lesson(models.Model):
         verbose_name="Aukštesnysis lygis (100%)",
         help_text="Aukštesniojo lygio reikalavimai"
     )
-    competency_atcheve = models.ForeignKey(
+    competency_atcheves = models.ManyToManyField(
         'CompetencyAtcheve', 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        verbose_name="Kompetencijos pasiekimas"
+        blank=True,
+        verbose_name="Kompetencijos pasiekimai"
     )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Sukurta")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atnaujinta")
