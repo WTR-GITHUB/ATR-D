@@ -24,6 +24,16 @@ const getRoleDisplayName = (role: string): string => {
   }
 };
 
+// Funkcija rolių sąrašui gauti
+const getRolesDisplayNames = (roles: string[]): string => {
+  return roles.map(getRoleDisplayName).join(', ');
+};
+
+// Funkcija patikrinti, ar vartotojas turi role
+const hasRole = (roles: string[], role: string): boolean => {
+  return roles.includes(role);
+};
+
 const Header: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
 
@@ -38,7 +48,7 @@ const Header: React.FC = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="text-xl font-bold text-gray-900">
-              {isAuthenticated && user ? getRoleDisplayName(user.role) : 'A-DIENYNAS'}
+              {isAuthenticated && user ? getRolesDisplayNames(user.roles) : 'A-DIENYNAS'}
             </Link>
           </div>
 
@@ -46,8 +56,8 @@ const Header: React.FC = () => {
           <nav className="hidden md:flex space-x-8">
             {isAuthenticated && user && (
               <>
-                {user.role === 'mentor' ? (
-                  // Mentorius meniu
+                {/* Mentorius meniu */}
+                {hasRole(user.roles, 'mentor') && (
                   <>
                     <Link
                       href="/dashboard/mentors"
@@ -68,8 +78,10 @@ const Header: React.FC = () => {
                       Ugdymo planai
                     </Link>
                   </>
-                ) : user.role === 'admin' ? (
-                  // Admin meniu
+                )}
+                
+                {/* Admin meniu */}
+                {hasRole(user.roles, 'admin') && (
                   <>
                     <Link
                       href="/admin"
@@ -78,8 +90,10 @@ const Header: React.FC = () => {
                       Admin
                     </Link>
                   </>
-                ) : (
-                  // Kiti vartotojai - bendras meniu
+                )}
+                
+                {/* Kiti vartotojai - bendras meniu */}
+                {!hasRole(user.roles, 'mentor') && !hasRole(user.roles, 'admin') && (
                   <>
                     <Link
                       href="/dashboard"

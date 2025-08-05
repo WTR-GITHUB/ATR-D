@@ -3,7 +3,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { authAPI } from '@/lib/api';
-import { User, LoginCredentials, AuthResponse } from '@/lib/types';
+import { User, LoginCredentials, AuthResponse, UserRole } from '@/lib/types';
 
 interface AuthState {
   user: User | null;
@@ -70,7 +70,7 @@ export const useAuth = create<AuthStore>()(
               email: credentials.email,
               first_name: '',
               last_name: '',
-              role: 'student' as const,
+              roles: ['student'] as UserRole[],
               is_active: true,
               date_joined: new Date().toISOString(),
             };
@@ -104,6 +104,8 @@ export const useAuth = create<AuthStore>()(
           isAuthenticated: false,
           error: null,
         });
+        // Perkrauti puslapį į root po logout
+        window.location.href = '/';
       },
 
 

@@ -42,7 +42,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     # Local apps
+    'users',
     'crm',
+    'schedule',
+    'curriculum',
+    'grades',
     
     
     # Third party apps
@@ -50,6 +54,9 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
 ]
+
+# Custom User Model
+AUTH_USER_MODEL = 'users.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -188,6 +195,3 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Development 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
-
-# Custom user model
-AUTH_USER_MODEL = 'crm.User'

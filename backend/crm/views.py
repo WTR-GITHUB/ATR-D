@@ -3,74 +3,25 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.views import TokenObtainPairView
-from django.contrib.auth import get_user_model
 from .serializers import (
-    UserSerializer,
     CustomTokenObtainPairSerializer,
     StudentParentSerializer,
     StudentCuratorSerializer,
     StudentSubjectLevelSerializer,
-    MentorSubjectSerializer,
-    GradeSerializer,
-    SubjectSerializer,
-    LevelSerializer,
-    ObjectiveSerializer,
-    ComponentSerializer,
-    SkillSerializer,
-    CompetencySerializer,
-    CompetencyAtcheveSerializer,
-    VirtueSerializer,
-    LessonSerializer
+    MentorSubjectSerializer
 )
 from .models import (
-    User,
     StudentParent,
     StudentCurator,
     StudentSubjectLevel,
-    MentorSubject,
-    Grade,
-    Subject,
-    Level,
-    Objective,
-    Component,
-    Skill,
-    Competency,
-    CompetencyAtcheve,
-    Virtue,
-    Lesson
+    MentorSubject
 )
-
-# Authentication Views
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def me(request):
-    """
-    Dabartinio vartotojo informacijos endpoint'as - grąžina prisijungusio vartotojo duomenis
-    """
-    serializer = UserSerializer(request.user)
-    return Response(serializer.data)
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     """
     JWT token gavimo view - valdo prisijungimo procesą
     """
     serializer_class = CustomTokenObtainPairSerializer
-
-# User Views
-class UserViewSet(viewsets.ModelViewSet):
-    """
-    Vartotojų valdymo viewset - valdo vartotojų CRUD operacijas
-    """
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
-
-    def get_queryset(self):
-        queryset = User.objects.all()
-        role = self.request.query_params.get('role', None)
-        if role is not None:
-            queryset = queryset.filter(role=role)
-        return queryset
 
 # Relationship Views
 class StudentParentViewSet(viewsets.ModelViewSet):
@@ -82,9 +33,9 @@ class StudentParentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def get_queryset(self):
-        if self.request.user.role == User.Role.PARENT:
+        if self.request.user.has_role('parent'):
             return StudentParent.objects.filter(parent=self.request.user)
-        elif self.request.user.role == User.Role.STUDENT:
+        elif self.request.user.has_role('student'):
             return StudentParent.objects.filter(student=self.request.user)
         return super().get_queryset()
 
@@ -97,9 +48,9 @@ class StudentCuratorViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def get_queryset(self):
-        if self.request.user.role == User.Role.CURATOR:
+        if self.request.user.has_role('curator'):
             return StudentCurator.objects.filter(curator=self.request.user)
-        elif self.request.user.role == User.Role.STUDENT:
+        elif self.request.user.has_role('student'):
             return StudentCurator.objects.filter(student=self.request.user)
         return super().get_queryset()
 
@@ -112,7 +63,7 @@ class StudentSubjectLevelViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def get_queryset(self):
-        if self.request.user.role == User.Role.STUDENT:
+        if self.request.user.has_role('student'):
             return StudentSubjectLevel.objects.filter(student=self.request.user)
         return super().get_queryset()
 
@@ -125,130 +76,10 @@ class MentorSubjectViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def get_queryset(self):
-        if self.request.user.role == User.Role.MENTOR:
+        if self.request.user.has_role('mentor'):
             return MentorSubject.objects.filter(mentor=self.request.user)
         return super().get_queryset()
 
-class GradeViewSet(viewsets.ModelViewSet):
-    """
-    Pažymių viewset - valdo mokinių pažymių informaciją
-    """
-    serializer_class = GradeSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.role == 'mentor':
-            return Grade.objects.filter(mentor=user)
-        elif user.role == 'student':
-            return Grade.objects.filter(student=user)
-        elif user.role == 'admin':
-            return Grade.objects.all()
-        else:
-            return Grade.objects.none()
-
-    def perform_create(self, serializer):
-        serializer.save(mentor=self.request.user)
-
-# Lesson Components Views
-class SubjectViewSet(viewsets.ModelViewSet):
-    """
-    Dalykų viewset - valdo mokomų dalykų informaciją
-    """
-    queryset = Subject.objects.all()
-    serializer_class = SubjectSerializer
-    permission_classes = [IsAuthenticated]
-
-class LevelViewSet(viewsets.ModelViewSet):
-    """
-    Mokymo lygių viewset - valdo mokymo lygių informaciją
-    """
-    queryset = Level.objects.all()
-    serializer_class = LevelSerializer
-    permission_classes = [IsAuthenticated]
 
 
 
-class ObjectiveViewSet(viewsets.ModelViewSet):
-    """
-    Tikslų viewset - valdo pamokų tikslų informaciją
-    """
-    queryset = Objective.objects.all()
-    serializer_class = ObjectiveSerializer
-    permission_classes = [IsAuthenticated]
-
-class ComponentViewSet(viewsets.ModelViewSet):
-    """
-    Komponentų viewset - valdo pamokų komponentų informaciją
-    """
-    queryset = Component.objects.all()
-    serializer_class = ComponentSerializer
-    permission_classes = [IsAuthenticated]
-
-class SkillViewSet(viewsets.ModelViewSet):
-    """
-    Gebėjimų viewset - valdo mokinių gebėjimų informaciją
-    """
-    queryset = Skill.objects.all()
-    serializer_class = SkillSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        queryset = Skill.objects.all()
-        subject_id = self.request.query_params.get('subject_id', None)
-        if subject_id is not None:
-            queryset = queryset.filter(subject_id=subject_id)
-        return queryset
-
-class CompetencyViewSet(viewsets.ModelViewSet):
-    """
-    Kompetencijų viewset - valdo mokinių kompetencijų informaciją
-    """
-    queryset = Competency.objects.all()
-    serializer_class = CompetencySerializer
-    permission_classes = [IsAuthenticated]
-
-class CompetencyAtcheveViewSet(viewsets.ModelViewSet):
-    """
-    Kompetencijų pasiekimų viewset - valdo kompetencijų pasiekimų informaciją
-    """
-    queryset = CompetencyAtcheve.objects.all()
-    serializer_class = CompetencyAtcheveSerializer
-    permission_classes = [IsAuthenticated]
-    
-    def get_queryset(self):
-        queryset = CompetencyAtcheve.objects.all()
-        subject_id = self.request.query_params.get('subject_id', None)
-        if subject_id is not None:
-            queryset = queryset.filter(subject_id=subject_id)
-        return queryset
-
-class VirtueViewSet(viewsets.ModelViewSet):
-    """
-    Dorybių viewset - valdo ugdomų dorybių informaciją
-    """
-    queryset = Virtue.objects.all()
-    serializer_class = VirtueSerializer
-    permission_classes = [IsAuthenticated]
-
-class LessonViewSet(viewsets.ModelViewSet):
-    """
-    Pamokų viewset - valdo ugdymo planų šablonų informaciją
-    """
-    serializer_class = LessonSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.role == 'mentor':
-            return Lesson.objects.filter(mentor=user)
-        elif user.role == 'student':
-            # Studentai mato pamokas, kuriose dalyvauja
-            return Lesson.objects.filter(levels__in=user.subject_levels.values_list('level', flat=True))
-        elif user.role == 'admin':
-            return Lesson.objects.all()
-        else:
-            return Lesson.objects.none()
-
-    def perform_create(self, serializer):
-        serializer.save(mentor=self.request.user)
