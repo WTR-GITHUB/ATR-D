@@ -105,8 +105,7 @@ class LessonSerializer(serializers.ModelSerializer):
     topic_name = serializers.CharField(source='topic', read_only=True)
     title = serializers.CharField(required=True)
     topic = serializers.CharField(required=False, allow_blank=True)
-    description = serializers.CharField(required=False, allow_blank=True)
-    assessment_criteria = serializers.CharField(required=False, allow_blank=True)
+    content = serializers.CharField(required=False, allow_blank=True)
     levels_names = serializers.SerializerMethodField()
     objectives_list = serializers.SerializerMethodField()
     objectives = serializers.CharField(required=False, allow_blank=True)
@@ -114,8 +113,6 @@ class LessonSerializer(serializers.ModelSerializer):
     components = serializers.CharField(required=False, allow_blank=True)
     skills_list = serializers.SerializerMethodField()
     skills = serializers.PrimaryKeyRelatedField(many=True, queryset=Skill.objects.all(), required=False)
-    competencies_list = serializers.SerializerMethodField()
-    competencies = serializers.CharField(required=False, allow_blank=True)
     virtues_names = serializers.SerializerMethodField()
     focus_list = serializers.SerializerMethodField()
     focus = serializers.CharField(required=False, allow_blank=True)
@@ -135,15 +132,15 @@ class LessonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lesson
         fields = [
-            'id', 'title', 'topic', 'description', 'assessment_criteria',
-            'objectives', 'components', 'skills', 'competencies', 'focus',
+            'id', 'title', 'topic', 'content',
+            'objectives', 'components', 'skills', 'focus',
             'slenkstinis', 'bazinis', 'pagrindinis', 'aukstesnysis',
             'subject', 'mentor', 'competency_atcheves', 'virtues', 'levels',
             'created_at', 'updated_at',
             # Read-only fields for display
             'mentor_name', 'subject_name', 'topic_name',
             'levels_names', 'objectives_list', 'components_list',
-            'skills_list', 'competencies_list', 'virtues_names',
+            'skills_list', 'virtues_names',
             'focus_list', 'competency_atcheve_name'
         ]
         read_only_fields = ('created_at', 'updated_at')
@@ -169,14 +166,6 @@ class LessonSerializer(serializers.ModelSerializer):
 
     def get_skills_list(self, obj):
         return [skill.id for skill in obj.skills.all()]
-
-    def get_competencies_list(self, obj):
-        if obj.competencies:
-            try:
-                return json.loads(obj.competencies)
-            except:
-                return []
-        return []
 
     def get_virtues_names(self, obj):
         return [virtue.name for virtue in obj.virtues.all()]

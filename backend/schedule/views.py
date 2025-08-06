@@ -76,9 +76,20 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         """
         from datetime import datetime, timedelta
         
-        # Gauname savaitės pradžią (pirmadienis)
-        today = datetime.now().date()
-        week_start = today - timedelta(days=today.weekday())
+        # Gauname savaitės pradžią iš parametro arba einamą savaitę
+        week_start_param = request.query_params.get('week_start')
+        if week_start_param:
+            try:
+                week_start = datetime.strptime(week_start_param, '%Y-%m-%d').date()
+            except ValueError:
+                return Response(
+                    {'error': 'Neteisingas datos formatas. Naudokite YYYY-MM-DD'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        else:
+            # Gauname savaitės pradžią (pirmadienis)
+            today = datetime.now().date()
+            week_start = today - timedelta(days=today.weekday())
         
         # Filtruojame pagal vartotojo roles
         queryset = self.get_queryset()

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Period, Classroom, GlobalSchedule
+from curriculum.models import Subject, Level, Lesson
 
 
 class PeriodSerializer(serializers.ModelSerializer):
@@ -25,19 +26,21 @@ class GlobalScheduleSerializer(serializers.ModelSerializer):
     """
     Globalaus tvarkaraščio serializeris - valdo tvarkaraščio duomenų serializavimą
     """
+    # Pilni objektai su visais laukais
+    period = serializers.SerializerMethodField()
+    level = serializers.SerializerMethodField()
+    user = serializers.SerializerMethodField()
+    subject = serializers.SerializerMethodField()
+    classroom = serializers.SerializerMethodField()
+    lesson = serializers.SerializerMethodField()
+    
+    # Papildomi laukai
     period_name = serializers.CharField(source='period.__str__', read_only=True)
     classroom_name = serializers.CharField(source='classroom.name', read_only=True)
     subject_name = serializers.CharField(source='subject.name', read_only=True)
     level_name = serializers.CharField(source='level.name', read_only=True)
-    lesson_title = serializers.CharField(source='lesson.title', read_only=True)
+    lesson_title = serializers.CharField(source='lesson.title', read_only=True, allow_null=True)
     mentor_name = serializers.CharField(source='user.get_full_name', read_only=True)
-    
-    # Mentorius turi būti tik mentoriai
-    user = serializers.PrimaryKeyRelatedField(
-        queryset=get_user_model().objects.filter(roles__contains=['mentor']),
-        required=True,
-        help_text='Pamokos vedėjas (tik mentoriai)'
-    )
     
     class Meta:
         model = GlobalSchedule
@@ -46,6 +49,73 @@ class GlobalScheduleSerializer(serializers.ModelSerializer):
             'period_name', 'classroom_name', 'subject_name', 'level_name', 'lesson_title', 'mentor_name'
         ]
         read_only_fields = ['weekday']  # Savaitės diena nustatoma automatiškai
+        extra_kwargs = {
+            'lesson': {'required': False}  # Pamoka neprivaloma
+        }
+    
+    def get_period(self, obj):
+        """Grąžina pilną periodo objektą"""
+        if obj.period:
+            return {
+                'id': obj.period.id,
+                'name': obj.period.name,
+                'starttime': obj.period.starttime.strftime('%H:%M'),
+                'endtime': obj.period.endtime.strftime('%H:%M') if obj.period.endtime else None
+            }
+        return None
+    
+    def get_level(self, obj):
+        """Grąžina pilną lygio objektą"""
+        if obj.level:
+            return {
+                'id': obj.level.id,
+                'name': obj.level.name,
+                'description': obj.level.description
+            }
+        return None
+    
+    def get_user(self, obj):
+        """Grąžina pilną vartotojo objektą"""
+        if obj.user:
+            return {
+                'id': obj.user.id,
+                'email': obj.user.email,
+                'first_name': obj.user.first_name,
+                'last_name': obj.user.last_name,
+                'full_name': obj.user.get_full_name()
+            }
+        return None
+    
+    def get_subject(self, obj):
+        """Grąžina pilną dalyko objektą"""
+        if obj.subject:
+            return {
+                'id': obj.subject.id,
+                'name': obj.subject.name,
+                'description': obj.subject.description
+            }
+        return None
+    
+    def get_classroom(self, obj):
+        """Grąžina pilną klasės objektą"""
+        if obj.classroom:
+            return {
+                'id': obj.classroom.id,
+                'name': obj.classroom.name,
+                'description': obj.classroom.description
+            }
+        return None
+    
+    def get_lesson(self, obj):
+        """Grąžina pilną pamokos objektą"""
+        if obj.lesson:
+            return {
+                'id': obj.lesson.id,
+                'title': obj.lesson.title,
+                'content': obj.lesson.content,
+                'topic': obj.lesson.topic
+            }
+        return None
     
     def validate(self, data):
         """

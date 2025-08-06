@@ -56,6 +56,7 @@ export default function EditLessonPage() {
   
   const [formData, setFormData] = useState<{
     title: string;
+    content: string;
     subject: string;
     topic: string;
     objectives: string[];
@@ -71,6 +72,7 @@ export default function EditLessonPage() {
     focus: string[];
   }>({
     title: '',
+    content: '',
     subject: '',
     topic: '',
     objectives: [],
@@ -142,6 +144,7 @@ export default function EditLessonPage() {
         // Ensure all fields are properly handled
         const formDataToSet = {
           title: lesson.title || '',
+          content: lesson.content || '',
           subject: lesson.subject?.id?.toString() || lesson.subject?.toString() || '',
           topic: lesson.topic || '',
           objectives: lesson.objectives_list || [],
@@ -266,6 +269,7 @@ export default function EditLessonPage() {
       // Prepare lesson data
       const lessonData = {
         title: formData.title,
+        content: formData.content,
         subject: parseInt(formData.subject),
         topic: formData.topic || '',
         objectives: JSON.stringify(formData.objectives),
@@ -582,6 +586,21 @@ export default function EditLessonPage() {
                   placeholder="Pasirinkite dorybes..."
                 />
               </div>
+            </div>
+
+            <div>
+              <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
+                Mokomoji medžiaga
+              </label>
+              <textarea
+                id="content"
+                name="content"
+                rows={6}
+                value={formData.content}
+                onChange={handleInputChange}
+                placeholder="Įveskite mokomąją medžiagą..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+              />
             </div>
 
             {/* Submit Buttons */}

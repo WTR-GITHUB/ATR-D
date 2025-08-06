@@ -122,12 +122,14 @@ export default function MentorLessonsPage() {
               </button>
             </Link>
             
-            <button className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center space-x-3">
-                <Calendar className="w-5 h-5 text-green-600" />
-                <span className="text-sm font-medium">Pamokų tvarkaraštis</span>
-              </div>
-            </button>
+            <Link href="/dashboard/mentors/schedule" className="block">
+              <button className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors w-full">
+                <div className="flex items-center space-x-3">
+                  <Calendar className="w-5 h-5 text-green-600" />
+                  <span className="text-sm font-medium">Pamokų tvarkaraštis</span>
+                </div>
+              </button>
+            </Link>
             
             <Link href="/dashboard/mentors/students" className="block">
               <button className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors w-full">

@@ -213,6 +213,8 @@ export const useGlobalSchedule = () => {
     fetchSchedule();
   }, []);
 
+
+
   return {
     schedule,
     loading,

@@ -43,13 +43,12 @@ export default function CreateLessonPage() {
   
   const [formData, setFormData] = useState<{
     title: string;
-    description: string;
+    content: string;
     subject: string;
     topic: string;
     objectives: string[];
     components: string[];
     skills: string[];
-    competencies: string[];
     virtues: string[];
     levels: string[];
     focus: string[];
@@ -60,13 +59,12 @@ export default function CreateLessonPage() {
     competency_atcheve: string[];
   }>({
     title: '',
-    description: '',
+    content: '',
     subject: '',
     topic: '',
     objectives: [],
     components: [],
     skills: [],
-    competencies: [],
     virtues: [],
     levels: [],
     focus: [],
@@ -201,14 +199,14 @@ export default function CreateLessonPage() {
       // Prepare lesson data
       const lessonData = {
         title: formData.title,
-        description: formData.description,
+        content: formData.content,
         subject: formData.subject,
         topic: formData.topic || '',
         objectives: JSON.stringify(formData.objectives),
         components: JSON.stringify(formData.components),
         skills: formData.skills.map(id => parseInt(id)),
         competency_atcheves: formData.competency_atcheve.map(id => parseInt(id)),
-        competencies: JSON.stringify(formData.competencies),
+
         virtues: formData.virtues.map(id => parseInt(id)),
         levels: formData.levels.map(id => parseInt(id)),
         focus: JSON.stringify(formData.focus),
@@ -504,6 +502,21 @@ export default function CreateLessonPage() {
                   placeholder="Pasirinkite dorybes..."
                 />
               </div>
+            </div>
+
+            <div>
+              <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
+                Mokomoji medžiaga
+              </label>
+              <textarea
+                id="content"
+                name="content"
+                rows={6}
+                value={formData.content}
+                onChange={handleInputChange}
+                placeholder="Įveskite mokomąją medžiagą..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+              />
             </div>
 
             {/* Submit Buttons */}

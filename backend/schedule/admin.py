@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django import forms
+from django.contrib.auth import get_user_model
 from .models import Period, Classroom, GlobalSchedule
 
 
@@ -7,10 +9,10 @@ class PeriodAdmin(admin.ModelAdmin):
     """
     Periodų admin - valdo periodų administravimą
     """
-    list_display = ['starttime', 'endtime', 'duration']
+    list_display = ['name', 'starttime', 'endtime', 'duration']
     list_filter = ['duration']
-    search_fields = ['starttime', 'endtime']
-    ordering = ['starttime']
+    search_fields = ['name', 'starttime', 'endtime']
+    ordering = ['name']
 
 
 @admin.register(Classroom)
@@ -24,11 +26,29 @@ class ClassroomAdmin(admin.ModelAdmin):
     ordering = ['name']
 
 
+class GlobalScheduleForm(forms.ModelForm):
+    """
+    Custom forma GlobalSchedule modeliui - apriboja vartotojus tik mentoriais
+    """
+    class Meta:
+        model = GlobalSchedule
+        fields = '__all__'
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Apribojame user lauką tik mentoriais
+        User = get_user_model()
+        # Filtruojame vartotojus, kurie turi mentor rolę
+        mentors = [user for user in User.objects.all() if user.has_role('mentor')]
+        self.fields['user'].queryset = User.objects.filter(id__in=[user.id for user in mentors])
+
+
 @admin.register(GlobalSchedule)
 class GlobalScheduleAdmin(admin.ModelAdmin):
     """
     Globalaus tvarkaraščio admin - valdo tvarkaraščio administravimą
     """
+    form = GlobalScheduleForm
     list_display = ['date', 'weekday', 'period', 'classroom', 'subject', 'level', 'user']
     list_filter = ['date', 'weekday', 'period', 'classroom', 'subject', 'level', 'user']
     search_fields = ['date', 'weekday', 'user__first_name', 'user__last_name', 'subject__name']
@@ -37,7 +57,7 @@ class GlobalScheduleAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Pagrindinė informacija', {
-            'fields': ('date', 'weekday', 'period', 'classroom')
+            'fields': ('date', 'period', 'classroom')
         }),
         ('Pamokos informacija', {
             'fields': ('subject', 'level', 'lesson', 'user')

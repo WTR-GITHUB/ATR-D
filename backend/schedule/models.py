@@ -7,9 +7,10 @@ class Period(models.Model):
     """
     Pamokų periodų modelis - valdo pamokų laikų intervalus
     """
-    starttime = models.TimeField(_('Pradžios laikas'), help_text=_('Pamokos pradžios laikas'))
-    endtime = models.TimeField(_('Pabaigos laikas'), help_text=_('Pamokos pabaigos laikas'))
-    duration = models.IntegerField(_('Trukmė minutėmis'), help_text=_('Pamokos trukmė minutėmis'))
+    name = models.CharField(_('Pavadinimas'), max_length=100, blank=True, null=True, help_text=_('Periodo pavadinimas (pvz. 1 pamoka, 2 pamoka)'))
+    starttime = models.TimeField(_('Pradžios laikas'), help_text=_('Pamokos pradžios laikas (HH:MM)'))
+    duration = models.IntegerField(_('Trukmė minutėmis'), default=45, help_text=_('Pamokos trukmė minutėmis'))
+    endtime = models.TimeField(_('Pabaigos laikas'), blank=True, null=True, help_text=_('Pamokos pabaigos laikas (HH:MM) - skaičiuojamas automatiškai'))
     
     class Meta:
         verbose_name = _('Periodas')
@@ -17,15 +18,17 @@ class Period(models.Model):
         ordering = ['starttime']
     
     def __str__(self):
-        return f"{self.starttime} - {self.endtime} ({self.duration} min)"
+        name_display = self.name if self.name else f"Periodas {self.id}"
+        time_display = f"{self.starttime.strftime('%H:%M')} - {self.endtime.strftime('%H:%M') if self.endtime else 'N/A'}"
+        return f"{name_display} ({time_display})"
     
     def save(self, *args, **kwargs):
-        # Automatiškai skaičiuoti trukmę
-        if self.starttime and self.endtime:
+        # Automatiškai skaičiuoti pabaigos laiką
+        if self.starttime and self.duration:
             from datetime import datetime, timedelta
             start = datetime.combine(datetime.today(), self.starttime)
-            end = datetime.combine(datetime.today(), self.endtime)
-            self.duration = int((end - start).total_seconds() / 60)
+            end = start + timedelta(minutes=self.duration)
+            self.endtime = end.time()
         super().save(*args, **kwargs)
 
 
@@ -50,13 +53,18 @@ class GlobalSchedule(models.Model):
     Globalaus tvarkaraščio modelis - valdo mokyklos tvarkaraštį
     """
     date = models.DateField(_('Data'), help_text=_('Pamokos data'))
-    weekday = models.CharField(_('Savaitės diena'), max_length=20, help_text=_('Savaitės diena'))
+    weekday = models.CharField(_('Savaitės diena'), max_length=20, blank=True, null=True, help_text=_('Savaitės diena (skaičiuojama automatiškai)'))
     period = models.ForeignKey(Period, on_delete=models.CASCADE, verbose_name=_('Periodas'), help_text=_('Pamokos periodas'))
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE, verbose_name=_('Klasė'), help_text=_('Pamokos klasė'))
     subject = models.ForeignKey('curriculum.Subject', on_delete=models.CASCADE, verbose_name=_('Dalykas'), help_text=_('Mokomas dalykas'))
     level = models.ForeignKey('curriculum.Level', on_delete=models.CASCADE, verbose_name=_('Lygis'), help_text=_('Mokymo lygis'))
-    lesson = models.ForeignKey('curriculum.Lesson', on_delete=models.CASCADE, verbose_name=_('Pamoka'), help_text=_('Pamokos šablonas'))
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_('Mentorius'), help_text=_('Pamokos vedėjas (tik mentoriai)'))
+    lesson = models.ForeignKey('curriculum.Lesson', on_delete=models.CASCADE, verbose_name=_('Pamoka'), help_text=_('Pamokos šablonas (neprivaloma)'), blank=True, null=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        verbose_name=_('Mentorius'), 
+        help_text=_('Pamokos vedėjas (tik mentoriai)')
+    )
     
     class Meta:
         verbose_name = _('Globalus tvarkaraštis')
@@ -69,6 +77,10 @@ class GlobalSchedule(models.Model):
     
     def clean(self):
         from django.core.exceptions import ValidationError
+        
+        # Tikriname, ar pasirinktas mentorius
+        if not self.user:
+            raise ValidationError(_('Būtina pasirinkti mentorių'))
         
         # Tikriname, ar vartotojas yra mentorius
         if self.user and not self.user.has_role('mentor'):

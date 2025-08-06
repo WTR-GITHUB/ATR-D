@@ -49,9 +49,9 @@ export default function ClientAuthGuard({
       }
 
       // Patikrinti ar vartotojas turi reikiamą rolę
-      if (allowedRoles.length > 0 && !user.roles.some(role => allowedRoles.includes(role))) {
+      if (allowedRoles.length > 0 && !(user.roles || []).some(role => allowedRoles.includes(role))) {
         // Jei vartotojas neturi reikiamos rolės, nukreipti į jo dashboard
-        redirectToDashboard(user.roles);
+        redirectToDashboard(user.roles || []);
         return;
       }
     }
@@ -70,17 +70,18 @@ export default function ClientAuthGuard({
 }
 
 // Pagalbinė funkcija nukreipti į dashboard pagal roles
-function redirectToDashboard(roles: string[]) {
+function redirectToDashboard(roles: string[] | null | undefined) {
+  const userRoles = roles || [];
   // Prioritizuoti roles: admin > mentor > curator > parent > student
-  if (roles.includes('admin')) {
+  if (userRoles.includes('admin')) {
     window.location.href = '/admin';
-  } else if (roles.includes('mentor')) {
+  } else if (userRoles.includes('mentor')) {
     window.location.href = '/dashboard/mentors';
-  } else if (roles.includes('curator')) {
+  } else if (userRoles.includes('curator')) {
     window.location.href = '/dashboard/curators';
-  } else if (roles.includes('parent')) {
+  } else if (userRoles.includes('parent')) {
     window.location.href = '/dashboard/parents';
-  } else if (roles.includes('student')) {
+  } else if (userRoles.includes('student')) {
     window.location.href = '/dashboard/students';
   } else {
     window.location.href = '/dashboard';

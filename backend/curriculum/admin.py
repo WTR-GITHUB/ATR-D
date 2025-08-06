@@ -101,19 +101,16 @@ class LessonAdmin(admin.ModelAdmin):
     """
     list_display = ['title', 'subject', 'mentor', 'topic', 'created_at']
     list_filter = ['subject', 'mentor', 'created_at']
-    search_fields = ['title', 'topic', 'description', 'subject__name', 'mentor__first_name', 'mentor__last_name']
+    search_fields = ['title', 'topic', 'content', 'subject__name', 'mentor__first_name', 'mentor__last_name']
     ordering = ['-created_at']
     date_hierarchy = 'created_at'
     
     fieldsets = (
         ('Pagrindinė informacija', {
-            'fields': ('title', 'subject', 'mentor', 'topic', 'description')
+            'fields': ('title', 'subject', 'mentor', 'topic', 'content')
         }),
         ('Pamokos komponentai', {
-            'fields': ('levels', 'objectives', 'components', 'skills', 'competencies', 'virtues', 'focus')
-        }),
-        ('Vertinimo kriterijai', {
-            'fields': ('assessment_criteria',)
+            'fields': ('levels', 'objectives', 'components', 'skills', 'virtues', 'focus')
         }),
         ('Pasiekimo lygiai', {
             'fields': ('slenkstinis', 'bazinis', 'pagrindinis', 'aukstesnysis')

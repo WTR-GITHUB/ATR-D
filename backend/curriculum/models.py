@@ -158,8 +158,7 @@ class Lesson(models.Model):
         related_name='lessons_mentored',
         verbose_name="Mentorius"
     )
-    description = models.TextField(blank=True, verbose_name="Aprašymas")
-    assessment_criteria = models.TextField(blank=True, verbose_name="Vertinimo kriterijai")
+    content = models.TextField(blank=True, verbose_name="Mokomoji medžiaga")
     topic = models.CharField(
         max_length=255,
         blank=True,
@@ -179,11 +178,6 @@ class Lesson(models.Model):
         Skill, 
         blank=True,
         verbose_name="Gebėjimai"
-    )
-    competencies = models.TextField(
-        blank=True,
-        verbose_name="Kompetencijos",
-        help_text="Kompetencijos JSON formatu"
     )
     virtues = models.ManyToManyField(
         Virtue, 

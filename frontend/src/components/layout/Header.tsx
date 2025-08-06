@@ -25,12 +25,18 @@ const getRoleDisplayName = (role: string): string => {
 };
 
 // Funkcija rolių sąrašui gauti
-const getRolesDisplayNames = (roles: string[]): string => {
+const getRolesDisplayNames = (roles: string[] | null | undefined): string => {
+  if (!roles || !Array.isArray(roles)) {
+    return 'A-DIENYNAS';
+  }
   return roles.map(getRoleDisplayName).join(', ');
 };
 
 // Funkcija patikrinti, ar vartotojas turi role
-const hasRole = (roles: string[], role: string): boolean => {
+const hasRole = (roles: string[] | null | undefined, role: string): boolean => {
+  if (!roles || !Array.isArray(roles)) {
+    return false;
+  }
   return roles.includes(role);
 };
 
