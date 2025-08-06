@@ -14,6 +14,7 @@ flowchart LR
     B --API užklausa--> C[AI sistema (pvz., OpenAI GPT-4)]
     C --Atsakymas--> B
     B --Sugeneruotas tekstas--> A
+```
 
 ## Duomenų užklausos pavyzdys
 
