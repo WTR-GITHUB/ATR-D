@@ -1,30 +1,275 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { scheduleAPI } from '@/lib/api';
 import { Period, Classroom, GlobalSchedule } from '@/lib/types';
 
-// Hook tvarkaraščio periodų valdymui
+// Globalus cache'as duomenų išsaugojimui
+const dataCache = {
+  periods: null as Period[] | null,
+  classrooms: null as Classroom[] | null,
+  schedule: null as GlobalSchedule[] | null,
+  lastFetch: {
+    periods: 0,
+    classrooms: 0,
+    schedule: 0
+  }
+};
+
+// Cache'ing funkcija
+const getCachedData = <T>(key: 'periods' | 'classrooms' | 'schedule', maxAge: number = 5 * 60 * 1000): T | null => {
+  const now = Date.now();
+  const lastFetch = dataCache.lastFetch[key];
+  
+  if (dataCache[key] && (now - lastFetch) < maxAge) {
+    return dataCache[key] as T;
+  }
+  
+  return null;
+};
+
+const setCachedData = <T>(key: 'periods' | 'classrooms' | 'schedule', data: T) => {
+  (dataCache as any)[key] = data;
+  dataCache.lastFetch[key] = Date.now();
+};
+
+// Debouncing hook'as optimizacijai
+export const useDebounce = (value: any, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
+// Centrinis loading state manager
+export const useLoadingManager = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('');
+  const loadingRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startLoading = useCallback((text: string = 'Kraunama...') => {
+    setLoadingText(text);
+    setIsLoading(true);
+  }, []);
+
+  const stopLoading = useCallback(() => {
+    setIsLoading(false);
+    setLoadingText('');
+  }, []);
+
+  const setLoadingWithDelay = useCallback((text: string, delay: number = 500) => {
+    if (loadingRef.current) {
+      clearTimeout(loadingRef.current);
+    }
+    
+    loadingRef.current = setTimeout(() => {
+      startLoading(text);
+    }, delay);
+  }, [startLoading]);
+
+  useEffect(() => {
+    return () => {
+      if (loadingRef.current) {
+        clearTimeout(loadingRef.current);
+      }
+    };
+  }, []);
+
+  return {
+    isLoading,
+    loadingText,
+    startLoading,
+    stopLoading,
+    setLoadingWithDelay
+  };
+};
+
+// Custom hook pamokų duomenų optimizacijai
+export const useOptimizedSchedule = (schedule: GlobalSchedule[], userId?: number) => {
+  // Memoizuojame pamokų duomenis su Map struktūra O(1) prieigai
+  const optimizedSchedule = useMemo(() => {
+    if (!schedule || !userId) return new Map();
+    
+    const scheduleMap = new Map<string, GlobalSchedule[]>();
+    
+    schedule.forEach((lesson: GlobalSchedule) => {
+      if (lesson.user?.id !== userId) return;
+      
+      // Naudojame objektą kaip raktą vietoj string concatenation
+      const key = {
+        date: lesson.date,
+        periodId: lesson.period?.id,
+        levelId: lesson.level?.id
+      };
+      
+      const keyString = JSON.stringify(key);
+      
+      if (!scheduleMap.has(keyString)) {
+        scheduleMap.set(keyString, []);
+      }
+      scheduleMap.get(keyString)!.push(lesson);
+    });
+    
+    return scheduleMap;
+  }, [schedule, userId]);
+  
+  // Greita funkcija pamokų paieškai O(1) greičiu
+  const getLessonsForSlot = useCallback((date: string, periodId: number, levelId: number): GlobalSchedule[] => {
+    const key = JSON.stringify({ date, periodId, levelId });
+    return optimizedSchedule.get(key) || [];
+  }, [optimizedSchedule]);
+  
+  // Funkcija filtravimui pagal datų diapazoną
+  const getLessonsForDateRange = useCallback((startDate: string, endDate: string): GlobalSchedule[] => {
+    const lessons: GlobalSchedule[] = [];
+    
+    optimizedSchedule.forEach((lessonArray, keyString) => {
+      const key = JSON.parse(keyString);
+      const lessonDate = key.date;
+      
+      if (lessonDate >= startDate && lessonDate <= endDate) {
+        lessons.push(...lessonArray);
+      }
+    });
+    
+    return lessons;
+  }, [optimizedSchedule]);
+  
+  return {
+    optimizedSchedule,
+    getLessonsForSlot,
+    getLessonsForDateRange,
+    scheduleSize: optimizedSchedule.size
+  };
+};
+
+// Papildomas hook renderinimo optimizacijai
+export const useRenderOptimization = (schedule: GlobalSchedule[], userId?: number) => {
+  // Memoizuojame renderinimo duomenis
+  const renderData = useMemo(() => {
+    if (!schedule || !userId) return { cells: new Map(), totalCells: 0 };
+    
+    const cells = new Map<string, {
+      subject: string;
+      classroom: string;
+      lesson?: string;
+      hasData: boolean;
+    }>();
+    
+    let totalCells = 0;
+    
+    schedule.forEach((lesson: GlobalSchedule) => {
+      if (lesson.user?.id !== userId) return;
+      
+      const cellKey = `${lesson.date}-${lesson.period?.id}-${lesson.level?.id}`;
+      
+      cells.set(cellKey, {
+        subject: lesson.subject?.name || 'Dalykas',
+        classroom: lesson.classroom?.name || 'Klasė',
+        lesson: lesson.lesson?.title,
+        hasData: true
+      });
+      
+      totalCells++;
+    });
+    
+    return { cells, totalCells };
+  }, [schedule, userId]);
+  
+  // Greita funkcija langelio duomenų gavimui
+  const getCellData = useCallback((date: string, periodId: number, levelId: number) => {
+    const cellKey = `${date}-${periodId}-${levelId}`;
+    return renderData.cells.get(cellKey) || {
+      subject: 'Dalykas',
+      classroom: 'Klasė',
+      hasData: false
+    };
+  }, [renderData.cells]);
+  
+  return {
+    renderData,
+    getCellData,
+    totalCells: renderData.totalCells
+  };
+};
+
+// Virtualizacijos pagrindų hook'as
+export const useVirtualization = (items: any[], itemHeight: number, containerHeight: number) => {
+  const [scrollTop, setScrollTop] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const visibleItems = useMemo(() => {
+    const startIndex = Math.floor(scrollTop / itemHeight);
+    const endIndex = Math.min(
+      startIndex + Math.ceil(containerHeight / itemHeight) + 1,
+      items.length
+    );
+
+    return items.slice(startIndex, endIndex).map((item, index) => ({
+      ...item,
+      index: startIndex + index,
+      style: {
+        position: 'absolute' as const,
+        top: (startIndex + index) * itemHeight,
+        height: itemHeight,
+        width: '100%'
+      }
+    }));
+  }, [items, scrollTop, itemHeight, containerHeight]);
+
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    setScrollTop(e.currentTarget.scrollTop);
+  }, []);
+
+  const totalHeight = items.length * itemHeight;
+
+  return {
+    visibleItems,
+    totalHeight,
+    handleScroll,
+    containerRef
+  };
+};
+
+// Hook tvarkaraščio periodų valdymui su cache'ingu
 export const usePeriods = () => {
   const [periods, setPeriods] = useState<Period[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPeriods = async () => {
+  const fetchPeriods = useCallback(async (force: boolean = false) => {
+    // Patikriname cache'ą
+    const cached = getCachedData<Period[]>('periods');
+    if (!force && cached) {
+      setPeriods(cached);
+      return;
+    }
+
     try {
       setLoading(true);
+      setError(null);
       const response = await scheduleAPI.periods.getAll();
       setPeriods(response.data);
-      setError(null);
+      setCachedData('periods', response.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Klaida gaunant periodus');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const createPeriod = async (periodData: Partial<Period>) => {
     try {
       const response = await scheduleAPI.periods.create(periodData);
       setPeriods(prev => [...prev, response.data]);
+      setCachedData('periods', [...periods, response.data]);
       return response.data;
     } catch (err: any) {
       throw new Error(err.response?.data?.message || 'Klaida kuriant periodą');
@@ -54,7 +299,7 @@ export const usePeriods = () => {
 
   useEffect(() => {
     fetchPeriods();
-  }, []);
+  }, [fetchPeriods]);
 
   return {
     periods,
@@ -67,24 +312,32 @@ export const usePeriods = () => {
   };
 };
 
-// Hook tvarkaraščio klasių valdymui
+// Hook tvarkaraščio klasių valdymui su cache'ingu
 export const useClassrooms = () => {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchClassrooms = async () => {
+  const fetchClassrooms = useCallback(async (force: boolean = false) => {
+    // Patikriname cache'ą
+    const cached = getCachedData<Classroom[]>('classrooms');
+    if (!force && cached) {
+      setClassrooms(cached);
+      return;
+    }
+
     try {
       setLoading(true);
+      setError(null);
       const response = await scheduleAPI.classrooms.getAll();
       setClassrooms(response.data);
-      setError(null);
+      setCachedData('classrooms', response.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Klaida gaunant klases');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const createClassroom = async (classroomData: Partial<Classroom>) => {
     try {
@@ -119,7 +372,7 @@ export const useClassrooms = () => {
 
   useEffect(() => {
     fetchClassrooms();
-  }, []);
+  }, [fetchClassrooms]);
 
   return {
     classrooms,
@@ -132,24 +385,32 @@ export const useClassrooms = () => {
   };
 };
 
-// Hook tvarkaraščio valdymui
+// Hook tvarkaraščio valdymui su cache'ingu
 export const useGlobalSchedule = () => {
   const [schedule, setSchedule] = useState<GlobalSchedule[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSchedule = async () => {
+  const fetchSchedule = useCallback(async (force: boolean = false) => {
+    // Patikriname cache'ą
+    const cached = getCachedData<GlobalSchedule[]>('schedule');
+    if (!force && cached) {
+      setSchedule(cached);
+      return;
+    }
+
     try {
       setLoading(true);
+      setError(null);
       const response = await scheduleAPI.globalSchedule.getAll();
       setSchedule(response.data);
-      setError(null);
+      setCachedData('schedule', response.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Klaida gaunant tvarkaraštį');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const createScheduleEntry = async (scheduleData: Partial<GlobalSchedule>) => {
     try {
@@ -211,9 +472,7 @@ export const useGlobalSchedule = () => {
 
   useEffect(() => {
     fetchSchedule();
-  }, []);
-
-
+  }, [fetchSchedule]);
 
   return {
     schedule,

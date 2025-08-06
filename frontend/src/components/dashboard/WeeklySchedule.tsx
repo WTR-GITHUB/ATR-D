@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useGlobalSchedule } from '@/hooks/useSchedule';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useGlobalSchedule, useOptimizedSchedule, useRenderOptimization, useLoadingManager } from '@/hooks/useSchedule';
 import { useLevels } from '@/hooks/useLevels';
 import { usePeriods } from '@/hooks/usePeriods';
 import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Calendar, Clock, MapPin, User, BookOpen } from 'lucide-react';
 import { GlobalSchedule, Level, Period } from '@/lib/types';
 import ScheduleCard from './ScheduleCard';
@@ -18,17 +19,27 @@ interface WeeklyScheduleProps {
 
 export default function WeeklySchedule({ weekStart, targetDate }: WeeklyScheduleProps) {
   const { user } = useAuth();
-  const { schedule, fetchSchedule, getWeeklySchedule } = useGlobalSchedule();
+  const { schedule, fetchSchedule, getWeeklySchedule, loading: scheduleLoading } = useGlobalSchedule();
   const { levels, loading: levelsLoading, error: levelsError } = useLevels();
   const { periods, loading: periodsLoading, error: periodsError } = usePeriods();
   
+  // Centrinis loading manager
+  const { isLoading, loadingText, startLoading, stopLoading } = useLoadingManager();
+  
+  // Naudojame optimizuotus hook'us
+  const { getLessonsForSlot, getLessonsForDateRange, scheduleSize } = useOptimizedSchedule(
+    schedule, 
+    user?.id
+  );
+  
+  const { getCellData, totalCells } = useRenderOptimization(schedule, user?.id);
 
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentWeekStart, setCurrentWeekStart] = useState<string>('');
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Funkcija, kuri grąžina 7 dienas nuo šiandienos arba nuo nurodytos datos
-  const getWeekDaysFromToday = () => {
+  // Memoizuojame savaitės dienas
+  const weekDays = useMemo(() => {
     // Naudojame šiandienos datą arba nurodytą datą
     let startDate = new Date();
     if (targetDate) {
@@ -73,22 +84,26 @@ export default function WeeklySchedule({ weekStart, targetDate }: WeeklySchedule
     }
     
     return weekDays;
-  };
+  }, [weekStart, targetDate]);
 
-
-
-
-
+  // Centrinis duomenų kraunimas
   useEffect(() => {
-    const loadSchedule = async () => {
+    const loadAllData = async () => {
+      if (isInitialized) return; // Išvengiame daugkartinio kraunamo
+      
       try {
-        setIsLoading(true);
+        startLoading('Kraunamas tvarkaraštis...');
         setError(null);
+        
+        // Krauname visus duomenis vienu metu
+        await Promise.all([
+          fetchSchedule(),
+          // getWeeklySchedule() - nereikia, nes fetchSchedule() jau krauna visus duomenis
+        ]);
         
         // Jei nurodyta savaitės pradžia, naudojame ją
         if (weekStart) {
           setCurrentWeekStart(weekStart);
-          await getWeeklySchedule(weekStart);
         } else {
           // Nustatome einamą savaitę
           const today = new Date();
@@ -96,88 +111,38 @@ export default function WeeklySchedule({ weekStart, targetDate }: WeeklySchedule
           monday.setDate(today.getDate() - today.getDay() + 1); // Pirmadienis
           const weekStartStr = monday.toISOString().split('T')[0];
           setCurrentWeekStart(weekStartStr);
-          await getWeeklySchedule(weekStartStr);
         }
+        
+        setIsInitialized(true);
       } catch (err: any) {
         console.error('Error loading schedule:', err);
         setError('Nepavyko užkrauti tvarkaraščio');
       } finally {
-        setIsLoading(false);
+        stopLoading();
       }
     };
 
-    loadSchedule();
-  }, [weekStart, getWeeklySchedule]);
+    loadAllData();
+  }, [weekStart, fetchSchedule, startLoading, stopLoading, isInitialized]);
 
+  // Memoizuojame dienos datą
+  const getDayDate = useMemo(() => {
+    return (date: Date) => {
+      const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+      const weekday = date.toLocaleDateString('lt-LT', { weekday: 'long' });
+      return `${dateStr} - ${weekday.toUpperCase()}`;
+    };
+  }, []);
 
+  // Patikriname, ar visi duomenys yra paruošti
+  const isDataReady = useMemo(() => {
+    return !scheduleLoading && !levelsLoading && !periodsLoading && isInitialized && schedule.length > 0;
+  }, [scheduleLoading, levelsLoading, periodsLoading, isInitialized, schedule.length]);
 
-  // Optimizuota funkcija - pirmiausia filtruojame visas pamokas, tada grupuojame
-  const [filteredSchedule, setFilteredSchedule] = useState<{[key: string]: GlobalSchedule[]}>({});
-  
-  // Filtruojame pamokas vieną kartą ir grupuojame
-  useEffect(() => {
-    if (!user || !schedule) return;
-    
-    const today = new Date();
-    const weekEnd = new Date(today);
-    weekEnd.setDate(today.getDate() + 7);
-    
-
-    
-    // Filtruojame tik vartotojo pamokas ir datos diapazoną
-    const userLessons = schedule.filter((lesson: GlobalSchedule) => {
-      if (lesson.user?.id !== user.id) {
-        return false;
-      }
-      
-      const lessonDate = new Date(lesson.date);
-      // Tikriname tik datą, o ne laiką
-      const lessonDateOnly = lessonDate.toISOString().split('T')[0];
-      const todayOnly = today.toISOString().split('T')[0];
-      const weekEndOnly = weekEnd.toISOString().split('T')[0];
-      
-      return lessonDateOnly >= todayOnly && lessonDateOnly <= weekEndOnly;
-    });
-    
-
-    
-    // Grupuojame pamokas pagal datą, periodą ir lygį
-    const grouped: {[key: string]: GlobalSchedule[]} = {};
-    
-    userLessons.forEach((lesson: GlobalSchedule) => {
-      const key = `${lesson.date}-${lesson.period?.id}-${lesson.level?.id}`;
-      if (!grouped[key]) {
-        grouped[key] = [];
-      }
-      grouped[key].push(lesson);
-    });
-    
-    setFilteredSchedule(grouped);
-  }, [schedule, user]);
-  
-  // Greita funkcija, kuri grąžina pamokas pagal raktą
-  const getLessonsForDayPeriodAndLevel = (dayId: string, periodId: number, levelId: number) => {
-    const key = `${dayId}-${periodId}-${levelId}`;
-    return filteredSchedule[key] || [];
-  };
-
-  // Funkcija, kuri grąžina dienos datą
-  const getDayDate = (date: Date) => {
-    return date.toLocaleDateString('lt-LT', { 
-      day: '2-digit', 
-      month: '2-digit' 
-    });
-  };
-
-  if (isLoading || levelsLoading || periodsLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-      </div>
-    );
+  // Nuolatinis loading indikatorius
+  if (isLoading || !isDataReady) {
+    return <LoadingSpinner text={loadingText || 'Kraunamas tvarkaraštis...'} />;
   }
-
-
 
   if (error || levelsError || periodsError) {
     return (
@@ -195,13 +160,13 @@ export default function WeeklySchedule({ weekStart, targetDate }: WeeklySchedule
     );
   }
 
-  // Komponentas vienai dienai
-  const DaySchedule = ({ day, dayIndex }: { day: any; dayIndex: number }) => (
+  // Memoizuojame komponentą vienai dienai
+  const DaySchedule = React.memo(({ day, dayIndex }: { day: any; dayIndex: number }) => (
     <Card key={day.name}>
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <Calendar className="w-5 h-5" />
-          <span>{day.name} - {getDayDate(day.date)} ({day.date.toISOString().split('T')[0]})</span>
+          <span>{getDayDate(day.date)}</span>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -212,12 +177,12 @@ export default function WeeklySchedule({ weekStart, targetDate }: WeeklySchedule
                 <th className="border border-gray-200 px-4 py-2 text-left font-medium text-gray-700">
                   Lygis
                 </th>
-                                  {periods.map((period: Period) => (
-                    <th key={period.name || period.id} className="border border-gray-200 px-4 py-2 text-center font-medium text-gray-700">
-                      <div className="text-sm font-semibold">{period.name || `P${period.id}`}</div>
-                      <div className="text-xs text-gray-500">{period.starttime} - {period.endtime}</div>
-                    </th>
-                  ))}
+                {periods.map((period: Period) => (
+                  <th key={period.name || period.id} className="border border-gray-200 px-4 py-2 text-center font-medium text-gray-700">
+                    <div className="text-sm font-semibold">{period.name || `P${period.id}`}</div>
+                    <div className="text-xs text-gray-500">{period.starttime} - {period.endtime}</div>
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -227,17 +192,20 @@ export default function WeeklySchedule({ weekStart, targetDate }: WeeklySchedule
                     <div className="font-medium">{level.name}</div>
                     <div className="text-xs text-gray-500">{level.description}</div>
                   </td>
-                                      {periods.map((period) => {
-                      const lessons = getLessonsForDayPeriodAndLevel(day.id, period.id, level.id);
-                      return (
-                                              <td key={`${day.name}-${period.id}-${level.id}`} className="border border-gray-200 px-2 py-2 min-h-[80px]">
+                  {periods.map((period) => {
+                    // Naudojame optimizuotą O(1) paiešką
+                    const lessons = getLessonsForSlot(day.id, period.id, level.id);
+                    const cellData = getCellData(day.id, period.id, level.id);
+                    
+                    return (
+                      <td key={`${day.name}-${period.id}-${level.id}`} className="border border-gray-200 px-2 py-2 min-h-[80px]">
                         {lessons.length > 0 ? (
                           lessons.map((lesson: GlobalSchedule, index: number) => (
                             <TableCell
                               key={lesson.id}
-                              subject={lesson.subject?.name || 'Dalykas'}
-                              classroom={lesson.classroom?.name || 'Klasė'}
-                              lesson={lesson.lesson?.title || undefined}
+                              subject={cellData.subject}
+                              classroom={cellData.classroom}
+                              lesson={cellData.lesson}
                             />
                           ))
                         ) : (
@@ -255,14 +223,13 @@ export default function WeeklySchedule({ weekStart, targetDate }: WeeklySchedule
         </div>
       </CardContent>
     </Card>
-  );
+  ));
 
-  const weekDays = getWeekDaysFromToday();
+  // Priskiriame displayName komponentui
+  DaySchedule.displayName = 'DaySchedule';
   
   return (
     <div className="space-y-6">
-
-      
       {weekDays.map((day, dayIndex) => (
         <DaySchedule key={`${day.name}-${day.date.toISOString()}`} day={day} dayIndex={dayIndex} />
       ))}
