@@ -30,10 +30,10 @@ const useTableCellOptimization = (subject: string, classroom: string, lesson?: s
 
   // Memoizuojame CSS klases
   const cssClasses = useMemo(() => ({
-    container: `${lessonData.bgColor} text-white text-xs p-1 rounded text-center min-h-[60px] flex flex-col justify-center`,
-    subject: "font-medium truncate mb-1",
-    classroom: "text-blue-100 truncate text-xs",
-    lesson: "text-blue-100 truncate text-xs mt-1"
+    container: `${lessonData.bgColor} text-white text-xs p-1 rounded text-left min-h-[60px] flex flex-col justify-center w-full whitespace-normal break-all`,
+    subject: "font-medium mb-1 whitespace-normal break-all",
+    classroom: "text-blue-100 text-xs whitespace-normal break-all",
+    lesson: "text-blue-100 text-xs mt-1 whitespace-normal break-all"
   }), [lessonData.bgColor]);
 
   return {

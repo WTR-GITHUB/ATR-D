@@ -46,7 +46,16 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         if user.has_role('admin'):
             return GlobalSchedule.objects.all()
         elif user.has_role('mentor'):
-            return GlobalSchedule.objects.filter(user=user)
+            # Mentoriai mato tik tuos dalykus, kurie jiems priskirti
+            mentor_subjects = user.mentor_subjects.values_list('subject', flat=True)
+            print(f"DEBUG: Mentor {user.email} priskirti dalykai: {list(mentor_subjects)}")
+            
+            queryset = GlobalSchedule.objects.filter(
+                user=user,
+                subject__in=mentor_subjects
+            )
+            print(f"DEBUG: Filtruotas queryset count: {queryset.count()}")
+            return queryset
         elif user.has_role('student'):
             # Studentai mato tvarkaraštį pagal savo dalykus ir lygius
             return GlobalSchedule.objects.filter(
@@ -66,6 +75,13 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         if not user.has_role('mentor') and not user.has_role('admin'):
             from rest_framework import serializers
             raise serializers.ValidationError('Tik mentoriai ir administratoriai gali kurti tvarkaraštį')
+        
+        # Jei mentorius, tikriname, ar dalykas jam priskirtas
+        if user.has_role('mentor'):
+            subject = serializer.validated_data.get('subject')
+            if subject and not user.mentor_subjects.filter(subject=subject).exists():
+                from rest_framework import serializers
+                raise serializers.ValidationError('Jums nepriskirtas šis dalykas')
         
         serializer.save()
     
@@ -126,6 +142,34 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(daily_schedule, many=True)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], url_path='mentor-subjects')
+    def mentor_subjects(self, request):
+        """
+        Grąžina mentoriaus priskirtus dalykus
+        """
+        user = self.request.user
+        
+        if not user.has_role('mentor'):
+            return Response(
+                {'error': 'Tik mentoriai gali gauti priskirtus dalykus'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        mentor_subjects = user.mentor_subjects.select_related('subject').all()
+        print(f"DEBUG: Mentor {user.email} priskirti dalykai count: {mentor_subjects.count()}")
+        
+        subjects_data = [
+            {
+                'id': ms.subject.id,
+                'name': ms.subject.name,
+                'description': ms.subject.description
+            }
+            for ms in mentor_subjects
+        ]
+        
+        print(f"DEBUG: Grąžinami dalykai: {subjects_data}")
+        return Response(subjects_data)
     
     @action(detail=False, methods=['get'])
     def conflicts(self, request):

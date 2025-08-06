@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useGlobalSchedule, useOptimizedSchedule, useRenderOptimization, useLoadingManager } from '@/hooks/useSchedule';
+import { useGlobalSchedule, useOptimizedSchedule, useRenderOptimization, useLoadingManager, useMentorSubjects } from '@/hooks/useSchedule';
 import { useLevels } from '@/hooks/useLevels';
 import { usePeriods } from '@/hooks/usePeriods';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,16 +23,25 @@ export default function WeeklySchedule({ weekStart, targetDate }: WeeklySchedule
   const { levels, loading: levelsLoading, error: levelsError } = useLevels();
   const { periods, loading: periodsLoading, error: periodsError } = usePeriods();
   
+  // Mentoriaus priskirtų dalykų gavimas
+  const { subjects: mentorSubjects, loading: mentorSubjectsLoading, error: mentorSubjectsError } = useMentorSubjects();
+  
+  // Debug informacija
+  console.log('DEBUG: Mentor subjects:', mentorSubjects);
+  console.log('DEBUG: Mentor subjects loading:', mentorSubjectsLoading);
+  console.log('DEBUG: Mentor subjects error:', mentorSubjectsError);
+  
   // Centrinis loading manager
   const { isLoading, loadingText, startLoading, stopLoading } = useLoadingManager();
   
   // Naudojame optimizuotus hook'us
   const { getLessonsForSlot, getLessonsForDateRange, scheduleSize } = useOptimizedSchedule(
     schedule, 
-    user?.id
+    user?.id,
+    mentorSubjects
   );
   
-  const { getCellData, totalCells } = useRenderOptimization(schedule, user?.id);
+  const { getCellData, totalCells } = useRenderOptimization(schedule, user?.id, mentorSubjects);
 
   const [error, setError] = useState<string | null>(null);
   const [currentWeekStart, setCurrentWeekStart] = useState<string>('');
@@ -136,15 +145,15 @@ export default function WeeklySchedule({ weekStart, targetDate }: WeeklySchedule
 
   // Patikriname, ar visi duomenys yra paruošti
   const isDataReady = useMemo(() => {
-    return !scheduleLoading && !levelsLoading && !periodsLoading && isInitialized && schedule.length > 0;
-  }, [scheduleLoading, levelsLoading, periodsLoading, isInitialized, schedule.length]);
+    return !scheduleLoading && !levelsLoading && !periodsLoading && !mentorSubjectsLoading && isInitialized && schedule.length > 0;
+  }, [scheduleLoading, levelsLoading, periodsLoading, mentorSubjectsLoading, isInitialized, schedule.length]);
 
   // Nuolatinis loading indikatorius
   if (isLoading || !isDataReady) {
     return <LoadingSpinner text={loadingText || 'Kraunamas tvarkaraštis...'} />;
   }
 
-  if (error || levelsError || periodsError) {
+  if (error || levelsError || periodsError || mentorSubjectsError) {
     return (
       <Card>
         <CardContent>
@@ -153,7 +162,7 @@ export default function WeeklySchedule({ weekStart, targetDate }: WeeklySchedule
               <Calendar className="mx-auto h-12 w-12" />
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">Klaida</h3>
-            <p className="text-sm text-gray-500">{error || levelsError || periodsError}</p>
+            <p className="text-sm text-gray-500">{error || levelsError || periodsError || mentorSubjectsError}</p>
           </div>
         </CardContent>
       </Card>
@@ -174,11 +183,11 @@ export default function WeeklySchedule({ weekStart, targetDate }: WeeklySchedule
           <table className="w-full border-collapse border border-gray-200">
             <thead>
               <tr className="bg-gray-50">
-                <th className="border border-gray-200 px-4 py-2 text-left font-medium text-gray-700">
+                <th className="border border-gray-200 px-4 py-2 text-left font-medium text-gray-700 w-32">
                   Lygis
                 </th>
                 {periods.map((period: Period) => (
-                  <th key={period.name || period.id} className="border border-gray-200 px-4 py-2 text-center font-medium text-gray-700">
+                  <th key={period.name || period.id} className="border border-gray-200 px-4 py-2 text-center font-medium text-gray-700 w-64">
                     <div className="text-sm font-semibold">{period.name || `P${period.id}`}</div>
                     <div className="text-xs text-gray-500">{period.starttime} - {period.endtime}</div>
                   </th>
@@ -188,7 +197,7 @@ export default function WeeklySchedule({ weekStart, targetDate }: WeeklySchedule
             <tbody>
               {levels.map((level: Level) => (
                 <tr key={level.id} className="hover:bg-gray-50">
-                  <td className="border border-gray-200 px-4 py-2 text-sm text-gray-600 bg-gray-50">
+                  <td className="border border-gray-200 px-4 py-2 text-sm text-gray-600 bg-gray-50 w-32">
                     <div className="font-medium">{level.name}</div>
                     <div className="text-xs text-gray-500">{level.description}</div>
                   </td>
@@ -201,12 +210,13 @@ export default function WeeklySchedule({ weekStart, targetDate }: WeeklySchedule
                       <td key={`${day.name}-${period.id}-${level.id}`} className="border border-gray-200 px-2 py-2 min-h-[80px]">
                         {lessons.length > 0 ? (
                           lessons.map((lesson: GlobalSchedule, index: number) => (
-                            <TableCell
-                              key={lesson.id}
-                              subject={cellData.subject}
-                              classroom={cellData.classroom}
-                              lesson={cellData.lesson}
-                            />
+                            <div key={lesson.id} className="w-full">
+                              <TableCell
+                                subject={cellData.subject}
+                                classroom={cellData.classroom}
+                                lesson={cellData.lesson}
+                              />
+                            </div>
                           ))
                         ) : (
                           <div className="text-gray-400 text-center text-xs py-4">

@@ -8,9 +8,24 @@ class PeriodSerializer(serializers.ModelSerializer):
     """
     Periodų serializeris - valdo pamokų periodų duomenų serializavimą
     """
+    starttime = serializers.SerializerMethodField()
+    endtime = serializers.SerializerMethodField()
+    
     class Meta:
         model = Period
         fields = '__all__'
+    
+    def get_starttime(self, obj):
+        """Grąžina pradžios laiką hh:mm formatu"""
+        if obj.starttime:
+            return obj.starttime.strftime('%H:%M')
+        return None
+    
+    def get_endtime(self, obj):
+        """Grąžina pabaigos laiką hh:mm formatu"""
+        if obj.endtime:
+            return obj.endtime.strftime('%H:%M')
+        return None
 
 
 class ClassroomSerializer(serializers.ModelSerializer):

@@ -91,8 +91,8 @@ export const useLoadingManager = () => {
   };
 };
 
-// Custom hook pamokų duomenų optimizacijai
-export const useOptimizedSchedule = (schedule: GlobalSchedule[], userId?: number) => {
+// Hook tvarkaraščio optimizacijai su Map struktūra
+export const useOptimizedSchedule = (schedule: GlobalSchedule[], userId?: number, mentorSubjects?: any[]) => {
   // Memoizuojame pamokų duomenis su Map struktūra O(1) prieigai
   const optimizedSchedule = useMemo(() => {
     if (!schedule || !userId) return new Map();
@@ -101,6 +101,14 @@ export const useOptimizedSchedule = (schedule: GlobalSchedule[], userId?: number
     
     schedule.forEach((lesson: GlobalSchedule) => {
       if (lesson.user?.id !== userId) return;
+      
+      // Mentoriaus filtravimas - tik priskirti dalykai
+      if (mentorSubjects && mentorSubjects.length > 0) {
+        const mentorSubjectIds = mentorSubjects.map(subject => subject.id);
+        if (!mentorSubjectIds.includes(lesson.subject?.id)) {
+          return; // Praleidžiame dalykus, kurie nėra priskirti mentoriams
+        }
+      }
       
       // Naudojame objektą kaip raktą vietoj string concatenation
       const key = {
@@ -118,7 +126,7 @@ export const useOptimizedSchedule = (schedule: GlobalSchedule[], userId?: number
     });
     
     return scheduleMap;
-  }, [schedule, userId]);
+  }, [schedule, userId, mentorSubjects]);
   
   // Greita funkcija pamokų paieškai O(1) greičiu
   const getLessonsForSlot = useCallback((date: string, periodId: number, levelId: number): GlobalSchedule[] => {
@@ -151,7 +159,7 @@ export const useOptimizedSchedule = (schedule: GlobalSchedule[], userId?: number
 };
 
 // Papildomas hook renderinimo optimizacijai
-export const useRenderOptimization = (schedule: GlobalSchedule[], userId?: number) => {
+export const useRenderOptimization = (schedule: GlobalSchedule[], userId?: number, mentorSubjects?: any[]) => {
   // Memoizuojame renderinimo duomenis
   const renderData = useMemo(() => {
     if (!schedule || !userId) return { cells: new Map(), totalCells: 0 };
@@ -168,6 +176,14 @@ export const useRenderOptimization = (schedule: GlobalSchedule[], userId?: numbe
     schedule.forEach((lesson: GlobalSchedule) => {
       if (lesson.user?.id !== userId) return;
       
+      // Mentoriaus filtravimas - tik priskirti dalykai
+      if (mentorSubjects && mentorSubjects.length > 0) {
+        const mentorSubjectIds = mentorSubjects.map(subject => subject.id);
+        if (!mentorSubjectIds.includes(lesson.subject?.id)) {
+          return; // Praleidžiame dalykus, kurie nėra priskirti mentoriams
+        }
+      }
+      
       const cellKey = `${lesson.date}-${lesson.period?.id}-${lesson.level?.id}`;
       
       cells.set(cellKey, {
@@ -181,7 +197,7 @@ export const useRenderOptimization = (schedule: GlobalSchedule[], userId?: numbe
     });
     
     return { cells, totalCells };
-  }, [schedule, userId]);
+  }, [schedule, userId, mentorSubjects]);
   
   // Greita funkcija langelio duomenų gavimui
   const getCellData = useCallback((date: string, periodId: number, levelId: number) => {
@@ -235,6 +251,37 @@ export const useVirtualization = (items: any[], itemHeight: number, containerHei
     totalHeight,
     handleScroll,
     containerRef
+  };
+};
+
+// Hook mentoriaus priskirtų dalykų gavimui
+export const useMentorSubjects = () => {
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchMentorSubjects = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await scheduleAPI.globalSchedule.getMentorSubjects();
+      setSubjects(response.data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Klaida gaunant mentoriaus dalykus');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMentorSubjects();
+  }, [fetchMentorSubjects]);
+
+  return {
+    subjects,
+    loading,
+    error,
+    fetchMentorSubjects,
   };
 };
 
