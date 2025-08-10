@@ -78,7 +78,7 @@ const Header: React.FC = () => {
                       Pamokos
                     </Link>
                     <Link
-                      href="/dashboard/mentors/curriculum"
+                      href="/dashboard/mentors/plans"
                       className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
                     >
                       Ugdymo planai

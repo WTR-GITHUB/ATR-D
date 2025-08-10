@@ -47,26 +47,24 @@ class GlobalScheduleSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
     subject = serializers.SerializerMethodField()
     classroom = serializers.SerializerMethodField()
-    lesson = serializers.SerializerMethodField()
+    # lesson laukas pašalintas
     
     # Papildomi laukai
     period_name = serializers.CharField(source='period.__str__', read_only=True)
     classroom_name = serializers.CharField(source='classroom.name', read_only=True)
     subject_name = serializers.CharField(source='subject.name', read_only=True)
     level_name = serializers.CharField(source='level.name', read_only=True)
-    lesson_title = serializers.CharField(source='lesson.title', read_only=True, allow_null=True)
+    # lesson_title laukas pašalintas
     mentor_name = serializers.CharField(source='user.get_full_name', read_only=True)
     
     class Meta:
         model = GlobalSchedule
         fields = [
-            'id', 'date', 'weekday', 'period', 'classroom', 'subject', 'level', 'lesson', 'user',
-            'period_name', 'classroom_name', 'subject_name', 'level_name', 'lesson_title', 'mentor_name'
+            'id', 'date', 'weekday', 'period', 'classroom', 'subject', 'level', 'user',
+            'period_name', 'classroom_name', 'subject_name', 'level_name', 'mentor_name'
         ]
         read_only_fields = ['weekday']  # Savaitės diena nustatoma automatiškai
-        extra_kwargs = {
-            'lesson': {'required': False}  # Pamoka neprivaloma
-        }
+        # lesson laukas pašalintas
     
     def get_period(self, obj):
         """Grąžina pilną periodo objektą"""
@@ -121,16 +119,7 @@ class GlobalScheduleSerializer(serializers.ModelSerializer):
             }
         return None
     
-    def get_lesson(self, obj):
-        """Grąžina pilną pamokos objektą"""
-        if obj.lesson:
-            return {
-                'id': obj.lesson.id,
-                'title': obj.lesson.title,
-                'content': obj.lesson.content,
-                'topic': obj.lesson.topic
-            }
-        return None
+    # get_lesson metodas pašalintas
     
     def validate(self, data):
         """

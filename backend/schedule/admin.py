@@ -60,7 +60,7 @@ class GlobalScheduleAdmin(admin.ModelAdmin):
             'fields': ('date', 'period', 'classroom')
         }),
         ('Pamokos informacija', {
-            'fields': ('subject', 'level', 'lesson', 'user')
+            'fields': ('subject', 'level', 'user')
         }),
     )
     
@@ -69,5 +69,5 @@ class GlobalScheduleAdmin(admin.ModelAdmin):
         Optimizuojame queryset su select_related
         """
         return super().get_queryset(request).select_related(
-            'period', 'classroom', 'subject', 'level', 'lesson', 'user'
+            'period', 'classroom', 'subject', 'level', 'user'
         )

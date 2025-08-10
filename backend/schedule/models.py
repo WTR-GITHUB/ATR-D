@@ -58,7 +58,7 @@ class GlobalSchedule(models.Model):
     classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE, verbose_name=_('Klasė'), help_text=_('Pamokos klasė'))
     subject = models.ForeignKey('curriculum.Subject', on_delete=models.CASCADE, verbose_name=_('Dalykas'), help_text=_('Mokomas dalykas'))
     level = models.ForeignKey('curriculum.Level', on_delete=models.CASCADE, verbose_name=_('Lygis'), help_text=_('Mokymo lygis'))
-    lesson = models.ForeignKey('curriculum.Lesson', on_delete=models.CASCADE, verbose_name=_('Pamoka'), help_text=_('Pamokos šablonas (neprivaloma)'), blank=True, null=True)
+    # lesson laukas pašalintas - pamoka nustatoma per IMU_PLAN
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE, 

@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'schedule',
     'curriculum',
     'grades',
+    'plans',
     
     
     # Third party apps
