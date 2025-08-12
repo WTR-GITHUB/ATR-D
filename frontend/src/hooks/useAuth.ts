@@ -1,3 +1,4 @@
+// /frontend/src/hooks/useAuth.ts
 'use client';
 
 import { create } from 'zustand';

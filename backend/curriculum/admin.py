@@ -1,3 +1,4 @@
+# /backend/curriculum/admin.py
 from django.contrib import admin
 from .models import Subject, Level, Objective, Component, Skill, Competency, Virtue, CompetencyAtcheve, Lesson
 

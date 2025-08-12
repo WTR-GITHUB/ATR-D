@@ -1,3 +1,4 @@
+// frontend/src/components/dashboard/ScheduleCard.tsx
 import React from 'react';
 import { MapPin, User, BookOpen } from 'lucide-react';
 

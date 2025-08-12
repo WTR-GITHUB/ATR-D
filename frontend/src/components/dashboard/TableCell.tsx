@@ -1,3 +1,4 @@
+// frontend/src/components/dashboard/TableCell.tsx
 import React, { useMemo, useCallback } from 'react';
 import { MapPin, User, BookOpen } from 'lucide-react';
 

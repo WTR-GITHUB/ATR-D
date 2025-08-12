@@ -1,3 +1,4 @@
+// frontend/src/app/dashboard/mentors/plans/create/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -244,7 +245,7 @@ export default function CreateLessonSequencePage() {
           <ArrowLeft className="w-4 h-4" />
           <span>Atgal</span>
         </Button>
-        <h1 className="text-2xl font-bold text-gray-900">Sukurti ugdymo planą</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Ugdymo planai</h1>
       </div>
 
       <form className="space-y-6">

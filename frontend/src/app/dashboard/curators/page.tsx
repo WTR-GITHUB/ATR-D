@@ -1,3 +1,4 @@
+// frontend/src/app/dashboard/curators/page.tsx
 'use client';
 
 import React from 'react';

@@ -1,3 +1,4 @@
+# backend/plans/serializers.py
 from rest_framework import serializers
 from .models import LessonSequence, LessonSequenceItem, IMUPlan
 from curriculum.models import Subject, Level

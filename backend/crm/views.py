@@ -1,3 +1,4 @@
+# /backend/crm/views.py
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
@@ -66,6 +67,46 @@ class StudentSubjectLevelViewSet(viewsets.ModelViewSet):
         if self.request.user.has_role('student'):
             return StudentSubjectLevel.objects.filter(student=self.request.user)
         return super().get_queryset()
+
+    @action(detail=False, methods=['get'])
+    def students_by_subject_level(self, request):
+        """Grąžina studentus pagal dalyką ir lygį ugdymo planų priskyrimui"""
+        subject_id = request.query_params.get('subject')
+        level_id = request.query_params.get('level')
+        
+        if not subject_id or not level_id:
+            return Response(
+                {'error': 'Reikalingi subject ir level parametrai'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Gauna studentus, kurie turi nurodytą dalyko-lygio kombinaciją
+            student_levels = StudentSubjectLevel.objects.filter(
+                subject_id=subject_id,
+                level_id=level_id
+            ).select_related('student', 'subject', 'level').order_by('student__first_name', 'student__last_name')
+            
+            students_data = []
+            for student_level in student_levels:
+                student = student_level.student
+                # Patikrina ar vartotojas tikrai turi student rolę
+                if student.has_role('student'):
+                    students_data.append({
+                        'id': student.id,
+                        'name': f"{student.first_name} {student.last_name}".strip() or student.username,
+                        'subject': student_level.subject.name,
+                        'level': student_level.level.name,
+                        'subject_level_id': student_level.id
+                    })
+            
+            return Response(students_data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Klaida gaunant studentus: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class MentorSubjectViewSet(viewsets.ModelViewSet):
     """

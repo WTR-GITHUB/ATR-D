@@ -1,3 +1,4 @@
+// frontend/src/components/ui/DynamicList.tsx
 'use client';
 
 import React, { useState } from 'react';

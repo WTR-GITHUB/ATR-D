@@ -1,3 +1,4 @@
+// frontend/src/components/auth/ClientAuthGuard.tsx
 'use client';
 
 import { useEffect } from 'react';

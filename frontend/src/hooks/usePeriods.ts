@@ -1,3 +1,4 @@
+// frontend/src/hooks/usePeriods.ts
 import { useState, useEffect } from 'react';
 import { scheduleAPI } from '@/lib/api';
 import { Period } from '@/lib/types';

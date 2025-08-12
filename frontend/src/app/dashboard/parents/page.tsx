@@ -1,3 +1,4 @@
+// frontend/src/app/dashboard/parents/page.tsx
 'use client';
 
 import React from 'react';

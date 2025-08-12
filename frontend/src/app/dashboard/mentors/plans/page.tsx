@@ -1,3 +1,4 @@
+// frontend/src/app/dashboard/mentors/plans/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -145,7 +146,10 @@ export default function MentorPlansPage() {
               </div>
             </button>
             
-            <button className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+            <button 
+              onClick={() => window.location.href = '/dashboard/mentors/plans/assign'}
+              className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
               <div className="flex items-center space-x-3">
                 <Users className="w-5 h-5 text-green-600" />
                 <span className="text-sm font-medium">Priskirti ugdymo planą</span>

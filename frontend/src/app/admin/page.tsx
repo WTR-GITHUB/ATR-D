@@ -1,3 +1,4 @@
+// frontend/src/app/admin/page.tsx
 'use client';
 
 import React from 'react';

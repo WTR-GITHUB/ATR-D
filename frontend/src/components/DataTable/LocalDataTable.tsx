@@ -1,3 +1,4 @@
+// frontend/src/components/DataTable/LocalDataTable.tsx
 'use client';
 
 import React, { useEffect, useRef, useCallback, useState } from 'react';

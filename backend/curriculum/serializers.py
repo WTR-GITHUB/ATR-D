@@ -1,3 +1,4 @@
+# /backend/curriculum/serializers.py
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Subject, Level, Objective, Component, Skill, Competency, Virtue, CompetencyAtcheve, Lesson

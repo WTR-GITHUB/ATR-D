@@ -1,3 +1,4 @@
+// frontend/src/hooks/useCurriculum.ts
 import { useState, useEffect } from 'react';
 import { curriculumAPI } from '@/lib/api';
 import { Subject, Level, Lesson, Skill, Competency, CompetencyAtcheve, Virtue, Objective, Component } from '@/lib/types';

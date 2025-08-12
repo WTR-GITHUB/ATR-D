@@ -1,3 +1,4 @@
+// frontend/src/hooks/useGrades.ts
 import { useState, useEffect } from 'react';
 import { gradesAPI } from '@/lib/api';
 import { Grade } from '@/lib/types';

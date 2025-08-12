@@ -1,3 +1,4 @@
+// /frontend/src/app/page.tsx
 import Link from 'next/link';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';

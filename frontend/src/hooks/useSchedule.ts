@@ -1,3 +1,4 @@
+// frontend/src/hooks/useSchedule.ts
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { scheduleAPI } from '@/lib/api';
 import { Period, Classroom, GlobalSchedule } from '@/lib/types';
