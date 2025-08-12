@@ -8,13 +8,15 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
+from datetime import datetime
+import logging
 
 from .models import LessonSequence, LessonSequenceItem, IMUPlan
 from .serializers import (
     LessonSequenceSerializer, LessonSequenceCreateSerializer,
     LessonSequenceItemSerializer, IMUPlanSerializer, 
     IMUPlanCreateSerializer, IMUPlanBulkCreateSerializer,
-    SubjectSerializer, LevelSerializer
+    SubjectSerializer, LevelSerializer, GenerateIMUPlanSerializer
 )
 from users.models import User
 from schedule.models import GlobalSchedule
@@ -125,6 +127,205 @@ class LessonSequenceViewSet(viewsets.ModelViewSet):
         levels = Level.objects.all().order_by('name')
         serializer = LevelSerializer(levels, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'])
+    def generate_student_plan_optimized(self, request):
+        """
+        Optimizuotas IMU plano generavimas vienam studentui
+        
+        Payload:
+        {
+            "student_id": 1,
+            "subject_id": 2,
+            "level_id": 3,
+            "lesson_sequence_id": 4,
+            "start_date": "2025-01-15",
+            "end_date": "2025-02-15"
+        }
+        
+        Response:
+        {
+            "student_id": 1,
+            "student_name": "Jonas Jonaitis",
+            "processed": 8,
+            "created": 6,
+            "updated": 2,
+            "skipped": 0,
+            "null_lessons": 0,
+            "unused_lessons": [],
+            "skipped_details": []
+        }
+        """
+        logger = logging.getLogger(__name__)
+        
+        # 1. VALIDACIJA
+        serializer = GenerateIMUPlanSerializer(data=request.data)
+        if not serializer.is_valid():
+            logger.error(f"Validation failed: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        data = serializer.validated_data
+        logger.info(f"Starting IMU plan generation for student {data['student_id']}")
+        
+        try:
+            # 2. FILTRUOTI GLOBALSCHEDULE
+            schedules = self._filter_global_schedules(data, logger)
+            if not schedules:
+                logger.info(f"No GlobalSchedule found for criteria - returning empty result")
+                # Grąžiname sėkmingą atsakymą su tuščiu rezultatu
+                student = User.objects.get(id=data['student_id'])
+                return Response({
+                    'student_id': data['student_id'],
+                    'student_name': f"{student.first_name} {student.last_name}".strip() or student.username,
+                    'processed': 0,
+                    'created': 0,
+                    'updated': 0,
+                    'skipped': 0,
+                    'null_lessons': 0,
+                    'unused_lessons': [],
+                    'skipped_details': [],
+                    'info_message': f'Nerasta tvarkaraščio įrašų laikotarpyje {data["start_date"]} - {data["end_date"]} dalykui ir lygiui'
+                }, status=status.HTTP_200_OK)
+            
+            # 3. GAUTI LESSON SEQUENCE
+            sequence = LessonSequence.objects.get(id=data['lesson_sequence_id'])
+            lessons = list(sequence.items.order_by('position'))
+            
+            logger.info(f"Found {len(schedules)} schedules and {len(lessons)} lessons in sequence")
+            
+            # 4. PROCESAVIMAS STUDENTUI
+            result = self._process_single_student_optimized(
+                data['student_id'], schedules, lessons, logger
+            )
+            
+            logger.info(f"Generation completed for student {data['student_id']}: {result}")
+            return Response(result, status=status.HTTP_200_OK)
+            
+        except LessonSequence.DoesNotExist:
+            logger.error(f"LessonSequence {data['lesson_sequence_id']} not found")
+            return Response({
+                'error': 'Ugdymo planas nerastas'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+            return Response({
+                'error': f'Nenumatyta klaida: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def _filter_global_schedules(self, data, logger):
+        """Filtruoja GlobalSchedule pagal kriterijus su logging"""
+        start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+        end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+        
+        logger.info(f"Filtering criteria: subject={data['subject_id']}, level={data['level_id']}")
+        logger.info(f"Date range: {start_date} to {end_date}")
+        
+        schedules = GlobalSchedule.objects.filter(
+            subject_id=data['subject_id'],
+            level_id=data['level_id'],
+            date__gte=start_date,
+            date__lte=end_date
+        ).select_related(
+            'period', 'subject', 'level', 'classroom', 'user'
+        ).order_by('date', 'period__starttime')
+        
+        # DETALUS LOGGING
+        logger.info(f"Found {schedules.count()} matching schedules:")
+        for schedule in schedules:
+            logger.info(f"  - {schedule.date} {schedule.period} | {schedule.subject.name} | {schedule.classroom.name}")
+        
+        return list(schedules)
+    
+    def _process_single_student_optimized(self, student_id, schedules, lessons, logger):
+        """Procesavimas vienam studentui su length mismatch handling"""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        student = User.objects.get(id=student_id)
+        logger.info(f"Processing student: {student.get_full_name() or student.username}")
+        
+        result = {
+            'student_id': student_id,
+            'student_name': f"{student.first_name} {student.last_name}".strip() or student.username,
+            'processed': 0,
+            'created': 0,
+            'updated': 0,
+            'skipped': 0,
+            'null_lessons': 0,
+            'unused_lessons': [],
+            'skipped_details': []
+        }
+        
+        # BULK PREFETCH existing plans
+        existing_plans_dict = {
+            plan.global_schedule_id: plan
+            for plan in IMUPlan.objects.filter(
+                student_id=student_id,
+                global_schedule__in=schedules
+            ).select_related('global_schedule')
+        }
+        
+        logger.info(f"Found {len(existing_plans_dict)} existing IMU plans for student")
+        
+        # HANDLE LENGTH MISMATCH
+        max_assignments = len(schedules)  # Process all schedules
+        
+        for i, schedule in enumerate(schedules):
+            result['processed'] += 1
+            
+            # Check existing IMUPlan
+            existing = existing_plans_dict.get(schedule.id)
+            
+            if existing and existing.status != 'planned':
+                result['skipped'] += 1
+                result['skipped_details'].append({
+                    'date': schedule.date.strftime('%Y-%m-%d'),
+                    'period_info': f"{schedule.period.name or f'{schedule.period.id} pamoka'} ({schedule.period.starttime.strftime('%H:%M')}-{schedule.period.endtime.strftime('%H:%M')})",
+                    'subject': schedule.subject.name,
+                    'reason': f"Status '{existing.get_status_display()}' - cannot overwrite"
+                })
+                logger.info(f"  SKIPPED: {schedule.date} - status {existing.status}")
+                continue
+            
+            # Assign lesson or null
+            if i < len(lessons):
+                current_lesson = lessons[i].lesson
+                logger.info(f"  ASSIGN: {schedule.date} -> lesson {current_lesson.title}")
+            else:
+                current_lesson = None
+                result['null_lessons'] += 1
+                logger.info(f"  NULL LESSON: {schedule.date} (no more lessons in sequence)")
+            
+            # Create/Update IMUPlan
+            imu_plan, created = IMUPlan.objects.update_or_create(
+                student_id=student_id,
+                global_schedule=schedule,
+                defaults={
+                    'lesson': current_lesson,
+                    'status': 'planned'
+                }
+            )
+            
+            if created:
+                result['created'] += 1
+                logger.info(f"  CREATED: IMUPlan for {schedule.date}")
+            else:
+                result['updated'] += 1
+                logger.info(f"  UPDATED: IMUPlan for {schedule.date}")
+        
+        # Track unused lessons
+        if len(lessons) > len(schedules):
+            unused_lessons = lessons[len(schedules):]
+            result['unused_lessons'] = [
+                {
+                    'position': lesson.position,
+                    'lesson_title': lesson.lesson.title
+                }
+                for lesson in unused_lessons
+            ]
+            logger.info(f"UNUSED LESSONS: {len(unused_lessons)} lessons not assigned")
+        
+        return result
 
 
 class LessonSequenceItemViewSet(viewsets.ModelViewSet):

@@ -29,6 +29,8 @@ interface DualListTransferProps {
   availableTitle?: string;
   selectedTitle?: string;
   isLoading?: boolean;
+  onGenerate?: () => void;
+  isGenerating?: boolean;
 }
 
 interface ListItemProps {
@@ -86,7 +88,9 @@ const DualListTransfer: React.FC<DualListTransferProps> = ({
   onSelectionChange,
   availableTitle = "Galimi studentai",
   selectedTitle = "Pasirinkti studentai",
-  isLoading = false
+  isLoading = false,
+  onGenerate,
+  isGenerating = false
 }) => {
   const [internalAvailable, setInternalAvailable] = useState<DualListItem[]>([]);
   const [internalSelected, setInternalSelected] = useState<DualListItem[]>(selectedItems);
@@ -326,10 +330,11 @@ const DualListTransfer: React.FC<DualListTransferProps> = ({
             Iš viso pasirinkta: <span className="font-medium">{internalSelected.length}</span> studentų
           </div>
           <button
-            disabled={internalSelected.length === 0}
+            onClick={onGenerate}
+            disabled={internalSelected.length === 0 || isGenerating}
             className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200"
           >
-            Generuoti
+            {isGenerating ? 'Generuojama...' : 'Generuoti'}
           </button>
         </div>
       </div>

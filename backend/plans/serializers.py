@@ -180,3 +180,85 @@ class LevelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Level
         fields = ['id', 'name', 'description']
+
+
+class GenerateIMUPlanSerializer(serializers.Serializer):
+    """
+    Per-student IMU plano generavimo serializeris
+    Naudojamas generate_student_plan_optimized endpoint'e
+    """
+    student_id = serializers.IntegerField(
+        help_text="Mokinio ID"
+    )
+    subject_id = serializers.IntegerField(
+        help_text="Dalyko ID"
+    )
+    level_id = serializers.IntegerField(
+        help_text="Lygio ID"
+    )
+    lesson_sequence_id = serializers.IntegerField(
+        help_text="Pamokų sekos ID"
+    )
+    start_date = serializers.CharField(
+        max_length=10,
+        help_text="Pradžios data formato YYYY-MM-DD"
+    )
+    end_date = serializers.CharField(
+        max_length=10,
+        help_text="Pabaigos data formato YYYY-MM-DD"
+    )
+    
+    def validate_start_date(self, value):
+        """Validuoja pradžios datos formatą"""
+        from datetime import datetime
+        try:
+            datetime.strptime(value, '%Y-%m-%d')
+            return value
+        except ValueError:
+            raise serializers.ValidationError("Neteisingas datos formatas. Naudokite YYYY-MM-DD")
+    
+    def validate_end_date(self, value):
+        """Validuoja pabaigos datos formatą"""
+        from datetime import datetime
+        try:
+            datetime.strptime(value, '%Y-%m-%d')
+            return value
+        except ValueError:
+            raise serializers.ValidationError("Neteisingas datos formatas. Naudokite YYYY-MM-DD")
+    
+    def validate(self, data):
+        """Cross-field validacija"""
+        from datetime import datetime
+        
+        start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+        end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+        
+        if start_date >= end_date:
+            raise serializers.ValidationError({
+                'end_date': "Pabaigos data turi būti vėlesnė už pradžios datą"
+            })
+        
+        # Tikrinti ar student_id egzistuoja ir yra studentas
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        try:
+            student = User.objects.get(id=data['student_id'])
+            if not student.has_role('student'):
+                raise serializers.ValidationError({
+                    'student_id': "Nurodytas vartotojas nėra studentas"
+                })
+        except User.DoesNotExist:
+            raise serializers.ValidationError({
+                'student_id': "Studentas su šiuo ID neegzistuoja"
+            })
+        
+        # Tikrinti ar lesson_sequence_id egzistuoja
+        try:
+            LessonSequence.objects.get(id=data['lesson_sequence_id'])
+        except LessonSequence.DoesNotExist:
+            raise serializers.ValidationError({
+                'lesson_sequence_id': "Ugdymo planas su šiuo ID neegzistuoja"
+            })
+        
+        return data

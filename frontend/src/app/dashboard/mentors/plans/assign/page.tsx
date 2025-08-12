@@ -14,10 +14,12 @@
 // CHANGE: Pridėtas warning message kai nepasirinktas lygis
 // CHANGE: Ištaisytas hydration mismatch perkėliant datos generavimą į useEffect
 // CHANGE: Pridėtas isClient state ir client-only rendering visos content dalies
+// CHANGE: Pridėtas state management progress ir results modalams per-student API integracijai
+// CHANGE: Pridėtas comprehensive logging frontend ir backend pusėse generavimo proceso sekimui
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
@@ -25,6 +27,8 @@ import Button from '@/components/ui/Button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import Input from '@/components/ui/Input';
 import DualListTransfer from '@/components/ui/DualListTransfer';
+import ProgressModal from '@/components/ui/ProgressModal';
+import GenerationResultsModal from '@/components/ui/GenerationResultsModal';
 import { Users, BookOpen, Target, ArrowLeft } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -57,6 +61,40 @@ interface Student {
   subject: string;
   level: string;
   subject_level_id: number;
+}
+
+// Interfaces for generation results
+interface SkippedDetail {
+  date: string;
+  period_info: string;
+  subject: string;
+  reason: string;
+}
+
+interface UnusedLesson {
+  position: number;
+  lesson_title: string;
+}
+
+interface StudentResult {
+  student_id: number;
+  student_name: string;
+  processed: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  null_lessons?: number;
+  unused_lessons?: UnusedLesson[];
+  skipped_details: SkippedDetail[];
+  error?: string;
+  info_message?: string;
+}
+
+interface CurrentStudent {
+  id: number;
+  name: string;
+  index: number;
+  total: number;
 }
 
 // API funkcijos
@@ -98,11 +136,23 @@ export default function AssignPlanPage() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   
+  // Generation state management
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [showResultsModal, setShowResultsModal] = useState(false);
+  const [currentStudent, setCurrentStudent] = useState<CurrentStudent | null>(null);
+  const [completedStudents, setCompletedStudents] = useState(0);
+  const [generationResults, setGenerationResults] = useState<StudentResult[]>([]);
+  
   const [selectedSubject, setSelectedSubject] = useState<string>('');
   const [selectedLevel, setSelectedLevel] = useState<string>('');
   const [selectedPlan, setSelectedPlan] = useState<string>('');
   const [todayDate, setTodayDate] = useState<string>('');
   const [isClient, setIsClient] = useState(false);
+  
+  // Refs for date inputs
+  const startDateRef = useRef<HTMLInputElement>(null);
+  const endDateRef = useRef<HTMLInputElement>(null);
 
   // Set client flag after component mounts to avoid hydration mismatch
   useEffect(() => {
@@ -202,6 +252,118 @@ export default function AssignPlanPage() {
   // Handle students selection change
   const handleStudentsSelectionChange = (selected: Student[]) => {
     setSelectedStudents(selected);
+  };
+
+  // Handle generation process
+  const handleGenerate = async () => {
+    if (!selectedSubject || !selectedLevel || !selectedPlan || selectedStudents.length === 0) {
+      alert('Prašome užpildyti visus laukus ir pasirinkti studentus');
+      return;
+    }
+
+    if (!startDateRef.current?.value || !endDateRef.current?.value) {
+      alert('Prašome pasirinkti pradžios ir pabaigos datas');
+      return;
+    }
+
+    const basePayload = {
+      subject_id: parseInt(selectedSubject),
+      level_id: parseInt(selectedLevel),
+      lesson_sequence_id: parseInt(selectedPlan),
+      start_date: startDateRef.current.value,
+      end_date: endDateRef.current.value
+    };
+
+    console.log('Starting generation with payload base:', basePayload);
+    console.log('Selected students:', selectedStudents);
+
+    setIsGenerating(true);
+    setShowProgressModal(true);
+    setCompletedStudents(0);
+    setGenerationResults([]);
+
+    const allResults: StudentResult[] = [];
+
+    try {
+      for (let i = 0; i < selectedStudents.length; i++) {
+        const student = selectedStudents[i];
+        
+        // Update current student info
+        setCurrentStudent({
+          id: student.id,
+          name: student.name,
+          index: i + 1,
+          total: selectedStudents.length
+        });
+
+        console.log(`Processing student ${i + 1}/${selectedStudents.length}: ${student.name}`);
+
+        try {
+          const response = await api.post('/plans/sequences/generate_student_plan_optimized/', {
+            ...basePayload,
+            student_id: student.id
+          });
+
+          console.log(`Student ${student.name} result:`, response.data);
+          allResults.push(response.data);
+          setCompletedStudents(i + 1);
+
+        } catch (error: any) {
+          console.error(`Failed for student ${student.name}:`, error);
+          
+          const errorResult: StudentResult = {
+            student_id: student.id,
+            student_name: student.name,
+            processed: 0,
+            created: 0,
+            updated: 0,
+            skipped: 0,
+            skipped_details: [],
+            error: error.response?.data?.error || error.message || 'Nežinoma klaida'
+          };
+          
+          allResults.push(errorResult);
+          setCompletedStudents(i + 1);
+        }
+
+        // Small delay between requests to avoid overwhelming the server
+        if (i < selectedStudents.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+
+      console.log('Generation completed. All results:', allResults);
+      setGenerationResults(allResults);
+
+      // Show final results
+      setTimeout(() => {
+        setShowProgressModal(false);
+        setShowResultsModal(true);
+      }, 1000);
+
+    } catch (error: any) {
+      console.error('Generation process failed:', error);
+      alert('Generavimo procesas nepavyko: ' + (error.message || 'Nežinoma klaida'));
+      setShowProgressModal(false);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Close results modal
+  const handleCloseResults = () => {
+    setShowResultsModal(false);
+    setGenerationResults([]);
+    setCurrentStudent(null);
+    setCompletedStudents(0);
+  };
+
+  // Cancel generation
+  const handleCancelGeneration = () => {
+    setIsGenerating(false);
+    setShowProgressModal(false);
+    setCurrentStudent(null);
+    setCompletedStudents(0);
   };
 
   // Loading state or not client yet
@@ -305,6 +467,7 @@ export default function AssignPlanPage() {
                 Laikotarpio pradžia
               </label>
               <Input
+                ref={startDateRef}
                 type="date"
                 defaultValue={todayDate}
                 className="w-full"
@@ -316,6 +479,7 @@ export default function AssignPlanPage() {
                 Laikotarpio pabaiga
               </label>
               <Input
+                ref={endDateRef}
                 type="date"
                 defaultValue={todayDate}
                 className="w-full"
@@ -364,19 +528,21 @@ export default function AssignPlanPage() {
                   subject: student.subject,
                   level: student.level
                 }))}
-                onSelectionChange={(selected) => {
-                  const mappedSelected = selected.map(item => {
-                    const original = students.find(s => s.id === item.id);
-                    return original || {
-                      id: item.id,
-                      name: item.name,
-                      subject: item.subject || '',
-                      level: item.level || '',
-                      subject_level_id: 0
-                    };
-                  });
-                  handleStudentsSelectionChange(mappedSelected);
-                }}
+                                      onSelectionChange={(selected) => {
+                        const mappedSelected = selected.map(item => {
+                          const original = students.find(s => s.id === item.id);
+                          return original || {
+                            id: item.id,
+                            name: item.name,
+                            subject: item.subject || '',
+                            level: item.level || '',
+                            subject_level_id: 0
+                          };
+                        });
+                        handleStudentsSelectionChange(mappedSelected);
+                      }}
+                      onGenerate={handleGenerate}
+                      isGenerating={isGenerating}
                 availableTitle="Galimi studentai"
                 selectedTitle="Pasirinkti studentai"
                 isLoading={isLoadingStudents}
@@ -428,6 +594,21 @@ export default function AssignPlanPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Progress Modal */}
+      <ProgressModal
+        isOpen={showProgressModal}
+        currentStudent={currentStudent}
+        completedStudents={completedStudents}
+        onCancel={handleCancelGeneration}
+      />
+
+      {/* Results Modal */}
+      <GenerationResultsModal
+        isOpen={showResultsModal}
+        results={generationResults}
+        onClose={handleCloseResults}
+      />
     </div>
   );
 }
