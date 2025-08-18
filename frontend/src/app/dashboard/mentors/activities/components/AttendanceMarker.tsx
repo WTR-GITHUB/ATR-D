@@ -3,12 +3,17 @@
 // Lankomumo žymėjimo komponentas
 // Atsako už lankomumo būsenos vizualizavimą ir interaktyvų keitimą
 // Palaiko keturias būsenas: dalyvavo, nedalyvavo, vėlavo, pateisinta
-// CHANGE: Sukurtas atskiras AttendanceMarker komponentas lankomumo mygtukų valdymui su aiškia tipizacija
+// CHANGE: Atnaujintos spalvos su aiškesniais skirtumais - aktyvūs: tamsūs su baltomis ikonoms, neaktyvūs: šviesūs su spalvotomis ikonoms
 
 'use client';
 
 import React from 'react';
-import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { 
+  UserCheck, 
+  UserX, 
+  Clock, 
+  FileText 
+} from 'lucide-react';
 import { AttendanceStatus } from '../types';
 
 interface AttendanceMarkerProps {
@@ -19,7 +24,7 @@ interface AttendanceMarkerProps {
 }
 
 // Lankomumo mygtuko komponentas
-// Vizualizuoja ir leidžia keisti mokinio lankomumo būseną
+// Vizualizuoja ir leidžia keisti mokinio lankomumo būseną pagal paveiksliuko dizainą
 const AttendanceMarker: React.FC<AttendanceMarkerProps> = ({ 
   status, 
   active, 
@@ -50,37 +55,45 @@ const AttendanceMarker: React.FC<AttendanceMarkerProps> = ({
     }
   };
 
-  // Mygtuko stilių generavimas pagal būseną ir aktyvumą
+  // Mygtuko stilių generavimas su aiškesniais skirtumais tarp aktyvių ir neaktyvių būsenų
   const getButtonStyle = () => {
-    const baseStyle = `${getSizeClasses()} rounded-full flex items-center justify-center border-2 transition-all cursor-pointer hover:scale-105`;
+    const baseStyle = `${getSizeClasses()} rounded flex items-center justify-center transition-colors cursor-pointer`;
     
     switch (status) {
       case 'present':
-        return `${baseStyle} ${active ? 'bg-green-500 border-green-500 text-white shadow-md' : 'border-green-300 text-green-500 hover:bg-green-50'}`;
+        return `${baseStyle} ${active 
+          ? 'bg-green-600 text-white shadow-md' 
+          : 'bg-green-100 text-green-600 border border-green-300 hover:bg-green-200'}`;
       case 'absent':
-        return `${baseStyle} ${active ? 'bg-red-500 border-red-500 text-white shadow-md' : 'border-red-300 text-red-500 hover:bg-red-50'}`;
+        return `${baseStyle} ${active 
+          ? 'bg-pink-600 text-white shadow-md' 
+          : 'bg-pink-100 text-pink-600 border border-pink-300 hover:bg-pink-200'}`;
       case 'late':
-        return `${baseStyle} ${active ? 'bg-yellow-500 border-yellow-500 text-white shadow-md' : 'border-yellow-300 text-yellow-500 hover:bg-yellow-50'}`;
+        return `${baseStyle} ${active 
+          ? 'bg-yellow-600 text-white shadow-md' 
+          : 'bg-yellow-100 text-yellow-600 border border-yellow-300 hover:bg-yellow-200'}`;
       case 'excused':
-        return `${baseStyle} ${active ? 'bg-blue-500 border-blue-500 text-white shadow-md' : 'border-blue-300 text-blue-500 hover:bg-blue-50'}`;
+        return `${baseStyle} ${active 
+          ? 'bg-blue-600 text-white shadow-md' 
+          : 'bg-blue-100 text-blue-600 border border-blue-300 hover:bg-blue-200'}`;
       default:
-        return `${baseStyle} border-gray-300 text-gray-400`;
+        return `${baseStyle} bg-gray-200 text-gray-400 border border-gray-300`;
     }
   };
 
-  // Ikonos pasirinkimas pagal lankomumo būseną
+  // Ikonos pasirinkimas pagal lankomumo būseną (pagal paveiksliuko ikonas)
   const getIcon = () => {
     const iconSize = getIconSize();
     
     switch (status) {
       case 'present':
-        return <CheckCircle size={iconSize} />;
+        return <UserCheck size={iconSize} />;
       case 'absent':
-        return <XCircle size={iconSize} />;
+        return <UserX size={iconSize} />;
       case 'late':
         return <Clock size={iconSize} />;
       case 'excused':
-        return <AlertCircle size={iconSize} />;
+        return <FileText size={iconSize} />;
       default:
         return null;
     }

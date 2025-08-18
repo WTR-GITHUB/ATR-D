@@ -1,9 +1,9 @@
 // frontend/src/app/dashboard/mentors/activities/components/StudentRow.tsx
 
-// Mokinio eilutės komponentas su accordion funkcionalumu
+// Universalus mokinio eilutės komponentas su accordion funkcionalumu
 // Rodo pagrindinę mokinio informaciją ir leidžia išplėsti papildomus vertinimo laukus
 // Integruoja lankomumo žymėjimą, aktyvumo vertinimą ir pastabų rašymą
-// CHANGE: Sukurtas atskiras StudentRow komponentas su pilna funkcionalumu ir tipizacija
+// CHANGE: Sujungtas su StudentRowForLesson - dabar vienas komponentas dirba su abiem duomenų tipais
 
 'use client';
 
@@ -12,6 +12,7 @@ import { ChevronDown, ChevronUp, MessageSquare, User } from 'lucide-react';
 import { AttendanceButtonGroup } from './AttendanceMarker';
 import { 
   Student, 
+  IMUPlan,
   AttendanceStatus, 
   StudentEvaluation, 
   ActivityLevel, 
@@ -19,10 +20,15 @@ import {
   Understanding 
 } from '../types';
 
+// Tipas, kuris gali priimti abu duomenų tipus
+type StudentData = Student | IMUPlan;
+
 interface StudentRowProps {
-  student: Student;
+  student: StudentData;
   onAttendanceChange: (studentId: number, status: AttendanceStatus) => void;
   onEvaluationChange?: (studentId: number, evaluation: StudentEvaluation) => void;
+  // Naujas prop nustatyti, ar tai IMUPlan duomenys
+  isIMUPlan?: boolean;
 }
 
 // Mokinio eilutės komponentas
@@ -30,24 +36,98 @@ interface StudentRowProps {
 const StudentRow: React.FC<StudentRowProps> = ({ 
   student, 
   onAttendanceChange,
-  onEvaluationChange 
+  onEvaluationChange,
+  isIMUPlan = false
 }) => {
   const [expanded, setExpanded] = useState(false);
-  const [attendance, setAttendance] = useState<AttendanceStatus>(student.status);
+  
+  // Pagalbinės funkcijos duomenų gavimui iš skirtingų tipų
+  const getStudentId = (): number => {
+    if (isIMUPlan) {
+      return (student as IMUPlan).student;
+    }
+    return (student as Student).id;
+  };
+
+  const getStudentName = (): string => {
+    if (isIMUPlan) {
+      return (student as IMUPlan).student_name;
+    }
+    const s = student as Student;
+    return `${s.firstName} ${s.lastName}`;
+  };
+
+  const getStudentStatus = (): string => {
+    return student.status;
+  };
+
+  const getAttendanceStats = () => {
+    if (isIMUPlan) {
+      // Mock duomenys IMUPlan tipo duomenims
+      return {
+        present: 18,
+        total: 20,
+        percentage: 90
+      };
+    }
+    const s = student as Student;
+    return {
+      present: s.attendance.present,
+      total: s.attendance.total,
+      percentage: Math.round((s.attendance.present / s.attendance.total) * 100)
+    };
+  };
+
+  const hasRecentFeedback = (): boolean => {
+    if (isIMUPlan) {
+      return !!(student as IMUPlan).notes;
+    }
+    return (student as Student).hasRecentFeedback;
+  };
+
+  // Statusų konvertavimas (reikalinga IMUPlan duomenims)
+  const convertToAttendanceStatus = (status: string): AttendanceStatus => {
+    if (isIMUPlan) {
+      switch (status) {
+        case 'completed': return 'present';
+        case 'in_progress': return 'late';
+        case 'missed': return 'absent';
+        case 'planned': return 'excused';
+        default: return 'present';
+      }
+    }
+    return status as AttendanceStatus;
+  };
+
+  const convertFromAttendanceStatus = (status: AttendanceStatus): string => {
+    if (isIMUPlan) {
+      switch (status) {
+        case 'present': return 'completed';
+        case 'late': return 'in_progress';
+        case 'absent': return 'missed';
+        case 'excused': return 'planned';
+        default: return 'completed';
+      }
+    }
+    return status;
+  };
+
+  const [attendance, setAttendance] = useState<AttendanceStatus>(convertToAttendanceStatus(getStudentStatus()));
   
   // Vertinimo būsenos
   const [evaluation, setEvaluation] = useState<StudentEvaluation>({
     activity: '',
     taskCompletion: '',
     understanding: '',
-    notes: '',
+    notes: isIMUPlan ? ((student as IMUPlan).notes || '') : '',
     tasks: []
   });
 
   // Lankomumo keitimo valdymas
   const handleAttendanceChange = (status: AttendanceStatus) => {
     setAttendance(status);
-    onAttendanceChange(student.id, status);
+    const finalStatus = isIMUPlan ? convertFromAttendanceStatus(status) : status;
+    onAttendanceChange(getStudentId(), finalStatus as AttendanceStatus);
   };
 
   // Vertinimo kriterijų keitimo valdymas
@@ -56,7 +136,7 @@ const StudentRow: React.FC<StudentRowProps> = ({
     setEvaluation(newEvaluation);
     
     if (onEvaluationChange) {
-      onEvaluationChange(student.id, newEvaluation);
+      onEvaluationChange(getStudentId(), newEvaluation);
     }
   };
 
@@ -69,86 +149,72 @@ const StudentRow: React.FC<StudentRowProps> = ({
     handleEvaluationChange('tasks', newTasks);
   };
 
-  // Lankomumo procentų skaičiavimas
-  const attendancePercentage = Math.round((student.attendance.present / student.attendance.total) * 100);
-  
-  // Lankomumo spalvos nustatymas pagal procentus
-  const getAttendanceColor = () => {
-    if (attendancePercentage >= 90) return 'text-green-600';
-    if (attendancePercentage >= 75) return 'text-yellow-600';
-    return 'text-red-600';
-  };
+  const attendanceStats = getAttendanceStats();
 
   return (
-    <div className="border border-gray-200 rounded-lg mb-2 bg-white shadow-sm hover:shadow-md transition-shadow">
-      {/* Pagrindinė eilutė su mokinio informacija */}
+    <div className="border border-gray-200 rounded-lg mb-2 bg-white shadow-sm">
+      {/* Pagrindinė eilutė - tiksliai pagal paveiksliuko stilių */}
       <div className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
         <div className="flex items-center space-x-4">
           {/* Išplėtimo mygtukas */}
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-md hover:bg-gray-100"
-            aria-label={expanded ? 'Suskleisti' : 'Išplėsti'}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
           >
             {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
           </button>
           
-          {/* Mokinio informacija */}
+          {/* Mokinio informacija su paveiksliuko style */}
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
               <User size={16} className="text-blue-600" />
             </div>
             <div>
-              <h3 className="font-medium text-gray-900">
-                {student.firstName} {student.lastName}
-              </h3>
-              <div className={`text-sm ${getAttendanceColor()}`}>
-                Lankomumas: {student.attendance.present}/{student.attendance.total} ({attendancePercentage}%)
+              <h4 className="font-medium text-gray-900">{getStudentName()}</h4>
+              <div className="text-sm text-gray-500">
+                Lankomumas: {attendanceStats.present}/{attendanceStats.total} ({attendanceStats.percentage}%)
               </div>
             </div>
           </div>
         </div>
 
         <div className="flex items-center space-x-4">
-          {/* Lankomumo statistikos rodikliai */}
+          {/* Statistikos ženkliukai - tiksliai pagal paveiksliuką */}
           <div className="flex items-center space-x-2 text-sm">
             <div className="bg-green-100 px-2 py-1 rounded text-green-700 font-medium">
-              +{student.attendance.present}
+              +{attendanceStats.present}
             </div>
             <div className="bg-red-100 px-2 py-1 rounded text-red-700 font-medium">
-              -{student.attendance.absent}
-            </div>
-            <div className="bg-gray-100 px-2 py-1 rounded text-gray-700 font-medium">
-              Liko: {student.attendance.total - student.attendance.present - student.attendance.absent}
+              -{attendanceStats.total - attendanceStats.present}
             </div>
           </div>
 
           {/* Grįžtamojo ryšio indikatorius */}
-          {student.hasRecentFeedback && (
-            <div className="flex items-center space-x-1 text-blue-600 bg-blue-50 px-2 py-1 rounded">
+          {hasRecentFeedback() && (
+            <div className="flex items-center space-x-1 text-blue-600">
               <MessageSquare size={16} />
-              <span className="text-sm font-medium">GR</span>
+              <span className="text-sm">GR</span>
             </div>
           )}
 
-          {/* Lankomumo žymėjimo mygtukai */}
-          <AttendanceButtonGroup
-            currentStatus={attendance}
-            onStatusChange={handleAttendanceChange}
-          />
+          {/* Lankomumo mygtukai - spalvoti pagal paveiksliuką */}
+          <div className="flex space-x-2">
+            <AttendanceButtonGroup
+              currentStatus={attendance}
+              onStatusChange={handleAttendanceChange}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Išplėsta sekcija su papildomais vertinimo kriterijais */}
+      {/* Išplėsta sekcija - tiksliai pagal paveiksliuko stilių */}
       {expanded && (
         <div className="px-4 pb-4 border-t border-gray-100 bg-gray-50">
           <div className="pt-4 space-y-4">
-            {/* Vertinimo kriterijai: aktyvumas, užduočių atlikimas, supratimas */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Vertinimo kriterijai - tiksliai pagal paveiksliuką */}
+            <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Aktyvumas
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Aktyvumas</label>
                 <select 
                   value={evaluation.activity}
                   onChange={(e) => handleEvaluationChange('activity', e.target.value as ActivityLevel)}
@@ -160,11 +226,8 @@ const StudentRow: React.FC<StudentRowProps> = ({
                   <option value="low">Žemas</option>
                 </select>
               </div>
-              
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Užduočių atlikimas
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Užduočių atlikimas</label>
                 <select 
                   value={evaluation.taskCompletion}
                   onChange={(e) => handleEvaluationChange('taskCompletion', e.target.value as TaskCompletion)}
@@ -176,11 +239,8 @@ const StudentRow: React.FC<StudentRowProps> = ({
                   <option value="not_completed">Neatlikta</option>
                 </select>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Supratimas
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Supratimas</label>
                 <select 
                   value={evaluation.understanding}
                   onChange={(e) => handleEvaluationChange('understanding', e.target.value as Understanding)}
@@ -194,11 +254,9 @@ const StudentRow: React.FC<StudentRowProps> = ({
               </div>
             </div>
 
-            {/* Pastabų laukas */}
+            {/* Pastabos */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Pastabos
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Pastabos</label>
               <textarea
                 value={evaluation.notes}
                 onChange={(e) => handleEvaluationChange('notes', e.target.value)}
@@ -206,33 +264,6 @@ const StudentRow: React.FC<StudentRowProps> = ({
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 rows={3}
               />
-            </div>
-
-            {/* Individualūs užduočių žymėjimai */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Užduočių žymėjimai
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {['Namų darbai', 'Klasės darbas', 'Prezentacija', 'Testas'].map((task) => (
-                  <label key={task} className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={evaluation.tasks.includes(task)}
-                      onChange={() => handleTaskToggle(task)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">{task}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Papildomi veiksmai */}
-            <div className="flex justify-end pt-2 border-t border-gray-200">
-              <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                Išsaugoti vertinimą
-              </button>
             </div>
           </div>
         </div>

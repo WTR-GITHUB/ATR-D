@@ -217,24 +217,7 @@ const StudentsList: React.FC<StudentsListProps> = ({
         )}
       </div>
 
-      {/* Papildomi veiksmai apačioje */}
-      {filteredAndSortedStudents.length > 0 && (
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-lg">
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-600">
-              Rodoma: {filteredAndSortedStudents.length} iš {students.length} mokinių
-            </div>
-            <div className="flex space-x-3">
-              <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                Eksportuoti sąrašą
-              </button>
-              <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                Masinis vertinimas
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 };

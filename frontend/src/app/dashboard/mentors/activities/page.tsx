@@ -1,58 +1,24 @@
 // frontend/src/app/dashboard/mentors/activities/page.tsx
 
-// Veiklos puslapis - pamokų vykdymas ir mokinių lankomumo registravimas
-// Šis puslapis skirtas mentoriams vykdyti pamokas realiu laiku, žymėti mokinių lankumą,
-// vertinti aktyvumą ir pateikti grįžtamąjį ryšį apie pamokos eigą
-// CHANGE: Atnaujintas naudojant moduliarius komponentus: LessonSelector, StudentsList, StudentStats
+// Veiklos puslapis - pamokų peržiūra ir detalės
+// Šis puslapis skirtas mentoriams peržiūrėti pasirinktas pamokas ir jų detales
+// Rodo tvarkaraštį ir pasirinktos pamokos informaciją su mokinių sąrašu
+// CHANGE: Pašalintas StudentsList komponentas - mokiniai rodomi tik LessonInfoCard viduje
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { CheckCircle, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
-import StudentsList from './components/StudentsList';
-import StudentStats from './components/StudentStats';
 import LessonDetailsPanel from './components/LessonDetailsPanel';
 import WeeklyScheduleCalendar from '@/components/dashboard/WeeklyScheduleCalendar';
-import { Student, AttendanceStatus } from './types';
 import useWeekInfo from '@/hooks/useWeekInfo';
 import useSelectedLesson from '@/hooks/useSelectedLesson';
 
-// Mock duomenys studentams (kol nėra API)
-// Dalykų ir pamokų duomenys gaunami per API hooks
-
-const mockStudents: Student[] = [
-  {
-    id: 1,
-    firstName: 'Jonas',
-    lastName: 'Petraitis',
-    attendance: { present: 15, absent: 2, total: 20 },
-    hasRecentFeedback: true,
-    status: 'present' as AttendanceStatus
-  },
-  {
-    id: 2,
-    firstName: 'Marija',
-    lastName: 'Kazlauskienė',
-    attendance: { present: 18, absent: 0, total: 20 },
-    hasRecentFeedback: false,
-    status: 'present' as AttendanceStatus
-  },
-  {
-    id: 3,
-    firstName: 'Petras',
-    lastName: 'Jonaitis',
-    attendance: { present: 12, absent: 5, total: 20 },
-    hasRecentFeedback: true,
-    status: 'absent' as AttendanceStatus
-  }
-];
-
-// Tipų aprašai perkelti į types.ts failą ir komponentus
+// Pamokų duomenys gaunami per API hooks
 
 // Pagrindinis Veiklos puslapis
-// Skirtas mentoriams vykdyti pamokas ir registruoti mokinių lankumą
+// Skirtas mentoriams vykdyti pamokas ir peržiūrėti pamokų detales
 const VeiklosPage = () => {
-  const [students, setStudents] = useState(mockStudents);
   const [isScheduleExpanded, setIsScheduleExpanded] = useState(false);
   
   // Inicializuojame weekInfo iš karto su dabartine savaite
@@ -74,24 +40,6 @@ const VeiklosPage = () => {
     clearSelection,
     refreshLessonData
   } = useSelectedLesson();
-
-  // Lankomumo keitimo valdymas
-  const handleAttendanceChange = (studentId: number, status: AttendanceStatus) => {
-    setStudents(students.map(student => 
-      student.id === studentId 
-        ? { ...student, status } 
-        : student
-    ));
-    // Ateityje čia bus API iškvietimas išsaugoti pakeitimą
-    console.log(`Student ${studentId} marked as ${status}`);
-  };
-
-  // Mokinio pridėjimo valdymas
-  const handleAddStudent = () => {
-    console.log('Add student functionality to be implemented');
-  };
-
-  // Pašalinta loading ir error logika, kuri buvo reikalinga LessonSelector komponentui
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -184,21 +132,9 @@ const VeiklosPage = () => {
           error={lessonError}
         />
 
-        {/* Mokinių sąrašo komponentas */}
-        <StudentsList
-          students={students}
-          onAttendanceChange={handleAttendanceChange}
-          onAddStudent={handleAddStudent}
-          showAddButton={true}
-        />
 
-        {/* Statistikos komponentas - po mokinių sąrašu */}
-        <StudentStats
-          students={students}
-          selectedDate={new Date().toISOString().split('T')[0]}
-          selectedSubject={null}
-          selectedLesson={null}
-        />
+
+
 
         {/* Auto-save indikatorius (fiksuotas pozicija apačioje dešinėje) */}
         <div className="fixed bottom-6 right-6">
