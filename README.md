@@ -16,6 +16,8 @@ Moderni studentų dienynas ir mokymosi valdymo sistema, sukurta naudojant Django
 - Studentų progreso sekimas
 - Tėvų ir kuratorių ryšių valdymas
 - Mentorų ir dalykų susiejimas
+- **Išsamus pamokų vykdymas** - pamokos pasirinkimas, detalių rodymas, kelių pamokų palaikymas
+- **IMU planų valdymas** - individualūs mokinių ugdymo planai su statusų sekimu
 
 ### Sistemos funkcijos
 - Saugus JWT autentifikacija

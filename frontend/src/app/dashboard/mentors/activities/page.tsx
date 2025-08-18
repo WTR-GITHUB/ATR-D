@@ -66,6 +66,7 @@ const VeiklosPage = () => {
   const {
     globalScheduleId,
     lessonDetails,
+    allLessonsDetails,
     imuPlans,
     isLoading: lessonLoading,
     error: lessonError,
@@ -177,6 +178,7 @@ const VeiklosPage = () => {
         {/* Pasirinktos pamokos detalės */}
         <LessonDetailsPanel
           lessonDetails={lessonDetails}
+          allLessonsDetails={allLessonsDetails}
           imuPlans={imuPlans}
           isLoading={lessonLoading}
           error={lessonError}

@@ -205,7 +205,8 @@ export interface IMUPlan {
 // Pasirinktos pamokos būsena
 export interface SelectedLessonState {
   globalScheduleId: number | null;
-  lessonDetails: LessonDetails | null;
+  lessonDetails: LessonDetails | null; // Pagrindines pamokos detalės (jei yra)
+  allLessonsDetails: LessonDetails[]; // Visų pamokų detalės
   imuPlans: IMUPlan[];
   isLoading: boolean;
   error: string | null;

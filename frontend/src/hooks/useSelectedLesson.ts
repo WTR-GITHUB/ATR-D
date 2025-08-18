@@ -21,6 +21,7 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
   const [state, setState] = useState<SelectedLessonState>({
     globalScheduleId: null,
     lessonDetails: null,
+    allLessonsDetails: [],
     imuPlans: [],
     isLoading: false,
     error: null
@@ -46,22 +47,42 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Paraleliai gauname pamokos detales ir IMU planus
-      const [lessonIdResponse, imuPlansResponse] = await Promise.all([
-        // Pirma gauti lesson ID iš GlobalSchedule per IMUPlan
-        api.get(`/schedule/schedules/${globalScheduleId}/lesson_id/`),
-        // Gauti IMU planus šiai veiklai
-        api.get(`/plans/imu-plans/?global_schedule=${globalScheduleId}`)
-      ]);
+      // Pirma gauti IMU planus šiai veiklai
+      const imuPlansResponse = await api.get(`/plans/imu-plans/?global_schedule=${globalScheduleId}`);
+      
+      // IMUPlan API grąžina masyvą tiesiogiai, ne objektą su results lauku
+      const imuPlans = Array.isArray(imuPlansResponse.data) 
+        ? imuPlansResponse.data 
+        : (imuPlansResponse.data.results || []);
 
-      // Tada gauti visą lesson informaciją iš curriculum API
-      const lessonResponse = await api.get(`/curriculum/lessons/${lessonIdResponse.data.lesson_id}/`);
+      // Gauti unikalių pamokų ID sąrašą iš IMU planų
+      const lessonIds = [...new Set(
+        imuPlans
+          .map((plan: any) => plan.lesson)
+          .filter((lessonId: any) => lessonId !== null)
+      )];
+
+      // Gauti visų pamokų detales paraleliai
+      let lessonDetails = null;
+      let allLessonsDetails: any[] = [];
+      
+      if (lessonIds.length > 0) {
+        // Gauti visas pamokas paraleliai
+        const lessonResponses = await Promise.all(
+          lessonIds.map(lessonId => api.get(`/curriculum/lessons/${lessonId}/`))
+        );
+        
+        allLessonsDetails = lessonResponses.map(response => response.data);
+        // Pagrindine pamoka - pirmoji
+        lessonDetails = allLessonsDetails[0] || null;
+      }
 
       setState(prev => ({
         ...prev,
         globalScheduleId,
-        lessonDetails: lessonResponse.data,
-        imuPlans: imuPlansResponse.data.results || [],
+        lessonDetails,
+        allLessonsDetails,
+        imuPlans,
         isLoading: false,
         error: null
       }));
@@ -84,6 +105,7 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
       setState({
         globalScheduleId: null,
         lessonDetails: null,
+        allLessonsDetails: [],
         imuPlans: [],
         isLoading: false,
         error: null

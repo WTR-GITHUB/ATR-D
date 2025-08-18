@@ -23,6 +23,7 @@ import { LessonDetails, IMUPlan } from '../types';
 
 interface LessonDetailsPanelProps {
   lessonDetails: LessonDetails | null;
+  allLessonsDetails: LessonDetails[];
   imuPlans: IMUPlan[];
   isLoading: boolean;
   error: string | null;
@@ -30,6 +31,7 @@ interface LessonDetailsPanelProps {
 
 const LessonDetailsPanel: React.FC<LessonDetailsPanelProps> = ({
   lessonDetails,
+  allLessonsDetails,
   imuPlans,
   isLoading,
   error
@@ -56,7 +58,7 @@ const LessonDetailsPanel: React.FC<LessonDetailsPanelProps> = ({
     );
   }
 
-  if (!lessonDetails) {
+  if (!lessonDetails && allLessonsDetails.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="text-center text-gray-500 py-8">
@@ -131,6 +133,35 @@ const LessonDetailsPanel: React.FC<LessonDetailsPanelProps> = ({
       </div>
 
       <div className="p-6 space-y-6">
+        {/* Visų pamokų sąrašas (jei jų yra keli) */}
+        {allLessonsDetails.length > 1 && (
+          <div>
+            <div className="flex items-center mb-3">
+              <BookOpen className="h-5 w-5 text-gray-600 mr-2" />
+              <h4 className="text-md font-medium text-gray-900">
+                Pamokos šioje veikloje ({allLessonsDetails.length})
+              </h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {allLessonsDetails.map((lesson, index) => (
+                <div 
+                  key={lesson.id}
+                  className="bg-blue-50 border border-blue-200 rounded-lg p-4"
+                >
+                  <h5 className="font-medium text-blue-900 mb-1">{lesson.title}</h5>
+                  <p className="text-sm text-blue-700 mb-2">{lesson.subject_name} • {lesson.topic}</p>
+                  <p className="text-xs text-blue-600">Mentorius: {lesson.mentor_name}</p>
+                  {index === 0 && (
+                    <span className="inline-block mt-2 px-2 py-1 bg-blue-600 text-white text-xs rounded">
+                      Pagrindinis
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* IMU planai - kelios pamokos vienoje veikloje */}
         {imuPlans.length > 0 && (
           <div>

@@ -375,7 +375,7 @@ class IMUPlanViewSet(viewsets.ModelViewSet):
     serializer_class = IMUPlanSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['student', 'status', 'global_schedule__subject', 'global_schedule__level']
+    filterset_fields = ['student', 'status', 'global_schedule', 'global_schedule__subject', 'global_schedule__level']
     search_fields = ['student__first_name', 'student__last_name', 'lesson__title']
     ordering_fields = ['created_at', 'global_schedule__date']
     ordering = ['-created_at']

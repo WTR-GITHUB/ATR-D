@@ -135,7 +135,7 @@ backend/plans/
 ├── 📄 __init__.py                   # Python paketo inicializacijos failas
 ├── 📄 admin.py                      # Admin interface ugdymo planų valdymui
 ├── 📄 apps.py                       # Plans aplikacijos konfigūracija
-├── 📄 models.py                     # LessonSequence ir LessonSequenceItem modeliai
+├── 📄 models.py                     # LessonSequence, LessonSequenceItem, IMUPlan modeliai
 ├── 📄 serializers.py                # DRF serializers planų duomenų apdorojimui (create/read skirtingi)
 ├── 📄 tests.py                      # Unit testai planų funkcionalumui
 ├── 📄 urls.py                       # URL routing planų API endpoint'ams
@@ -316,9 +316,15 @@ frontend/src/
 │   ├── 📄 useAuth.ts             # Autentifikacijos logikos hook su Zustand
 │   ├── 📄 useCurriculum.ts       # Mokymo programos duomenų valdymo hook
 │   ├── 📄 useGrades.ts           # Pažymių valdymo hook su CRUD operacijomis
+│   ├── 📄 useLessonDetails.ts    # Pamokų detalių gavimo hook
+│   ├── 📄 useLessons.ts          # Pamokų valdymo hook
 │   ├── 📄 useLevels.ts           # Mokymosi lygių valdymo hook
 │   ├── 📄 usePeriods.ts          # Pamokų periodų valdymo hook
-│   └── 📄 useSchedule.ts         # Tvarkaraščių logikos valdymo hook
+│   ├── 📄 useSchedule.ts         # Tvarkaraščių logikos valdymo hook
+│   ├── 📄 useSelectedLesson.ts   # NAUJAS: Pamokos pasirinkimo hook su localStorage
+│   ├── 📄 useSubjects.ts         # Dalykų valdymo hook
+│   ├── 📄 useWeekInfo.ts         # Savaitės informacijos hook
+│   └── 📄 useWeeklySchedule.ts   # Savaitės tvarkaraščio hook
 ├── lib/                          # Utility funkcijos ir integracijos
 │   ├── 📄 api.ts                 # Axios API klientas su interceptors
 │   ├── 📄 types.ts               # TypeScript tipo definicijos visam projektui
@@ -446,6 +452,27 @@ DOC/
 
 ---
 
-*Paskutinį kartą atnaujinta: 2025-08-12*  
-*Projekto versija: A-DIENYNAS v1.0*  
-*Dokumentacijos versija: 2.0 (su pilna struktūra ir aprašymais)*
+## 📚 DOKUMENTACIJOS APLANKAS
+
+```
+DOC/
+├── 📄 ACTIVITIES-LESSON-SELECTION.md    # NAUJAS: Activities pamokos pasirinkimo funkcionalumo dokumentacija
+├── 📄 DATA-TABLE-COMPONENT.md           # DataTable komponento naudojimo gidas
+├── 📄 FILE_STRUCTURE.md                 # Šis failas - pilna projekto struktūros analizė
+├── 📄 IMU-PLAN-GENERATION.md           # IMU planų generavimo sistemos dokumentacija
+└── 📄 MCP.md                           # MCP protokolo integracijos dokumentacija
+```
+
+### Dokumentacijos aprašymai:
+
+- **ACTIVITIES-LESSON-SELECTION.md** - Išsamus gidas apie pamokos pasirinkimo funkcionalumą activities puslapyje, įskaitant localStorage išsaugojimą, kelių pamokų palaikymą ir IMUPlan integraciją
+- **DATA-TABLE-COMPONENT.md** - DataTable komponento implementacijos ir naudojimo instrukcijos
+- **FILE_STRUCTURE.md** - Šis failas su pilna projekto architektūros analize
+- **IMU-PLAN-GENERATION.md** - Individualių mokinių ugdymo planų generavimo sistemos dokumentacija
+- **MCP.md** - Model Context Protocol integracijos specifikacija
+
+---
+
+*Paskutinį kartą atnaujinta: 2025-08-18*  
+*Projekto versija: A-DIENYNAS v1.1*  
+*Dokumentacijos versija: 2.1 (su activities funkcionalumu ir IMUPlan palaikymu)*
