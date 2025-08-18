@@ -148,6 +148,7 @@ export default function AssignPlanPage() {
   const [selectedLevel, setSelectedLevel] = useState<string>('');
   const [selectedPlan, setSelectedPlan] = useState<string>('');
   const [todayDate, setTodayDate] = useState<string>('');
+  const [tomorrowDate, setTomorrowDate] = useState<string>('');
   const [isClient, setIsClient] = useState(false);
   
   // Refs for date inputs
@@ -159,6 +160,11 @@ export default function AssignPlanPage() {
     setIsClient(true);
     const today = new Date();
     setTodayDate(today.toISOString().split('T')[0]);
+    
+    // Set tomorrow date as default end date (today + 1 day)
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setTomorrowDate(tomorrow.toISOString().split('T')[0]);
   }, []);
 
   // Gauname duomenis iš API tik kliento pusėje
@@ -266,6 +272,15 @@ export default function AssignPlanPage() {
       return;
     }
 
+    // Validate that end date is after start date
+    const startDate = new Date(startDateRef.current.value);
+    const endDate = new Date(endDateRef.current.value);
+    
+    if (startDate >= endDate) {
+      alert('Pabaigos data turi būti vėlesnė už pradžios datą');
+      return;
+    }
+
     const basePayload = {
       subject_id: parseInt(selectedSubject),
       level_id: parseInt(selectedLevel),
@@ -274,8 +289,7 @@ export default function AssignPlanPage() {
       end_date: endDateRef.current.value
     };
 
-    console.log('Starting generation with payload base:', basePayload);
-    console.log('Selected students:', selectedStudents);
+    // Starting generation process
 
     setIsGenerating(true);
     setShowProgressModal(true);
@@ -296,7 +310,7 @@ export default function AssignPlanPage() {
           total: selectedStudents.length
         });
 
-        console.log(`Processing student ${i + 1}/${selectedStudents.length}: ${student.name}`);
+        // Processing student
 
         try {
           const response = await api.post('/plans/sequences/generate_student_plan_optimized/', {
@@ -308,7 +322,7 @@ export default function AssignPlanPage() {
           setCompletedStudents(i + 1);
 
         } catch (error: any) {
-          console.error(`Failed for student ${student.name}:`, error);
+          console.error('Failed for student:', error);
           
           const errorResult: StudentResult = {
             student_id: student.id,
@@ -331,7 +345,7 @@ export default function AssignPlanPage() {
         }
       }
 
-      console.log('Generation completed. All results:', allResults);
+      // Generation completed successfully
       setGenerationResults(allResults);
 
       // Show final results
@@ -480,7 +494,7 @@ export default function AssignPlanPage() {
               <Input
                 ref={endDateRef}
                 type="date"
-                defaultValue={todayDate}
+                defaultValue={tomorrowDate}
                 className="w-full"
               />
             </div>
