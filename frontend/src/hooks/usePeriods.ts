@@ -1,54 +1,48 @@
 // frontend/src/hooks/usePeriods.ts
-import { useState, useEffect } from 'react';
-import { scheduleAPI } from '@/lib/api';
-import { Period } from '@/lib/types';
 
-export const usePeriods = () => {
+// Hook pamokų periodų gavimui iš API
+// Naudojamas periodų (pamokų laikų) sąrašo gavimui Veiklos puslapyje
+// Gauna duomenis iš backend schedule.Period modelio
+// CHANGE: Sukurtas usePeriods hook periodų duomenų valdymui
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import api from '@/lib/api';
+
+export interface Period {
+  id: number;
+  name: string;
+  starttime: string;
+  duration: number;
+  endtime: string;
+}
+
+interface UsePeriodsReturn {
+  periods: Period[];
+  isLoading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+}
+
+// Hook pamokų periodų sąrašo gavimui
+export const usePeriods = (): UsePeriodsReturn => {
   const [periods, setPeriods] = useState<Period[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchPeriods = async () => {
     try {
-      setLoading(true);
-      const response = await scheduleAPI.periods.getAll();
-      setPeriods(response.data);
+      setIsLoading(true);
       setError(null);
+      
+      const response = await api.get('/schedule/periods/');
+      setPeriods(response.data);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Klaida gaunant periodus');
+      console.error('Klaida gaunant periodų duomenis:', err);
+      setError(err.response?.data?.detail || 'Nepavyko gauti periodų duomenų');
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const createPeriod = async (periodData: Partial<Period>) => {
-    try {
-      const response = await scheduleAPI.periods.create(periodData);
-      setPeriods(prev => [...prev, response.data]);
-      return response.data;
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida kuriant periodą');
-    }
-  };
-
-  const updatePeriod = async (id: number, periodData: Partial<Period>) => {
-    try {
-      const response = await scheduleAPI.periods.update(id, periodData);
-      setPeriods(prev => prev.map(period => 
-        period.id === id ? response.data : period
-      ));
-      return response.data;
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida atnaujinant periodą');
-    }
-  };
-
-  const deletePeriod = async (id: number) => {
-    try {
-      await scheduleAPI.periods.delete(id);
-      setPeriods(prev => prev.filter(period => period.id !== id));
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida šalinant periodą');
+      setIsLoading(false);
     }
   };
 
@@ -58,11 +52,10 @@ export const usePeriods = () => {
 
   return {
     periods,
-    loading,
+    isLoading,
     error,
-    fetchPeriods,
-    createPeriod,
-    updatePeriod,
-    deletePeriod,
+    refetch: fetchPeriods
   };
-}; 
+};
+
+export default usePeriods;

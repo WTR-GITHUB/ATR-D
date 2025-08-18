@@ -1,0 +1,159 @@
+import React, { useState } from 'react';
+import { UserCheck, UserX, Clock, FileText } from 'lucide-react';
+
+const AttendanceButton = ({ status, onClick, active }) => {
+  const getButtonStyle = () => {
+    const baseStyle = "w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-all";
+    
+    switch (status) {
+      case 'present':
+        return `${baseStyle} ${active ? 'bg-green-500 border-green-500 text-white' : 'border-green-300 text-green-500 hover:bg-green-50'}`;
+      case 'absent':
+        return `${baseStyle} ${active ? 'bg-red-500 border-red-500 text-white' : 'border-red-300 text-red-500 hover:bg-red-50'}`;
+      case 'late':
+        return `${baseStyle} ${active ? 'bg-yellow-500 border-yellow-500 text-white' : 'border-yellow-300 text-yellow-500 hover:bg-yellow-50'}`;
+      case 'excused':
+        return `${baseStyle} ${active ? 'bg-blue-500 border-blue-500 text-white' : 'border-blue-300 text-blue-500 hover:bg-blue-50'}`;
+      default:
+        return `${baseStyle} border-gray-300 text-gray-400`;
+    }
+  };
+
+  const getIcon = () => {
+    switch (status) {
+      case 'present':
+        return <UserCheck size={16} />;
+      case 'absent':
+        return <UserX size={16} />;
+      case 'late':
+        return <Clock size={16} />;
+      case 'excused':
+        return <FileText size={16} />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <button
+      onClick={() => onClick(status)}
+      className={getButtonStyle()}
+      title={status === 'present' ? 'Dalyvavo' : status === 'absent' ? 'Nedalyvavo' : status === 'late' ? 'Vėlavo' : 'Pateisinta'}
+    >
+      {getIcon()}
+    </button>
+  );
+};
+
+const AttendanceButtonDemo = () => {
+  const [selectedStatus, setSelectedStatus] = useState('present');
+
+  const statuses = [
+    { key: 'present', label: 'Dalyvavo', icon: 'UserCheck', color: 'žalia' },
+    { key: 'late', label: 'Vėlavo', icon: 'Clock', color: 'geltona' },
+    { key: 'absent', label: 'Nedalyvavo', icon: 'UserX', color: 'raudona' },
+    { key: 'excused', label: 'Pateisinta', icon: 'FileText', color: 'mėlyna' }
+  ];
+
+  const handleStatusChange = (status) => {
+    setSelectedStatus(status);
+    console.log('Pasirinktas statusas:', status);
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 bg-gray-50 min-h-screen">
+      <div className="bg-white rounded-lg shadow-lg p-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+          AttendanceButton Demo
+        </h1>
+
+        {/* Interaktyvus demo */}
+        <div className="bg-gray-50 rounded-lg p-6 mb-8">
+          <h2 className="text-xl font-semibold text-gray-700 mb-4">Interaktyvus Demo</h2>
+          <p className="text-gray-600 mb-4">Spustelėkite mygtukus ir stebėkite kaip keičiasi aktyvus statusas:</p>
+          
+          <div className="flex justify-center space-x-4 mb-4">
+            {statuses.map(status => (
+              <AttendanceButton
+                key={status.key}
+                status={status.key}
+                active={selectedStatus === status.key}
+                onClick={handleStatusChange}
+              />
+            ))}
+          </div>
+          
+          <div className="text-center">
+            <p className="text-lg font-medium text-gray-700">
+              Aktyvus statusas: <span className="text-blue-600">{statuses.find(s => s.key === selectedStatus)?.label}</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Visi variantai */}
+        <div className="space-y-6">
+          <h2 className="text-xl font-semibold text-gray-700">Visi mygtukai (aktyvūs ir neaktyvūs)</h2>
+          
+          {statuses.map(status => (
+            <div key={status.key} className="bg-white border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-gray-900">{status.label}</h3>
+                  <p className="text-sm text-gray-600">Ikona: {status.icon} | Spalva: {status.color}</p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="text-center">
+                    <AttendanceButton
+                      status={status.key}
+                      active={false}
+                      onClick={() => console.log('Neaktyvus mygtukas')}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Neaktyvus</p>
+                  </div>
+                  <div className="text-center">
+                    <AttendanceButton
+                      status={status.key}
+                      active={true}
+                      onClick={() => console.log('Aktyvus mygtukas')}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Aktyvus</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Panaudojimo pavyzdys */}
+        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-blue-900 mb-4">Panaudojimo pavyzdys mokinio eilutėje:</h3>
+          <div className="bg-white rounded-lg p-4 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span className="text-blue-600 font-medium text-sm">JP</span>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">Jonas Petraitis</h4>
+                  <p className="text-sm text-gray-600">Lankomumas: 15/20 (75%)</p>
+                </div>
+              </div>
+              <div className="flex space-x-2">
+                {statuses.map(status => (
+                  <AttendanceButton
+                    key={status.key}
+                    status={status.key}
+                    active={selectedStatus === status.key}
+                    onClick={setSelectedStatus}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AttendanceButtonDemo;

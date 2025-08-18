@@ -7,6 +7,8 @@ from rest_framework.decorators import action
 from django.db import models
 from .models import Period, Classroom, GlobalSchedule
 from .serializers import PeriodSerializer, ClassroomSerializer, GlobalScheduleSerializer
+from plans.models import IMUPlan
+from curriculum.models import Lesson
 
 
 # Create your views here.
@@ -199,3 +201,33 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
             })
         
         return Response(conflict_details)
+    
+    @action(detail=True, methods=['get'])
+    def lesson_id(self, request, pk=None):
+        """
+        Grąžina lesson ID, susietą su GlobalSchedule per IMUPlan
+        """
+        try:
+            # Gauti GlobalSchedule objektą
+            global_schedule = self.get_object()
+            
+            # Rasti IMUPlan įrašą, susietą su šiuo GlobalSchedule
+            imu_plan = IMUPlan.objects.filter(global_schedule=global_schedule).first()
+            
+            if not imu_plan:
+                return Response(
+                    {'error': 'Šiai veiklai nėra priskirta pamoka (IMUPlan).'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            return Response({
+                'lesson_id': imu_plan.lesson.id,
+                'imu_plan_id': imu_plan.id,
+                'status': imu_plan.status
+            })
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Klaida gaunant pamokos ID: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

@@ -1,0 +1,370 @@
+import React, { useState } from 'react';
+import { Clock, MapPin, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+
+// Mock duomenys mentoriaus pamokoms
+const mockSchedule = {
+  'monday': [
+    {
+      id: 1,
+      time: '08:00-08:45',
+      subject: 'Matematika',
+      level: '5 klasė',
+      room: '205',
+      studentCount: 24,
+      lesson: 'Algebros pagrindai'
+    },
+    {
+      id: 2,
+      time: '10:00-10:45',
+      subject: 'Matematika',
+      level: '6 klasė',
+      room: '205',
+      studentCount: 22,
+      lesson: 'Geometrijos teoremos'
+    }
+  ],
+  'tuesday': [
+    {
+      id: 3,
+      time: '09:00-09:45',
+      subject: 'Fizika',
+      level: '8 klasė',
+      room: '301',
+      studentCount: 26,
+      lesson: 'Mechanikos dėsniai'
+    },
+    {
+      id: 4,
+      time: '11:00-11:45',
+      subject: 'Matematika',
+      level: '5 klasė',
+      room: '205',
+      studentCount: 24,
+      lesson: 'Trupmenos'
+    }
+  ],
+  'wednesday': [
+    {
+      id: 5,
+      time: '08:00-08:45',
+      subject: 'Fizika',
+      level: '9 klasė',
+      room: '301',
+      studentCount: 20,
+      lesson: 'Elektros srovė'
+    },
+    {
+      id: 6,
+      time: '12:00-12:45',
+      subject: 'Matematika',
+      level: '7 klasė',
+      room: '205',
+      studentCount: 25,
+      lesson: 'Lygtys'
+    }
+  ],
+  'thursday': [
+    {
+      id: 7,
+      time: '09:00-09:45',
+      subject: 'Matematika',
+      level: '6 klasė',
+      room: '205',
+      studentCount: 22,
+      lesson: 'Procentai'
+    },
+    {
+      id: 8,
+      time: '13:00-13:45',
+      subject: 'Fizika',
+      level: '10 klasė',
+      room: '301',
+      studentCount: 18,
+      lesson: 'Kvantinė fizika'
+    }
+  ],
+  'friday': [
+    {
+      id: 9,
+      time: '10:00-10:45',
+      subject: 'Matematika',
+      level: '5 klasė',
+      room: '205',
+      studentCount: 24,
+      lesson: 'Kontrolinis darbas'
+    }
+  ]
+};
+
+// Pamokų laikai (vertikal)
+const timeSlots = [
+  '08:00-08:45',
+  '09:00-09:45',
+  '10:00-10:45',
+  '11:00-11:45',
+  '12:00-12:45',
+  '13:00-13:45',
+  '14:00-14:45',
+  '15:00-15:45'
+];
+
+// Savaitės dienos (horizontal)
+const weekDays = [
+  { key: 'monday', name: 'Pirmadienis', short: 'Pir' },
+  { key: 'tuesday', name: 'Antradienis', short: 'Ant' },
+  { key: 'wednesday', name: 'Trečiadienis', short: 'Tre' },
+  { key: 'thursday', name: 'Ketvirtadienis', short: 'Ket' },
+  { key: 'friday', name: 'Penktadienis', short: 'Pen' }
+];
+
+const LessonCard = ({ lesson }) => {
+  const getSubjectColor = (subject) => {
+    switch (subject) {
+      case 'Matematika':
+        return 'bg-blue-500 border-blue-600';
+      case 'Fizika':
+        return 'bg-purple-500 border-purple-600';
+      case 'Chemija':
+        return 'bg-green-500 border-green-600';
+      default:
+        return 'bg-gray-500 border-gray-600';
+    }
+  };
+
+  return (
+    <div className={`${getSubjectColor(lesson.subject)} text-white rounded-lg p-3 shadow-md hover:shadow-lg transition-all cursor-pointer border-l-4`}>
+      <div className="space-y-2">
+        {/* Dalyko pavadinimas ir lygis */}
+        <div>
+          <h3 className="font-semibold text-sm leading-tight">{lesson.subject}</h3>
+          <p className="text-xs opacity-90">{lesson.level}</p>
+        </div>
+        
+        {/* Pamokos tema */}
+        <div>
+          <p className="text-xs font-medium opacity-95">{lesson.lesson}</p>
+        </div>
+
+        {/* Papildoma informacija */}
+        <div className="flex items-center justify-between text-xs opacity-80">
+          <div className="flex items-center space-x-1">
+            <MapPin size={10} />
+            <span>{lesson.room}</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <Users size={10} />
+            <span>{lesson.studentCount}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const WeeklyScheduleCalendar = () => {
+  const [currentWeek, setCurrentWeek] = useState(new Date());
+
+  // Gauti pamokos objktą pagal dieną ir laiką
+  const getLessonForSlot = (dayKey, timeSlot) => {
+    const dayLessons = mockSchedule[dayKey] || [];
+    return dayLessons.find(lesson => lesson.time === timeSlot);
+  };
+
+  // Gauti savaitės datas
+  const getWeekDates = () => {
+    const week = [];
+    const startOfWeek = new Date(currentWeek);
+    startOfWeek.setDate(currentWeek.getDate() - currentWeek.getDay() + 1); // Pradėti nuo pirmadienio
+    
+    for (let i = 0; i < 5; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
+      week.push(date);
+    }
+    return week;
+  };
+
+  // Gauti savaitės numerį
+  const getWeekNumber = (date) => {
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+    const pastDaysOfYear = (date - firstDayOfYear) / 86400000;
+    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+  };
+
+  // Gauti savaitės statusą (dabartinė, praėjusi, būsima)
+  const getWeekStatus = () => {
+    const today = new Date();
+    const weekStart = getWeekDates()[0];
+    const weekEnd = getWeekDates()[4];
+    
+    if (today >= weekStart && today <= weekEnd) {
+      return 'current'; // Dabartinė savaitė
+    } else if (today > weekEnd) {
+      return 'past'; // Praėjusi savaitė
+    } else {
+      return 'future'; // Būsima savaitė
+    }
+  };
+
+  // Gauti savaitės statuso spalvą
+  const getWeekStatusColor = (status) => {
+    switch (status) {
+      case 'current':
+        return 'bg-green-100 text-green-700';
+      case 'past':
+        return 'bg-gray-100 text-gray-700';
+      case 'future':
+        return 'bg-yellow-100 text-yellow-700';
+      default:
+        return 'bg-gray-100 text-gray-700';
+    }
+  };
+
+  const navigateWeek = (direction) => {
+    const newWeek = new Date(currentWeek);
+    newWeek.setDate(currentWeek.getDate() + (direction * 7));
+    setCurrentWeek(newWeek);
+  };
+
+  const isToday = (date) => {
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
+  };
+
+  const weekDates = getWeekDates();
+  const weekStatus = getWeekStatus();
+  const weekNumber = getWeekNumber(weekDates[0]);
+
+  return (
+    <div className="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen">
+      <div className="bg-white rounded-lg shadow-lg">
+        {/* Antraštė su savaitės navigacija */}
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Savaitės tvarkaraštis</h1>
+              <p className="text-gray-600 mt-1">
+                {weekDates[0].getFullYear()} {weekDates[0].toLocaleDateString('lt-LT', { month: 'long' })} {weekDates[0].getDate()} d. - {weekDates[4].toLocaleDateString('lt-LT', { month: 'long' })} {weekDates[4].getDate()} d.
+                <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${getWeekStatusColor(weekStatus)}`}>
+                  {weekStatus === 'current' && 'Dabar '}
+                  {weekNumber} savaitė
+                </span>
+              </p>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => navigateWeek(-1)}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              
+              <button
+                onClick={() => setCurrentWeek(new Date())}
+                className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+              >
+                Šiandien
+              </button>
+              
+              <button
+                onClick={() => navigateWeek(1)}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Kalendoriaus tinklelis */}
+        <div className="p-6">
+          <div className="grid grid-cols-6 gap-4">
+            {/* Laiko stulpelis (kairėje) */}
+            <div className="space-y-4">
+              <div className="h-16 flex items-center">
+                <h3 className="text-sm font-semibold text-gray-600">Laikas</h3>
+              </div>
+              {timeSlots.map((timeSlot) => (
+                <div key={timeSlot} className="h-24 flex items-center justify-center bg-gray-50 rounded-lg border">
+                  <div className="text-center">
+                    <div className="flex items-center justify-center text-gray-600 mb-1">
+                      <Clock size={14} className="mr-1" />
+                    </div>
+                    <span className="text-xs font-medium text-gray-700">{timeSlot}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Dienų stulpeliai */}
+            {weekDays.map((day, dayIndex) => (
+              <div key={day.key} className="space-y-4">
+                {/* Dienos antraštė */}
+                <div className={`h-16 flex flex-col items-center justify-center rounded-lg border-2 ${
+                  isToday(weekDates[dayIndex]) 
+                    ? 'bg-blue-500 text-white border-blue-600' 
+                    : 'bg-gray-50 text-gray-700 border-gray-200'
+                }`}>
+                  <span className="text-sm font-semibold">{day.short}</span>
+                  <span className="text-xs opacity-80">
+                    {weekDates[dayIndex].getDate()}.{weekDates[dayIndex].getMonth() + 1}
+                  </span>
+                </div>
+                
+                {/* Pamokų slotai */}
+                {timeSlots.map((timeSlot) => {
+                  const lesson = getLessonForSlot(day.key, timeSlot);
+                  
+                  return (
+                    <div key={`${day.key}-${timeSlot}`} className="h-24">
+                      {lesson ? (
+                        <LessonCard lesson={lesson} />
+                      ) : (
+                        <div className="h-full bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-center">
+                          <span className="text-xs text-gray-400">Laisva</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Statistika apačioje */}
+        <div className="p-6 border-t border-gray-200 bg-gray-50">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {Object.values(mockSchedule).flat().length}
+              </div>
+              <div className="text-sm text-gray-600">Pamokų šią savaitę</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {Object.values(mockSchedule).flat().filter(l => l.subject === 'Matematika').length}
+              </div>
+              <div className="text-sm text-gray-600">Matematikos pamokų</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600">
+                {Object.values(mockSchedule).flat().filter(l => l.subject === 'Fizika').length}
+              </div>
+              <div className="text-sm text-gray-600">Fizikos pamokų</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600">
+                {Object.values(mockSchedule).flat().reduce((sum, lesson) => sum + lesson.studentCount, 0)}
+              </div>
+              <div className="text-sm text-gray-600">Mokinių iš viso</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default WeeklyScheduleCalendar;

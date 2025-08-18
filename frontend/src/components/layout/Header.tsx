@@ -73,6 +73,12 @@ const Header: React.FC = () => {
                       Darbastalis
                     </Link>
                     <Link
+                      href="/dashboard/mentors/veiklos"
+                      className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                    >
+                      Veiklos
+                    </Link>
+                    <Link
                       href="/dashboard/mentors/lessons"
                       className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
                     >
