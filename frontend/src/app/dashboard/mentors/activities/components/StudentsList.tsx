@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/veiklos/components/StudentsList.tsx
+// frontend/src/app/dashboard/mentors/activities/components/StudentsList.tsx
 
 // Mokinių sąrašo komponentas
 // Atsako už mokinių sąrašo rodymą, filtravimą ir papildomo mokinio pridėjimą

@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/veiklos/components/StudentStats.tsx
+// frontend/src/app/dashboard/mentors/activities/components/StudentStats.tsx
 
 // Studentų statistikos komponentas
 // Rodo pamokos statistikas: dalyvavimo rodiklius, bendrą progresą ir tendencijas

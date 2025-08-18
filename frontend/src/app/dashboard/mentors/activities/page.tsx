@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/veiklos/page.tsx
+// frontend/src/app/dashboard/mentors/activities/page.tsx
 
 // Veiklos puslapis - pamokų vykdymas ir mokinių lankomumo registravimas
 // Šis puslapis skirtas mentoriams vykdyti pamokas realiu laiku, žymėti mokinių lankumą,
@@ -9,12 +9,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
-// import LessonSelector from './components/LessonSelector'; // Nebereikalingas komponentas
 import StudentsList from './components/StudentsList';
 import StudentStats from './components/StudentStats';
+import LessonDetailsPanel from './components/LessonDetailsPanel';
 import WeeklyScheduleCalendar from '@/components/dashboard/WeeklyScheduleCalendar';
 import { Student, AttendanceStatus } from './types';
 import useWeekInfo from '@/hooks/useWeekInfo';
+import useSelectedLesson from '@/hooks/useSelectedLesson';
 
 // Mock duomenys studentams (kol nėra API)
 // Dalykų ir pamokų duomenys gaunami per API hooks
@@ -60,6 +61,18 @@ const VeiklosPage = () => {
   
   // Kombinuojame initial info su dinamiškai atnaujinamu
   const displayWeekInfo = weekInfo || initialWeekInfo;
+
+  // Pasirinktos pamokos valdymas
+  const {
+    globalScheduleId,
+    lessonDetails,
+    imuPlans,
+    isLoading: lessonLoading,
+    error: lessonError,
+    selectScheduleItem,
+    clearSelection,
+    refreshLessonData
+  } = useSelectedLesson();
 
   // Lankomumo keitimo valdymas
   const handleAttendanceChange = (studentId: number, status: AttendanceStatus) => {
@@ -154,12 +167,20 @@ const VeiklosPage = () => {
                 className="border-0 shadow-none" 
                 showHeader={false}
                 onWeekChange={setWeekInfo}
+                onScheduleItemSelect={selectScheduleItem}
+                selectedScheduleId={globalScheduleId}
               />
             </div>
           )}
         </div>
 
-        {/* Pašalinta tvarkaraščio informacija - nebe reikalinga */}
+        {/* Pasirinktos pamokos detalės */}
+        <LessonDetailsPanel
+          lessonDetails={lessonDetails}
+          imuPlans={imuPlans}
+          isLoading={lessonLoading}
+          error={lessonError}
+        />
 
         {/* Mokinių sąrašo komponentas */}
         <StudentsList

@@ -6,7 +6,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
-import { ScheduleItem } from '@/app/dashboard/mentors/veiklos/types';
+import { ScheduleItem } from '@/app/dashboard/mentors/activities/types';
 
 interface UseWeeklyScheduleParams {
   weekStartDate: string; // YYYY-MM-DD formato pirmadienio data

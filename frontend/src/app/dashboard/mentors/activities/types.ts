@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/veiklos/types.ts
+// frontend/src/app/dashboard/mentors/activities/types.ts
 
 // Veiklos modulio tipų aprašai
 // Centralizuoti tipų aprašymai, naudojami visuose Veiklos puslapio komponentuose
@@ -154,9 +154,67 @@ export interface StudentsListState {
   showFilters: boolean;
 }
 
+// Detalios pamokos informacijos tipas (iš backend curriculum models)
+export interface LessonDetails {
+  id: number;
+  title: string;
+  topic: string;
+  subject_name: string;
+  content: string; // Mokomoji medžiaga
+  objectives: string; // JSON string
+  objectives_list: any[]; // Parsed JSON
+  components: string; // JSON string  
+  components_list: any[]; // Parsed JSON
+  focus: string; // JSON string
+  focus_list: any[]; // Parsed JSON
+  skills_list: number[]; // Gebėjimų ID sąrašas
+  virtues_names: string[]; // Dorybių pavadinimai
+  levels_names: string[]; // Lygių pavadinimai
+  slenkstinis: string; // 54% lygis
+  bazinis: string; // 74% lygis
+  pagrindinis: string; // 84% lygis
+  aukstesnysis: string; // 100% lygis
+  competency_atcheve_name: string[];
+  competency_atcheves: number[];
+  mentor_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// IMU planų duomenys (kelios pamokos vienoje veikloje)
+export interface IMUPlan {
+  id: number;
+  student: number;
+  student_name: string;
+  global_schedule: number;
+  lesson: number | null;
+  lesson_title: string | null;
+  lesson_subject: string | null;
+  status: 'planned' | 'in_progress' | 'completed' | 'missed' | 'cancelled';
+  status_display: string;
+  started_at?: string;
+  completed_at?: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+  global_schedule_date: string;
+  global_schedule_time: string;
+  global_schedule_classroom: string;
+}
+
+// Pasirinktos pamokos būsena
+export interface SelectedLessonState {
+  globalScheduleId: number | null;
+  lessonDetails: LessonDetails | null;
+  imuPlans: IMUPlan[];
+  isLoading: boolean;
+  error: string | null;
+}
+
 // Callback funkcijų tipai
 export type AttendanceChangeHandler = (studentId: number, status: AttendanceStatus) => void;
 export type EvaluationChangeHandler = (studentId: number, evaluation: StudentEvaluation) => void;
 export type DateChangeHandler = (date: string) => void;
 export type SubjectChangeHandler = (subject: Subject) => void;
 export type LessonChangeHandler = (lesson: Lesson | null) => void;
+export type ScheduleItemSelectHandler = (item: ScheduleItem | null) => void;

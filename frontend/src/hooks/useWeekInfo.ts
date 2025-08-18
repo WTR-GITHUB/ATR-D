@@ -1,7 +1,7 @@
 // frontend/src/hooks/useWeekInfo.ts
 
 // Hook savaitės informacijos gavimui - skaičiuoja savaitės pradžią, pabaigą, numerį, statusą
-// Naudojamas WeeklyScheduleCalendar ir veiklos puslapyje savaitės navigacijai
+// Naudojamas WeeklyScheduleCalendar ir activities puslapyje savaitės navigacijai
 // CHANGE: Atkurtas hook'as po atsitiktinio pašalinimo
 
 import { useMemo } from 'react';

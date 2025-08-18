@@ -14,13 +14,15 @@ import useWeeklySchedule from '@/hooks/useWeeklySchedule';
 import useSubjects from '@/hooks/useSubjects';
 import usePeriods from '@/hooks/usePeriods';
 import useWeekInfo from '@/hooks/useWeekInfo';
-import useLessonDetails from '@/hooks/useLessonDetails';
-import { ScheduleItem } from '@/app/dashboard/mentors/veiklos/types';
+// Pašalintas useLessonDetails - naudojamas activities puslapyje
+import { ScheduleItem } from '@/app/dashboard/mentors/activities/types';
 
 interface WeeklyScheduleCalendarProps {
   className?: string;
   showHeader?: boolean; // Ar rodyti antraštę (kai naudojamas akordeone - false)
   onWeekChange?: (weekInfo: any) => void; // Callback savaitės informacijai perduoti į parent
+  onScheduleItemSelect?: (item: ScheduleItem | null) => void; // Callback pamokos pasirinkimui
+  selectedScheduleId?: number | null; // Pasirinktos pamokos ID
 }
 
 // Savaitės dienos (horizontal) - įskaitant savaitgalius
@@ -101,15 +103,17 @@ const LessonCard: React.FC<{
 const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({ 
   className = '', 
   showHeader = true,
-  onWeekChange 
+  onWeekChange,
+  onScheduleItemSelect,
+  selectedScheduleId
 }) => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
-  const [selectedLesson, setSelectedLesson] = useState<ScheduleItem | null>(null);
+  // Pašalinta vietinė selectedLesson būsena - naudojame props
   
   // API hooks duomenų gavimui
   const { subjects } = useSubjects();
   const { periods } = usePeriods();
-  const { lessonDetails, isLoading: lessonLoading, error: lessonError, fetchLessonDetails } = useLessonDetails();
+  // Pašalinta lessonDetails logika - naudojama activities puslapyje
   
   // Savaitės informacija
   const weekInfo = useWeekInfo(currentWeek);
@@ -284,15 +288,11 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
                       {lesson ? (
                         <LessonCard 
                           lesson={lesson} 
-                          isSelected={selectedLesson?.id === lesson.id}
+                          isSelected={selectedScheduleId === lesson.id}
                           onClick={() => {
-                            const newSelection = selectedLesson?.id === lesson.id ? null : lesson;
-                            setSelectedLesson(newSelection);
-                            
-                            // Gauti pamokos detales jei pasirinkta nauja pamoka
-                            if (newSelection) {
-                              fetchLessonDetails(newSelection.id);
-                            }
+                            const newSelection = selectedScheduleId === lesson.id ? null : lesson;
+                            // Perduoti pasirinkimą į parent komponentą
+                            onScheduleItemSelect?.(newSelection);
                           }}
                         />
                       ) : (
@@ -309,147 +309,7 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
         </div>
       </div>
 
-      {/* Pasirinktos pamokos informacijos kortelė */}
-      <div className="p-6 border-t border-gray-200">
-        <div className={`rounded-lg p-6 transition-all duration-300 ${
-          selectedLesson 
-            ? 'bg-blue-50 border-2 border-blue-200' 
-            : 'bg-yellow-50 border-2 border-yellow-200'
-        }`}>
-          {selectedLesson ? (
-            <>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-blue-900">
-                  {lessonDetails?.title || selectedLesson.subject.name}
-                </h3>
-                <button
-                  onClick={() => {
-                    setSelectedLesson(null);
-                  }}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                >
-                  ✕ Uždaryti
-                </button>
-              </div>
-              
-              {lessonLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <span className="ml-2 text-blue-600">Kraunamos pamokos detalės...</span>
-                </div>
-              ) : lessonError ? (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                  <div className="text-red-800">Klaida: {lessonError}</div>
-                </div>
-              ) : lessonDetails ? (
-                <div className="space-y-6">
-                  {/* Tema */}
-                  <div>
-                    <span className="text-sm font-medium text-blue-700">Tema:</span>
-                    <p className="text-blue-900">{lessonDetails.topic || 'Nenurodyta'}</p>
-                  </div>
-
-                  {/* Dorybės */}
-                  {lessonDetails.virtues_names.length > 0 && (
-                    <div>
-                      <span className="text-sm font-medium text-blue-700">Dorybės:</span>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {lessonDetails.virtues_names.map((virtue, index) => (
-                          <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                            {virtue}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Fokusai */}
-                  {lessonDetails.focus_list.length > 0 && (
-                    <div>
-                      <span className="text-sm font-medium text-blue-700">Fokusai:</span>
-                      <div className="mt-2 space-y-1">
-                        {lessonDetails.focus_list.map((focus, index) => (
-                          <div key={index} className="text-blue-900 text-sm">• {focus}</div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Pasiekimo lygiai */}
-                  <div>
-                    <span className="text-sm font-medium text-blue-700">Pasiekimo lygiai:</span>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                      {lessonDetails.slenkstinis && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
-                          <div className="font-medium text-yellow-800">Slenkstinis (54%)</div>
-                          <div className="text-yellow-700 text-sm mt-1">{lessonDetails.slenkstinis}</div>
-                        </div>
-                      )}
-                      {lessonDetails.bazinis && (
-                        <div className="bg-blue-50 border border-blue-200 rounded p-3">
-                          <div className="font-medium text-blue-800">Bazinis (74%)</div>
-                          <div className="text-blue-700 text-sm mt-1">{lessonDetails.bazinis}</div>
-                        </div>
-                      )}
-                      {lessonDetails.pagrindinis && (
-                        <div className="bg-green-50 border border-green-200 rounded p-3">
-                          <div className="font-medium text-green-800">Pagrindinis (84%)</div>
-                          <div className="text-green-700 text-sm mt-1">{lessonDetails.pagrindinis}</div>
-                        </div>
-                      )}
-                      {lessonDetails.aukstesnysis && (
-                        <div className="bg-purple-50 border border-purple-200 rounded p-3">
-                          <div className="font-medium text-purple-800">Aukštesnysis (100%)</div>
-                          <div className="text-purple-700 text-sm mt-1">{lessonDetails.aukstesnysis}</div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* BUP kompetencijos */}
-                  {lessonDetails.competency_atcheve_name.length > 0 && (
-                    <div>
-                      <span className="text-sm font-medium text-blue-700">BUP kompetencijos:</span>
-                      <div className="mt-2 space-y-2">
-                        {lessonDetails.competency_atcheve_name.map((comp, index) => (
-                          <div key={index} className="bg-indigo-50 border border-indigo-200 rounded p-3">
-                            <div className="text-indigo-900 text-sm">{comp}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="mt-6 flex justify-end space-x-3">
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                      Vykdyti pamoką
-                    </button>
-                    <button className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
-                      Redaguoti
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-blue-600">Pasirinkite pamoką detalėms pamatyti</div>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-8">
-              <div className="text-yellow-600 mb-2">
-                <span className="text-2xl">📅</span>
-              </div>
-              <h3 className="text-lg font-semibold text-yellow-800 mb-2">
-                Pasirinkite pamoką
-              </h3>
-              <p className="text-yellow-700 text-sm">
-                Spustelėkite ant pamokos kortelės tvarkaraštyje, kad pamatytumėte išsamią informaciją
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Pašalinta pasirinktos pamokos informacijos kortelė - naudojama activities puslapyje */}
     </div>
   );
 };

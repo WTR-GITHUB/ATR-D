@@ -1,4 +1,4 @@
-<!-- frontend/src/app/dashboard/mentors/veiklos/README.md -->
+<!-- frontend/src/app/dashboard/mentors/activities/README.md -->
 
 <!-- Veiklos modulio dokumentacija -->
 <!-- Išsamus aprašymas apie Veiklos puslapio struktūrą, komponentus ir funkcionalumą -->
@@ -21,7 +21,7 @@ Veiklos modulis skirtas mentoriams vykdyti pamokas realiu laiku pagal tvarkaraš
 ## Failų struktūra
 
 ```
-/veiklos/
+/activities/
 ├── page.tsx                 # Pagrindinis puslapis
 ├── types.ts                 # Centralizuoti tipų aprašai
 ├── components/
@@ -158,7 +158,7 @@ Ateityje reikės prijungti:
 ## Naudojimas
 
 1. Paleisti frontend serverį: `npm run dev`
-2. Naviguoti į `/dashboard/mentors/veiklos`
+2. Naviguoti į `/dashboard/mentors/activities`
 3. Pasirinkti datą, dalyką ir pamoką
 4. Žymėti mokinių lankumą
 5. Plėsti mokinio eilutę papildomam vertinimui

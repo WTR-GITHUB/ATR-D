@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/veiklos/components/AttendanceMarker.tsx
+// frontend/src/app/dashboard/mentors/activities/components/AttendanceMarker.tsx
 
 // Lankomumo žymėjimo komponentas
 // Atsako už lankomumo būsenos vizualizavimą ir interaktyvų keitimą
