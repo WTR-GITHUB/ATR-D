@@ -12,6 +12,7 @@ import DynamicList from '@/components/ui/DynamicList';
 import { ArrowLeft, Save, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import { lessonsAPI, subjectsAPI, virtuesAPI, levelsAPI, skillsAPI, competenciesAPI, competencyAtcheveAPI } from '@/lib/api';
+import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 export default function CreateLessonPage() {
@@ -81,7 +82,7 @@ export default function CreateLessonPage() {
     const loadDropdownData = async () => {
       try {
         const [subjectsRes, virtuesRes, levelsRes, skillsRes, competenciesRes, competencyAtchevesRes] = await Promise.all([
-          subjectsAPI.getAll(),
+          api.get('/crm/mentor-subjects/my_subjects/'),
           virtuesAPI.getAll(),
           levelsAPI.getAll(),
           skillsAPI.getAll(),
@@ -122,7 +123,6 @@ export default function CreateLessonPage() {
   const handleCreateSkill = async () => {
     try {
       const response = await skillsAPI.create(skillFormData);
-      console.log('Skill created:', response.data);
       
       // Refresh skills list
       const skillsRes = await skillsAPI.getAll();
@@ -159,7 +159,6 @@ export default function CreateLessonPage() {
       };
       
       const response = await competencyAtcheveAPI.create(dataToSend);
-      console.log('CompetencyAtcheve created:', response.data);
       
       // Refresh competencyAtcheves list
       const competencyAtchevesRes = await competencyAtcheveAPI.getAll();
@@ -217,12 +216,7 @@ export default function CreateLessonPage() {
         aukstesnysis: formData.aukstesnysis
       };
       
-      console.log('Sending lesson data:', lessonData);
-      console.log('Skills data:', formData.skills, formData.skills.map(id => parseInt(id)));
-      console.log('Competency atcheve data:', formData.competency_atcheve, formData.competency_atcheve.map(id => parseInt(id)));
       const response = await lessonsAPI.create(lessonData);
-      console.log('Backend response competency fields:', response.data.competency_atcheve, response.data.competency_atcheves);
-      console.log('Lesson created successfully:', response.data);
       
       // Redirect to lessons list
       router.push('/dashboard/mentors/lessons');

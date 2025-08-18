@@ -3,6 +3,8 @@
 // Savaitės tvarkaraščio komponentas - rodo mentoriaus pamokas pagal savaitę
 // Naudoja duomenis iš GlobalSchedule, Period ir Classroom modelių
 // CHANGE: Sukurtas naujas komponentas, integruotas su backend API, naudoja tikrus duomenis
+// CHANGE: Pamokos detalių modalas atnaujintas - rodomi tik būtini laukai: pavadinimas, tema, dorybės, fokusai, pasiekimo lygiai, BUP kompetencijos
+// CHANGE: Pašalinti console.log pranešimai, kurie rodo pamokų duomenis
 
 'use client';
 
@@ -117,7 +119,6 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
   // Perduodame savaitės informaciją į parent komponentą
   useEffect(() => {
     if (onWeekChange) {
-      console.log('Passing week info to parent:', weekInfo);
       onWeekChange({
         ...weekInfo,
         navigateWeek,
@@ -128,7 +129,6 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
   
   // Gauname savaitės tvarkaraščio duomenis
   const mondayDate = weekDates[0].toISOString().split('T')[0];
-  console.log('mondayDate for API:', mondayDate, 'weekDates:', weekDates);
   const { scheduleItems: allScheduleItems, isLoading, error } = useWeeklySchedule({
     weekStartDate: mondayDate,
     enabled: true
@@ -145,10 +145,8 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
   // Pašalintos funkcijos - naudojamas useWeekInfo hook
 
   const navigateWeek = (direction: number) => {
-    console.log('navigateWeek called with direction:', direction, 'currentWeek:', currentWeek);
     const newWeek = new Date(currentWeek);
     newWeek.setDate(currentWeek.getDate() + (direction * 7));
-    console.log('Setting new week:', newWeek);
     setCurrentWeek(newWeek);
   };
 
@@ -345,51 +343,13 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
                 </div>
               ) : lessonDetails ? (
                 <div className="space-y-6">
-                  {/* Pagrindinė informacija */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <div>
-                        <span className="text-sm font-medium text-blue-700">Tema:</span>
-                        <p className="text-blue-900">{lessonDetails.topic || 'Nenurodyta'}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-blue-700">Dalykas:</span>
-                        <p className="text-blue-900">{lessonDetails.subject_name}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-blue-700">Lygiai:</span>
-                        <p className="text-blue-900">{lessonDetails.levels_names.join(', ') || 'Nenurodyta'}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-blue-700">Mentorius:</span>
-                        <p className="text-blue-900">{lessonDetails.mentor_name}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <div>
-                        <span className="text-sm font-medium text-blue-700">Data:</span>
-                        <p className="text-blue-900">{selectedLesson.date}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-blue-700">Laikas:</span>
-                        <p className="text-blue-900">
-                          {selectedLesson.period.starttime}-{selectedLesson.period.endtime}
-                          {selectedLesson.period.name && ` (${selectedLesson.period.name})`}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-blue-700">Klasė:</span>
-                        <p className="text-blue-900">{selectedLesson.classroom.name}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-blue-700">Savaitės diena:</span>
-                        <p className="text-blue-900">{selectedLesson.weekday}</p>
-                      </div>
-                    </div>
+                  {/* Tema */}
+                  <div>
+                    <span className="text-sm font-medium text-blue-700">Tema:</span>
+                    <p className="text-blue-900">{lessonDetails.topic || 'Nenurodyta'}</p>
                   </div>
 
-                  {/* Gebėjimai */}
+                  {/* Dorybės */}
                   {lessonDetails.virtues_names.length > 0 && (
                     <div>
                       <span className="text-sm font-medium text-blue-700">Dorybės:</span>

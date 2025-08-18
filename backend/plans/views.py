@@ -97,17 +97,44 @@ class LessonSequenceViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def mentor_lessons(self, request):
-        """Grąžina prisijungusio mentoriaus pamokas"""
+        """Grąžina prisijungusio mentoriaus pamokas su filtravimo galimybėmis"""
+        # Gauti query parametrus
+        subject_id = request.query_params.get('subject', None)
+        level_id = request.query_params.get('level', None)
+        
+        # Pradėti nuo mentoriaus pamokų
         mentor_lessons = Lesson.objects.filter(
             mentor=request.user
-        ).select_related('subject').order_by('-created_at')
+        ).select_related('subject').prefetch_related('levels')
+        
+        # Filtruoti pagal dalyką jei nurodyta
+        if subject_id:
+            try:
+                mentor_lessons = mentor_lessons.filter(subject_id=int(subject_id))
+            except (ValueError, TypeError):
+                pass  # Ignoruoti neteisingus subject_id
+        
+        # Filtruoti pagal lygį jei nurodyta
+        if level_id:
+            try:
+                mentor_lessons = mentor_lessons.filter(levels__id=int(level_id)).distinct()
+            except (ValueError, TypeError):
+                pass  # Ignoruoti neteisingus level_id
+        
+        # Surikiuoti pagal sukūrimo datą
+        mentor_lessons = mentor_lessons.order_by('-created_at')
         
         lessons_data = []
         for lesson in mentor_lessons:
+            # Gauti visų lygių pavadinimus
+            level_names = [level.name for level in lesson.levels.all()]
+            levels_text = ', '.join(level_names) if level_names else 'Nenurodyta'
+            
             lessons_data.append({
                 'id': lesson.id,
                 'title': lesson.title,
                 'subject': lesson.subject.name,
+                'levels': levels_text,
                 'topic': lesson.topic or '',
                 'created_at': lesson.created_at
             })

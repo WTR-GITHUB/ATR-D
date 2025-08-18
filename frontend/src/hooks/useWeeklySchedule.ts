@@ -58,7 +58,6 @@ export const useWeeklySchedule = (params: UseWeeklyScheduleParams): UseWeeklySch
   };
 
   useEffect(() => {
-    console.log('useWeeklySchedule useEffect triggered with weekStartDate:', params.weekStartDate, 'enabled:', params.enabled);
     fetchWeeklySchedule();
   }, [params.weekStartDate, params.enabled]);
 

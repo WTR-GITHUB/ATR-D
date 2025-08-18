@@ -19,6 +19,7 @@ import {
   competenciesAPI, 
   competencyAtcheveAPI 
 } from '@/lib/api';
+import api from '@/lib/api';
 import { useRouter, useParams } from 'next/navigation';
 
 export default function EditLessonPage() {
@@ -105,7 +106,7 @@ export default function EditLessonPage() {
           levelsRes,
           lessonRes
         ] = await Promise.all([
-          subjectsAPI.getAll(),
+          api.get('/crm/mentor-subjects/my_subjects/'),
           skillsAPI.getAll(),
           competenciesAPI.getAll(),
           competencyAtcheveAPI.getAll(),
@@ -122,25 +123,6 @@ export default function EditLessonPage() {
         setLevels(levelsRes.data);
         
         const lesson = lessonRes.data;
-        
-        console.log('Loaded lesson data:', lesson);
-        console.log('Raw lesson data:', lesson);
-        console.log('Subject data:', lesson.subject);
-        console.log('Pasiekimo lygiai:', {
-          slenkstinis: lesson.slenkstinis,
-          bazinis: lesson.bazinis,
-          pagrindinis: lesson.pagrindinis,
-          aukstesnysis: lesson.aukstesnysis
-        });
-        console.log('Form data after setting:', {
-          title: lesson.title || '',
-          subject: lesson.subject?.id?.toString() || lesson.subject?.toString() || '',
-          topic: lesson.topic || '',
-          slenkstinis: lesson.slenkstinis || '',
-          bazinis: lesson.bazinis || '',
-          pagrindinis: lesson.pagrindinis || '',
-          aukstesnysis: lesson.aukstesnysis || '',
-        });
         
         // Ensure all fields are properly handled
         const formDataToSet = {
@@ -161,11 +143,6 @@ export default function EditLessonPage() {
           focus: lesson.focus_list || []
         };
         
-        console.log('Final form data to set:', formDataToSet);
-        console.log('Subjects loaded:', subjectsRes.data.length);
-        console.log('Skills loaded:', skillsRes.data.length);
-        console.log('Virtues loaded:', virtuesRes.data.length);
-        console.log('Levels loaded:', levelsRes.data.length);
         setFormData(formDataToSet);
       } catch (error) {
         console.error('Error loading data:', error);
@@ -199,7 +176,6 @@ export default function EditLessonPage() {
   const handleCreateSkill = async () => {
     try {
       const response = await skillsAPI.create(skillFormData);
-      console.log('Skill created:', response.data);
       
       // Refresh skills list
       const skillsRes = await skillsAPI.getAll();
@@ -236,7 +212,6 @@ export default function EditLessonPage() {
       };
       
       const response = await competencyAtcheveAPI.create(dataToSend);
-      console.log('CompetencyAtcheve created:', response.data);
       
       // Refresh competencyAtcheves list
       const competencyAtchevesRes = await competencyAtcheveAPI.getAll();
@@ -286,14 +261,7 @@ export default function EditLessonPage() {
         focus: JSON.stringify(formData.focus)
       };
       
-      console.log('Sending lesson data to backend:', lessonData);
-      console.log('Skills data:', formData.skills, formData.skills.map(id => parseInt(id)));
-      console.log('Competency atcheve data:', formData.competency_atcheve, formData.competency_atcheve.map(id => parseInt(id)));
-      
-      console.log('Sending lesson data:', lessonData);
       const response = await lessonsAPI.update(parseInt(lessonId), lessonData);
-      console.log('Lesson updated successfully:', response.data);
-      console.log('Response data:', response.data);
       
       // Redirect to lessons list
       router.push('/dashboard/mentors/lessons');

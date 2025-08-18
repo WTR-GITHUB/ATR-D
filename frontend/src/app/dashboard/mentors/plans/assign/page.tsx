@@ -304,7 +304,6 @@ export default function AssignPlanPage() {
             student_id: student.id
           });
 
-          console.log(`Student ${student.name} result:`, response.data);
           allResults.push(response.data);
           setCompletedStudents(i + 1);
 

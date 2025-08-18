@@ -15,6 +15,7 @@ interface Lesson {
   id: number;
   title: string;
   subject: string;
+  levels: string;
   topic: string;
   created_at: string;
 }
@@ -23,6 +24,7 @@ interface LessonSequenceItem {
   id: number;
   title: string;
   subject: string;
+  levels: string;
   topic: string;
   position: number;
 }
@@ -42,8 +44,22 @@ interface Level {
 // API funkcijos
 import api from '@/lib/api';
 
-async function fetchMentorLessons(): Promise<Lesson[]> {
-  const response = await api.get('/plans/sequences/mentor_lessons/');
+async function fetchMentorLessons(subjectId?: string, levelId?: string): Promise<Lesson[]> {
+  let url = '/plans/sequences/mentor_lessons/';
+  const params = new URLSearchParams();
+  
+  if (subjectId) {
+    params.append('subject', subjectId);
+  }
+  if (levelId) {
+    params.append('level', levelId);
+  }
+  
+  if (params.toString()) {
+    url += `?${params.toString()}`;
+  }
+  
+  const response = await api.get(url);
   return response.data;
 }
 
@@ -102,13 +118,34 @@ export default function CreateLessonSequencePage() {
     loadData();
   }, []);
 
+  // Filter lessons when subject or level changes
+  useEffect(() => {
+    async function filterLessons() {
+      try {
+        const filteredLessons = await fetchMentorLessons(formData.subject, formData.level);
+        setAvailableLessons(filteredLessons);
+      } catch (error) {
+        console.error('Klaida filtruojant pamokas:', error);
+      }
+    }
+
+    // Only filter if we have initial data loaded
+    if (!isLoadingData) {
+      filterLessons();
+    }
+  }, [formData.subject, formData.level, isLoadingData]);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const addLessonToSequence = (lesson: Lesson) => {
     const newItem: LessonSequenceItem = {
-      ...lesson,
+      id: lesson.id,
+      title: lesson.title,
+      subject: lesson.subject,
+      levels: lesson.levels,
+      topic: lesson.topic,
       position: selectedLessons.length + 1
     };
     setSelectedLessons(prev => [...prev, newItem]);
@@ -347,7 +384,7 @@ export default function CreateLessonSequencePage() {
                         <div className="flex items-center justify-between">
                           <div>
                             <h4 className="font-medium text-gray-900">{lesson.title}</h4>
-                            <p className="text-sm text-gray-600">{lesson.subject} • {lesson.topic}</p>
+                            <p className="text-sm text-gray-600">{lesson.subject} • {lesson.levels} • {lesson.topic}</p>
                           </div>
                           <Plus className="w-4 h-4 text-blue-600" />
                         </div>
@@ -386,7 +423,7 @@ export default function CreateLessonSequencePage() {
                         <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
                         <div className="flex-1">
                           <h4 className="font-medium text-gray-900">{item.title}</h4>
-                          <p className="text-sm text-gray-600">{item.subject} • {item.topic}</p>
+                          <p className="text-sm text-gray-600">{item.subject} • {item.levels} • {item.topic}</p>
                         </div>
                         <div className="flex items-center space-x-2">
                           <span className="text-sm font-medium text-gray-500">#{item.position}</span>
