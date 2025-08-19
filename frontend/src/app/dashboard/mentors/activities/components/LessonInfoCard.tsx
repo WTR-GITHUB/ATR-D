@@ -4,6 +4,7 @@
 // Rodo pamokos pavadinimą, dalykų informacija, komponentus, tikslus, gebėjimus ir mokomąją medžiagą
 // Naudoja duomenis iš curriculum/models.py Lesson modelio
 // CHANGE: Patobulinta su spalvotais ikonomis, pagerintu layoutu ir modernumu dizainu pagal ddd failo pavyzdį
+// CHANGE: Pašalintas StudentStats komponentas - statistikos nereikalingos
 
 import React from 'react';
 import { 
@@ -22,11 +23,15 @@ import StudentRow from './StudentRow';
 interface LessonInfoCardProps {
   lesson: LessonDetails;
   studentsForThisLesson: IMUPlan[];
+  isActivityActive?: boolean; // Ar veikla aktyvi (vyksta)
+  activityStartTime?: Date | null; // Veiklos pradžios laikas
 }
 
 const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
   lesson,
-  studentsForThisLesson
+  studentsForThisLesson,
+  isActivityActive = false,
+  activityStartTime = null
 }) => {
   // Pagalbinė funkcija JSON string'o parse'inimui
   const parseJsonString = (jsonString: string): any[] => {
@@ -101,93 +106,13 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
           {objectives.length > 0 && (
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <Target size={18} className="mr-2 text-indigo-600" />
+                <Target size={18} className="mr-2 text-green-600" />
                 Tikslai
               </h3>
               <div className="space-y-2">
                 {objectives.map((objective, index) => (
                   <div key={index} className="p-3 bg-gray-100 rounded-lg border border-gray-200">
                     <span className="text-gray-600 text-sm font-medium">{objective}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Pasiekimo lygiai */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <Award size={18} className="mr-2 text-amber-600" />
-              Pasiekimo lygiai
-            </h3>
-            <div className="space-y-2">
-              {lesson.slenkstinis && (
-                <div className="p-3 bg-gray-100 rounded-lg border border-gray-200">
-                  <div className="flex items-start space-x-3">
-                    <span className="text-gray-600 text-sm font-medium min-w-[20px]">S:</span>
-                    <span className="text-gray-600 text-sm font-medium">{lesson.slenkstinis}</span>
-                  </div>
-                </div>
-              )}
-              {lesson.bazinis && (
-                <div className="p-3 bg-gray-100 rounded-lg border border-gray-200">
-                  <div className="flex items-start space-x-3">
-                    <span className="text-gray-600 text-sm font-medium min-w-[20px]">B:</span>
-                    <span className="text-gray-600 text-sm font-medium">{lesson.bazinis}</span>
-                  </div>
-                </div>
-              )}
-              {lesson.pagrindinis && (
-                <div className="p-3 bg-gray-100 rounded-lg border border-gray-200">
-                  <div className="flex items-start space-x-3">
-                    <span className="text-gray-600 text-sm font-medium min-w-[20px]">P:</span>
-                    <span className="text-gray-600 text-sm font-medium">{lesson.pagrindinis}</span>
-                  </div>
-                </div>
-              )}
-              {lesson.aukstesnysis && (
-                <div className="p-3 bg-gray-100 rounded-lg border border-gray-200">
-                  <div className="flex items-start space-x-3">
-                    <span className="text-gray-600 text-sm font-medium min-w-[20px]">A:</span>
-                    <span className="text-gray-600 text-sm font-medium">{lesson.aukstesnysis}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Antras blokas */}
-        <div className="grid grid-cols-3 gap-8 mt-8 pt-8 border-t border-gray-100">
-          
-          {/* Gebėjimai */}
-          {lesson.skills_list.length > 0 && (
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <Users size={18} className="mr-2 text-purple-600" />
-                Gebėjimai
-              </h3>
-              <div className="space-y-2">
-                {lesson.skills_list.map((skillId, index) => (
-                  <div key={index} className="p-3 bg-gray-100 rounded-lg border border-gray-200">
-                    <span className="text-gray-600 text-sm font-medium">Gebėjimas ID: {skillId}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* BUP Kompetencijos */}
-          {lesson.competency_atcheve_name.length > 0 && (
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <Zap size={18} className="mr-2 text-cyan-600" />
-                BUP Kompetencijos
-              </h3>
-              <div className="space-y-2">
-                {lesson.competency_atcheve_name.map((competency, index) => (
-                  <div key={index} className="p-3 bg-gray-100 rounded-lg border border-gray-200">
-                    <span className="text-gray-600 text-sm font-medium">{competency}</span>
                   </div>
                 ))}
               </div>
@@ -240,8 +165,9 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
                     </h3>
                     <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
                       <span>Iš viso: {studentsForThisLesson.length}</span>
-                      <span className="text-green-600">Dalyvavo: {studentsForThisLesson.filter(s => s.status === 'completed').length}</span>
-                      <span className="text-red-600">Nedalyvavo: {studentsForThisLesson.filter(s => s.status === 'missed').length}</span>
+                      {/* REFAKTORINIMAS: Dabar naudojame attendance_status tiesiogiai */}
+                      <span className="text-green-600">Dalyvavo: {studentsForThisLesson.filter(s => s.attendance_status === 'present').length}</span>
+                      <span className="text-red-600">Nedalyvavo: {studentsForThisLesson.filter(s => s.attendance_status === 'absent').length}</span>
                     </div>
                   </div>
 

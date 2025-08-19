@@ -114,15 +114,25 @@ class IMUPlanSerializer(serializers.ModelSerializer):
     global_schedule_date = serializers.DateField(source='global_schedule.date', read_only=True)
     global_schedule_time = serializers.TimeField(source='global_schedule.period.starttime', read_only=True)
     global_schedule_classroom = serializers.CharField(source='global_schedule.classroom.name', read_only=True)
+    
+    # REFAKTORINIMAS: Dabar turime atskirus statusų laukus
+    plan_status_display = serializers.CharField(source='get_plan_status_display', read_only=True)
+    attendance_status_display = serializers.CharField(source='get_attendance_status_display', read_only=True)
+    
+    # Laikinai paliekame seną status_display migracijos metu
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     
     class Meta:
         model = IMUPlan
         fields = [
             'id', 'student', 'student_name', 'global_schedule', 'lesson', 'lesson_title',
-            'lesson_subject', 'status', 'status_display', 'started_at', 'completed_at',
-            'notes', 'created_at', 'updated_at', 'global_schedule_date', 
-            'global_schedule_time', 'global_schedule_classroom'
+            'lesson_subject', 
+            # REFAKTORINIMAS: Nauji statusų laukai
+            'plan_status', 'plan_status_display', 'attendance_status', 'attendance_status_display',
+            # Laikinai paliekame senus laukus migracijos metu
+            'status', 'status_display',
+            'started_at', 'completed_at', 'notes', 'created_at', 'updated_at', 
+            'global_schedule_date', 'global_schedule_time', 'global_schedule_classroom'
         ]
         read_only_fields = ['created_at', 'updated_at']
 
@@ -134,7 +144,11 @@ class IMUPlanCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = IMUPlan
         fields = [
-            'id', 'student', 'global_schedule', 'lesson', 'status', 
+            'id', 'student', 'global_schedule', 'lesson', 
+            # REFAKTORINIMAS: Dabar galime nustatyti abu statusus
+            'plan_status', 'attendance_status',
+            # Laikinai paliekame seną status lauką migracijos metu
+            'status',
             'notes', 'started_at', 'completed_at'
         ]
 

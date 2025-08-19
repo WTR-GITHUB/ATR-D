@@ -86,12 +86,18 @@ const StudentRow: React.FC<StudentRowProps> = ({
   };
 
   // Statusų konvertavimas (reikalinga IMUPlan duomenims)
+  // REFAKTORINIMAS: Dabar naudojame attendance_status tiesiogiai
   const convertToAttendanceStatus = (status: string): AttendanceStatus => {
     if (isIMUPlan) {
+      // REFAKTORINIMAS: Dabar galime naudoti attendance_status tiesiogiai
+      const imuPlan = student as IMUPlan;
+      if (imuPlan.attendance_status) {
+        return imuPlan.attendance_status;
+      }
+      // Fallback: jei attendance_status dar neegzistuoja
       switch (status) {
         case 'completed': return 'present';
         case 'in_progress': return 'late';
-        case 'missed': return 'absent';
         case 'planned': return 'excused';
         default: return 'present';
       }
@@ -101,12 +107,14 @@ const StudentRow: React.FC<StudentRowProps> = ({
 
   const convertFromAttendanceStatus = (status: AttendanceStatus): string => {
     if (isIMUPlan) {
+      // REFAKTORINIMAS: Dabar galime grąžinti attendance_status
+      // Bet palaikome seną logiką migracijos metu
       switch (status) {
-        case 'present': return 'completed';
-        case 'late': return 'in_progress';
-        case 'absent': return 'missed';
-        case 'excused': return 'planned';
-        default: return 'completed';
+        case 'present': return 'present';  // Tiesiogiai attendance_status
+        case 'late': return 'late';        // Tiesiogiai attendance_status
+        case 'absent': return 'absent';    // Tiesiogiai attendance_status
+        case 'excused': return 'excused';  // Tiesiogiai attendance_status
+        default: return 'present';
       }
     }
     return status;

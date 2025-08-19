@@ -1,181 +1,118 @@
 // frontend/src/app/dashboard/mentors/activities/components/StudentStats.tsx
 
-// Studentų statistikos komponentas
-// Rodo pamokos statistikas: dalyvavimo rodiklius, bendrą progresą ir tendencijas
-// Apskaičiuoja ir vizualizuoja pagrindinius mokymo proceso metrikus
-// CHANGE: Sukurtas StudentStats komponentas pamokos statistikų vizualizavimui su grafine reprezentacija
-
-'use client';
+// Mokinių statistikos komponentas - rodo lankomumo ir veiklos rodiklius
+// Komponentas rodomas virš mokinių sąrašo, pateikia bendrą statistikos apžvalgą
+// CHANGE: Pridėtas props veiklos būsenai - "Dalyvavo" statusas tampa aktyvus kai veikla vyksta
 
 import React from 'react';
-import { TrendingUp, Users, Clock, AlertTriangle, CheckCircle } from 'lucide-react';
-import { Student, Subject, Lesson, AttendanceStats, PerformanceStats } from '../types';
+import { 
+  Users, 
+  TrendingUp, 
+  AlertTriangle, 
+  Clock,
+  CheckCircle,
+  XCircle,
+  Clock as ClockIcon
+} from 'lucide-react';
+import { AttendanceStats, PerformanceStats } from '../types';
 
 interface StudentStatsProps {
-  students: Student[];
-  selectedDate?: string;
-  selectedSubject?: Subject | null;
-  selectedLesson?: Lesson | null;
+  attendanceStats: AttendanceStats;
+  performanceStats: PerformanceStats;
+  isActivityActive?: boolean; // Ar veikla aktyvi (vyksta)
+  activityStartTime?: Date | null; // Veiklos pradžios laikas
 }
 
-// Studentų statistikos komponentas
-// Apskaičiuoja ir rodo detalizuotas pamokos statistikas
 const StudentStats: React.FC<StudentStatsProps> = ({
-  students,
-  selectedDate,
-  selectedSubject,
-  selectedLesson
+  attendanceStats,
+  performanceStats,
+  isActivityActive = false,
+  activityStartTime = null
 }) => {
-  // Lankomumo statistikų skaičiavimas
-  const attendanceStats: AttendanceStats = React.useMemo(() => {
-    const total = students.length;
-    const present = students.filter(s => s.status === 'present').length;
-    const absent = students.filter(s => s.status === 'absent').length;
-    const late = students.filter(s => s.status === 'late').length;
-    const excused = students.filter(s => s.status === 'excused').length;
-    const attendanceRate = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
+  // Apskaičiuojame aktyvų lankomumą (dalyvavo + vėlavo)
+  const activeAttendance = attendanceStats.present + attendanceStats.late;
+  
+  // Nustatome "Dalyvavo" statuso spalvą pagal veiklos būseną
+  const getParticipatedColor = () => {
+    if (isActivityActive) {
+      return 'text-green-600'; // Aktyvus žalias kai veikla vyksta
+    }
+    return 'text-gray-600'; // Pilkas kai veikla neaktyvi
+  };
 
-    return { total, present, absent, late, excused, attendanceRate };
-  }, [students]);
-
-  // Veiklos statistikų skaičiavimas
-  const performanceStats: PerformanceStats = React.useMemo(() => {
-    const highPerformers = students.filter(s => {
-      const attendancePercent = (s.attendance.present / s.attendance.total) * 100;
-      return attendancePercent >= 90;
-    }).length;
-
-    const needsAttention = students.filter(s => {
-      const attendancePercent = (s.attendance.present / s.attendance.total) * 100;
-      return attendancePercent < 75 || s.status === 'absent';
-    }).length;
-
-    const averageAttendance = students.length > 0 
-      ? Math.round(students.reduce((sum, s) => sum + (s.attendance.present / s.attendance.total) * 100, 0) / students.length)
-      : 0;
-
-    const totalFeedback = students.filter(s => s.hasRecentFeedback).length;
-
-    return { highPerformers, needsAttention, averageAttendance, totalFeedback };
-  }, [students]);
-
-  // Spalvos pagal lankomumo rodiklius
-  const getAttendanceColor = (rate: number) => {
-    if (rate >= 90) return 'text-green-600 bg-green-50 border-green-200';
-    if (rate >= 75) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-    return 'text-red-600 bg-red-50 border-red-200';
+  // Nustatome "Dalyvavo" ikoną pagal veiklos būseną
+  const getParticipatedIcon = () => {
+    if (isActivityActive) {
+      return <CheckCircle size={16} className="text-green-600" />; // Žalia varnelė
+    }
+    return <ClockIcon size={16} className="text-gray-600" />; // Pilkas laikrodis
   };
 
   return (
     <div className="space-y-6">
-      {/* Pamokos informacijos kortelė */}
-      {selectedLesson && selectedSubject && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-blue-900">
-                {selectedLesson.title}
-              </h2>
-              <p className="text-blue-700">
-                {selectedSubject.name} ({selectedSubject.level}) • {selectedLesson.time}
-              </p>
-              {selectedDate && (
-                <p className="text-blue-600 text-sm mt-1">
-                  {new Date(selectedDate).toLocaleDateString('lt-LT', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </p>
-              )}
-            </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-blue-900">
-                {attendanceStats.attendanceRate}%
-              </div>
-              <div className="text-sm text-blue-600">
-                Dalyvavimas
-              </div>
-            </div>
+      {/* Bendras apžvalgos skydelis */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Bendras apžvalga</h3>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Iš viso mokinių */}
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600">{attendanceStats.total}</div>
+            <div className="text-sm text-gray-600">Iš viso</div>
           </div>
-        </div>
-      )}
-
-      {/* Pagrindinės statistikos kortelės */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Bendras mokinių skaičius */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Mokinių iš viso</p>
-              <p className="text-2xl font-bold text-gray-900">{attendanceStats.total}</p>
-            </div>
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <Users size={16} className="text-blue-600" />
-            </div>
+          
+          {/* Reikia dėmesio */}
+          <div className="text-center">
+            <div className="text-2xl font-bold text-red-600">{performanceStats.needsAttention}</div>
+            <div className="text-sm text-gray-600">Reikia dėmesio</div>
           </div>
-        </div>
-
-        {/* Dalyvavimo rodiklis */}
-        <div className={`rounded-lg border p-4 ${getAttendanceColor(attendanceStats.attendanceRate)}`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">Dalyvavimo rodiklis</p>
-              <p className="text-2xl font-bold">{attendanceStats.attendanceRate}%</p>
-            </div>
-            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white bg-opacity-50">
-              <CheckCircle size={16} />
-            </div>
+          
+          {/* Aukšti rezultatai */}
+          <div className="text-center">
+            <div className="text-2xl font-bold text-green-600">{performanceStats.highPerformers}</div>
+            <div className="text-sm text-gray-600">Aukšti rezultatai</div>
           </div>
-        </div>
-
-        {/* Aukšti pasiekimai */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Aukšti pasiekimai</p>
-              <p className="text-2xl font-bold text-green-600">{performanceStats.highPerformers}</p>
-            </div>
-            <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-              <TrendingUp size={16} className="text-green-600" />
-            </div>
+          
+          {/* Grįžtamasis ryšys */}
+          <div className="text-center">
+            <div className="text-2xl font-bold text-purple-600">{performanceStats.totalFeedback}</div>
+            <div className="text-sm text-gray-600">Grįžtamasis ryšys</div>
           </div>
-          <p className="text-xs text-gray-500 mt-1">≥90% lankomumas</p>
-        </div>
-
-        {/* Reikia dėmesio */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Reikia dėmesio</p>
-              <p className="text-2xl font-bold text-red-600">{performanceStats.needsAttention}</p>
-            </div>
-            <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-              <AlertTriangle size={16} className="text-red-600" />
-            </div>
-          </div>
-          <p className="text-xs text-gray-500 mt-1">&lt;75% lankomumas</p>
         </div>
       </div>
 
-      {/* Detalizuotos lankomumo statistikos */}
+      {/* Lankomumo statistikos */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Lankomumo analizė</h3>
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {/* Dalyvavo - aktyvus kai veikla vyksta */}
           <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">{attendanceStats.present}</div>
-            <div className="text-sm text-gray-600">Dalyvavo</div>
+            <div className={`text-2xl font-bold ${getParticipatedColor()}`}>
+              {activeAttendance}
+            </div>
+            <div className={`text-sm ${getParticipatedColor()}`}>
+              Dalyvavo
+            </div>
+            {/* Ikonos rodymas pagal veiklos būseną */}
+            <div className="flex justify-center mt-1">
+              {getParticipatedIcon()}
+            </div>
           </div>
+          
+          {/* Vėlavo */}
           <div className="text-center">
             <div className="text-2xl font-bold text-yellow-600">{attendanceStats.late}</div>
             <div className="text-sm text-gray-600">Vėlavo</div>
           </div>
+          
+          {/* Nedalyvavo */}
           <div className="text-center">
             <div className="text-2xl font-bold text-red-600">{attendanceStats.absent}</div>
             <div className="text-sm text-gray-600">Nedalyvavo</div>
           </div>
+          
+          {/* Pateisinta */}
           <div className="text-center">
             <div className="text-2xl font-bold text-blue-600">{attendanceStats.excused}</div>
             <div className="text-sm text-gray-600">Pateisinta</div>
@@ -186,7 +123,7 @@ const StudentStats: React.FC<StudentStatsProps> = ({
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-gray-600">
             <span>Lankomumo paskirstymas</span>
-            <span>{attendanceStats.present + attendanceStats.late} iš {attendanceStats.total}</span>
+            <span>{activeAttendance} iš {attendanceStats.total}</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div className="flex h-2 rounded-full overflow-hidden">

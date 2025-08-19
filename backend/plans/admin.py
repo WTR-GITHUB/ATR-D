@@ -57,11 +57,19 @@ class IMUPlanAdmin(admin.ModelAdmin):
     Individualių mokinių ugdymo planų administravimas
     """
     list_display = [
-        'student', 'lesson', 'global_schedule_display', 'status', 
+        'student', 'lesson', 'global_schedule_display', 
+        # REFAKTORINIMAS: Dabar rodomi abu statusai
+        'plan_status', 'attendance_status',
+        # Laikinai paliekame seną status lauką migracijos metu
+        'status',
         'started_at', 'completed_at', 'created_at'
     ]
     list_filter = [
-        'status', 'global_schedule__subject', 'global_schedule__level',
+        # REFAKTORINIMAS: Dabar galime filtruoti pagal abu statusus
+        'plan_status', 'attendance_status',
+        # Laikinai paliekame seną status filtrą migracijos metu
+        'status',
+        'global_schedule__subject', 'global_schedule__level',
         'global_schedule__date', 'created_at'
     ]
     search_fields = [

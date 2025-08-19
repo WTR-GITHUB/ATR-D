@@ -190,8 +190,17 @@ export interface IMUPlan {
   lesson: number | null;
   lesson_title: string | null;
   lesson_subject: string | null;
-  status: 'planned' | 'in_progress' | 'completed' | 'missed' | 'cancelled';
+  
+  // REFAKTORINIMAS: Dabar turime atskirus statusų laukus
+  plan_status: 'planned' | 'in_progress' | 'completed';
+  plan_status_display: string;
+  attendance_status: AttendanceStatus;
+  attendance_status_display: string;
+  
+  // Laikinai paliekame senus laukus migracijos metu
+  status: 'planned' | 'in_progress' | 'completed' | AttendanceStatus;
   status_display: string;
+  
   started_at?: string;
   completed_at?: string;
   notes: string;

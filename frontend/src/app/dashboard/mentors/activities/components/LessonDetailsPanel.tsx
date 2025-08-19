@@ -4,6 +4,7 @@
 // Naudoja LessonInfoCard komponentą kiekvienai pamokai atvaizduoti
 // Filtruoja IMU planus pagal pamokas ir rodo studentus kiekvienai pamokai
 // CHANGE: Pertvarkyta naudoti LessonInfoCard komponentą su studentų filtravimu
+// CHANGE: Pridėti props veiklos būsenai, kad StudentStats komponentas galėtų rodyti aktyvų "Dalyvavo" statusą
 
 import React from 'react';
 import { 
@@ -19,6 +20,8 @@ interface LessonDetailsPanelProps {
   imuPlans: IMUPlan[];
   isLoading: boolean;
   error: string | null;
+  isActivityActive?: boolean; // Ar veikla aktyvi (vyksta)
+  activityStartTime?: Date | null; // Veiklos pradžios laikas
 }
 
 const LessonDetailsPanel: React.FC<LessonDetailsPanelProps> = ({
@@ -26,7 +29,9 @@ const LessonDetailsPanel: React.FC<LessonDetailsPanelProps> = ({
   allLessonsDetails,
   imuPlans,
   isLoading,
-  error
+  error,
+  isActivityActive = false,
+  activityStartTime = null
 }) => {
   if (isLoading) {
     return (
@@ -74,6 +79,8 @@ const LessonDetailsPanel: React.FC<LessonDetailsPanelProps> = ({
           key={lesson.id}
           lesson={lesson}
           studentsForThisLesson={getStudentsForLesson(lesson.id)}
+          isActivityActive={isActivityActive}
+          activityStartTime={activityStartTime}
         />
       ))}
       
@@ -100,9 +107,9 @@ const LessonDetailsPanel: React.FC<LessonDetailsPanelProps> = ({
                     Pamoka nepriskirta
                   </p>
                 </div>
-                <span className="px-2 py-1 text-xs font-medium rounded-full border bg-yellow-100 text-yellow-800 border-yellow-200">
+                <div className="text-xs text-gray-500">
                   {plan.status_display}
-                </span>
+                </div>
               </div>
             ))}
           </div>

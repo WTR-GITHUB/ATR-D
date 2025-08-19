@@ -99,13 +99,16 @@ class PlansModelsTestCase(TestCase):
             student=self.student,
             global_schedule=self.global_schedule,
             lesson=self.lesson,
-            status='planned'
+            # REFAKTORINIMAS: Dabar nustatome abu statusus
+            plan_status='planned',
+            attendance_status='present'
         )
         
         self.assertEqual(plan.student, self.student)
         self.assertEqual(plan.global_schedule, self.global_schedule)
         self.assertEqual(plan.lesson, self.lesson)
-        self.assertEqual(plan.status, 'planned')
+        self.assertEqual(plan.plan_status, 'planned')
+        self.assertEqual(plan.attendance_status, 'present')
         self.assertIsNone(plan.started_at)
         self.assertIsNone(plan.completed_at)
     
@@ -115,15 +118,17 @@ class PlansModelsTestCase(TestCase):
             student=self.student,
             global_schedule=self.global_schedule,
             lesson=self.lesson,
-            status='planned'
+            # REFAKTORINIMAS: Dabar nustatome abu statusus
+            plan_status='planned',
+            attendance_status='present'
         )
         
-        # Atnaujiname statusą į 'in_progress'
-        plan.status = 'in_progress'
+        # Atnaujiname plan_status į 'in_progress'
+        plan.plan_status = 'in_progress'
         plan.save()
         
         self.assertIsNotNone(plan.started_at)
-        self.assertEqual(plan.status, 'in_progress')
+        self.assertEqual(plan.plan_status, 'in_progress')
     
     def test_lesson_sequence_str_representation(self):
         """Testuoja sekos string atvaizdavimą"""
@@ -159,8 +164,11 @@ class PlansModelsTestCase(TestCase):
             student=self.student,
             global_schedule=self.global_schedule,
             lesson=self.lesson,
-            status='planned'
+            # REFAKTORINIMAS: Dabar nustatome abu statusus
+            plan_status='planned',
+            attendance_status='present'
         )
         
-        expected_str = f"{self.student} - {self.global_schedule} - {self.lesson} (Suplanuota)"
+        # REFAKTORINIMAS: Dabar string formatas pasikeitė
+        expected_str = f"{self.student} - {self.global_schedule} - {self.lesson} (Planas: Suplanuota, Lankomumas: Dalyvavo)"
         self.assertEqual(str(plan), expected_str)

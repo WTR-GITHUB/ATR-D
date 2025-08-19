@@ -448,9 +448,10 @@ class IMUPlanViewSet(viewsets.ModelViewSet):
                             
                             if existing_plan:
                                 # Jei planas jau egzistuoja, tikrina ar galima keisti
-                                if existing_plan.status in ['completed', 'missed', 'cancelled']:
+                                # REFAKTORINIMAS: Dabar tikriname plan_status vietoj status
+                                if existing_plan.plan_status in ['completed', 'in_progress']:
                                     warnings.append(
-                                        f"Mokinys {student.get_full_name()} jau turi {existing_plan.get_status_display()} "
+                                        f"Mokinys {student.get_full_name()} jau turi {existing_plan.get_plan_status_display()} "
                                         f"pamoką {schedule.date} {schedule.period.starttime}"
                                     )
                                     continue
@@ -461,11 +462,13 @@ class IMUPlanViewSet(viewsets.ModelViewSet):
                                     created_plans.append(existing_plan)
                             else:
                                 # Sukuria naują planą
+                                # REFAKTORINIMAS: Dabar nustatome plan_status ir attendance_status
                                 plan = IMUPlan.objects.create(
                                     student=student,
                                     global_schedule=schedule,
                                     lesson=item.lesson,
-                                    status='planned'
+                                    plan_status='planned',      # Planas suplanuotas
+                                    attendance_status='present' # Mokinys dalyvavo (default)
                                 )
                                 created_plans.append(plan)
                     
@@ -493,20 +496,39 @@ class IMUPlanViewSet(viewsets.ModelViewSet):
         """Atnaujina plano statusą"""
         plan = self.get_object()
         new_status = request.data.get('status')
+        status_type = request.data.get('status_type', 'plan')  # 'plan' arba 'attendance'
         
-        if new_status not in dict(IMUPlan.STATUS_CHOICES):
+        # REFAKTORINIMAS: Dabar galime atnaujinti plan_status arba attendance_status
+        if status_type == 'plan':
+            if new_status not in dict(IMUPlan.PLAN_STATUS_CHOICES):
+                return Response(
+                    {"error": "Netinkamas plano statusas"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Automatiškai nustato laikus pagal plan_status
+            if new_status == 'in_progress' and not plan.started_at:
+                plan.started_at = timezone.now()
+            elif new_status == 'completed' and not plan.completed_at:
+                plan.completed_at = timezone.now()
+            
+            plan.plan_status = new_status
+            
+        elif status_type == 'attendance':
+            if new_status not in dict(IMUPlan.ATTENDANCE_CHOICES):
+                return Response(
+                    {"error": "Netinkamas lankomumo statusas"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            plan.attendance_status = new_status
+            
+        else:
             return Response(
-                {"error": "Netinkamas statusas"},
+                {"error": "Netinkamas status_type. Turi būti 'plan' arba 'attendance'"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Automatiškai nustato laikus pagal statusą
-        if new_status == 'in_progress' and not plan.started_at:
-            plan.started_at = timezone.now()
-        elif new_status == 'completed' and not plan.completed_at:
-            plan.completed_at = timezone.now()
-        
-        plan.status = new_status
         plan.save()
         
         serializer = self.get_serializer(plan)
@@ -525,3 +547,85 @@ class IMUPlanViewSet(viewsets.ModelViewSet):
         plans = self.queryset.filter(student_id=student_id)
         serializer = self.get_serializer(plans, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def start_activity(self, request):
+        """
+        Pradeda veiklą visiems mokiniams, kurie priklauso konkrečiai veiklai (GlobalSchedule slot)
+        REFAKTORINIMAS: Atnaujina plan_status į 'in_progress' ir attendance_status į 'present'
+        """
+        global_schedule_id = request.data.get('global_schedule_id')
+        
+        if not global_schedule_id:
+            return Response(
+                {"error": "Reikalingas global_schedule_id parametras"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Patikriname, ar GlobalSchedule egzistuoja
+            from schedule.models import GlobalSchedule
+            global_schedule = get_object_or_404(GlobalSchedule, id=global_schedule_id)
+            
+            # Pradedame veiklą visiems mokiniams
+            result = IMUPlan.bulk_start_activity(global_schedule_id)
+            
+            return Response({
+                "message": f"Veikla sėkmingai pradėta {result['updated_count']} mokiniui",
+                "global_schedule_id": global_schedule_id,
+                "started_at": result['started_at'],
+                "updated_count": result['updated_count']
+            }, status=status.HTTP_200_OK)
+            
+        except GlobalSchedule.DoesNotExist:
+            return Response(
+                {"error": "GlobalSchedule su nurodytu ID nerastas"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logging.error(f"Klaida pradedant veiklą: {str(e)}")
+            return Response(
+                {"error": "Įvyko klaida pradedant veiklą"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'])
+    def end_activity(self, request):
+        """
+        Baigia veiklą visiems mokiniams, kurie priklauso konkrečiai veiklai (GlobalSchedule slot)
+        REFAKTORINIMAS: Atnaujina plan_status į 'completed' ir palieka attendance_status nepakeistą
+        """
+        global_schedule_id = request.data.get('global_schedule_id')
+        
+        if not global_schedule_id:
+            return Response(
+                {"error": "Reikalingas global_schedule_id parametras"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Patikriname, ar GlobalSchedule egzistuoja
+            from schedule.models import GlobalSchedule
+            global_schedule = get_object_or_404(GlobalSchedule, id=global_schedule_id)
+            
+            # Baigiame veiklą visiems mokiniams
+            result = IMUPlan.bulk_end_activity(global_schedule_id)
+            
+            return Response({
+                "message": f"Veikla sėkmingai baigta {result['updated_count']} mokiniui",
+                "global_schedule_id": global_schedule_id,
+                "completed_at": result['completed_at'],
+                "updated_count": result['updated_count']
+            }, status=status.HTTP_200_OK)
+            
+        except GlobalSchedule.DoesNotExist:
+            return Response(
+                {"error": "GlobalSchedule su nurodytu ID nerastas"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logging.error(f"Klaida baigiant veiklą: {str(e)}")
+            return Response(
+                {"error": "Įvyko klaida baigiant veiklą"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
