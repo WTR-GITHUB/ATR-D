@@ -39,20 +39,20 @@ export default function ClientAuthGuard({
       
       // Jei esame login puslapyje ir vartotojas prisijungęs, nukreipti į dashboard
       if (currentPath === '/auth/login') {
-        redirectToDashboard(user.roles);
+        redirectToDashboard(user.roles, router);
         return;
       }
 
       // Jei esame pagrindiniame puslapyje ir vartotojas prisijungęs, nukreipti į dashboard
       if (currentPath === '/') {
-        redirectToDashboard(user.roles);
+        redirectToDashboard(user.roles, router);
         return;
       }
 
       // Patikrinti ar vartotojas turi reikiamą rolę
       if (allowedRoles.length > 0 && !(user.roles || []).some(role => allowedRoles.includes(role))) {
         // Jei vartotojas neturi reikiamos rolės, nukreipti į jo dashboard
-        redirectToDashboard(user.roles || []);
+        redirectToDashboard(user.roles || [], router);
         return;
       }
     }
@@ -71,20 +71,21 @@ export default function ClientAuthGuard({
 }
 
 // Pagalbinė funkcija nukreipti į dashboard pagal roles
-function redirectToDashboard(roles: string[] | null | undefined) {
+// CHANGE: Pakeista iš window.location.href į Next.js router.push ir 'admin' į 'manager'
+function redirectToDashboard(roles: string[] | null | undefined, router: any) {
   const userRoles = roles || [];
-  // Prioritizuoti roles: admin > mentor > curator > parent > student
-  if (userRoles.includes('admin')) {
-    window.location.href = '/admin';
-  } else if (userRoles.includes('mentor')) {
-    window.location.href = '/dashboard/mentors';
+  // Prioritizuoti roles: manager > curator > mentor > parent > student
+  if (userRoles.includes('manager')) {
+    router.push('/dashboard/managers');
   } else if (userRoles.includes('curator')) {
-    window.location.href = '/dashboard/curators';
+    router.push('/dashboard/curators');
+  } else if (userRoles.includes('mentor')) {
+    router.push('/dashboard/mentors');
   } else if (userRoles.includes('parent')) {
-    window.location.href = '/dashboard/parents';
+    router.push('/dashboard/parents');
   } else if (userRoles.includes('student')) {
-    window.location.href = '/dashboard/students';
+    router.push('/dashboard/students');
   } else {
-    window.location.href = '/dashboard';
+    router.push('/dashboard');
   }
 } 

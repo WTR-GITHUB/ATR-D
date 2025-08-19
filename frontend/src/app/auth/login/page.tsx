@@ -9,6 +9,8 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { getDashboardUrlByRoles } from '@/lib/roleUtils';
+import { authAPI } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,7 +26,10 @@ export default function LoginPage() {
     
     try {
       await login(formData);
-      router.push('/dashboard');
+      // Nukreipimas pagal aukščiausią rolę
+      const user = await authAPI.me();
+      const dashboardUrl = getDashboardUrlByRoles(user.data.roles);
+      router.push(dashboardUrl);
     } catch (error) {
       // Error is handled by useAuth hook
     }

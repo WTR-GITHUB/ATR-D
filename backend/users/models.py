@@ -22,7 +22,7 @@ class CustomUserManager(BaseUserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('roles', [User.Role.ADMIN])
+        extra_fields.setdefault('roles', [User.Role.MANAGER])
 
         if extra_fields.get('is_staff') is not True:
             raise ValueError(_('Superuser must have is_staff=True.'))
@@ -37,7 +37,7 @@ class User(AbstractUser):
     Vartotojų modelis - pagrindinis vartotojų valdymo modelis
     """
     class Role(models.TextChoices):
-        ADMIN = 'admin', _('Admin')
+        MANAGER = 'manager', _('Manager')
         STUDENT = 'student', _('Student')
         PARENT = 'parent', _('Parent')
         CURATOR = 'curator', _('Curator')

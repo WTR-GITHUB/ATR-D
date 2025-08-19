@@ -1,4 +1,6 @@
-// frontend/src/app/admin/page.tsx
+// frontend/src/app/dashboard/manager/page.tsx
+// Manager dashboard puslapis - sistemos valdytojo valdymo sąsaja
+// CHANGE: Perkeltas iš /manager į /dashboard/manager pagal naują rolių struktūrą
 'use client';
 
 import React from 'react';
@@ -6,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Users, BookOpen, TrendingUp, Calendar, Award, Settings, Shield } from 'lucide-react';
 
-export default function AdminDashboardPage() {
+export default function ManagerDashboardPage() {
   const { user } = useAuth();
 
   const adminStats = [
@@ -112,7 +114,7 @@ export default function AdminDashboardPage() {
           Sveiki, {user?.first_name} {user?.last_name}!
         </h1>
         <p className="text-gray-600 mt-2">
-          Administratoriaus dashboard - {new Date().toLocaleDateString('lt-LT')}
+          Sistemos valdytojo dashboard - {new Date().toLocaleDateString('lt-LT')}
         </p>
       </div>
 
@@ -199,7 +201,7 @@ export default function AdminDashboardPage() {
       {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Administravimo veiklos</CardTitle>
+          <CardTitle>Sistemos valdymo veiklos</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -228,11 +230,11 @@ export default function AdminDashboardPage() {
               <div className="flex items-center space-x-3">
                 <Shield className="w-5 h-5 text-orange-600" />
                 <span className="text-sm font-medium">Saugumo valdymas</span>
-              </div>
+            </div>
             </button>
           </div>
         </CardContent>
       </Card>
     </div>
   );
-} 
+}

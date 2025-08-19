@@ -10,8 +10,8 @@ import { User, LogOut, Menu } from 'lucide-react';
 // Funkcija rolių pavadinimams gauti
 const getRoleDisplayName = (role: string): string => {
   switch (role) {
-    case 'admin':
-      return 'Administratorius';
+    case 'manager':
+      return 'Sistemos valdytojas';
     case 'student':
       return 'Studentas';
     case 'parent':
@@ -94,19 +94,19 @@ const Header: React.FC = () => {
                 )}
                 
                 {/* Admin meniu */}
-                {hasRole(user.roles, 'admin') && (
+                {hasRole(user.roles, 'manager') && (
                   <>
                     <Link
-                      href="/admin"
+                      href="/dashboard/managers"
                       className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
                     >
-                      Admin
+                      Sistemos valdymas
                     </Link>
                   </>
                 )}
                 
                 {/* Kiti vartotojai - bendras meniu */}
-                {!hasRole(user.roles, 'mentor') && !hasRole(user.roles, 'admin') && (
+                {!hasRole(user.roles, 'mentor') && !hasRole(user.roles, 'manager') && (
                   <>
                     <Link
                       href="/dashboard"

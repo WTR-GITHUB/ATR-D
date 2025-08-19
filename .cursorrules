@@ -166,11 +166,11 @@ Format as **3 concise paragraphs** describing:
 *Environment variables documentation to be added as needed*
 
 # CURRENT FILE STRUCTURE
-.
 ├── ADITIONAL
 │   ├── competencies.json
 │   ├── competency_atcheve_example.json
 │   ├── competency_example.json
+│   ├── dual_list_transfer_component.tsx
 │   ├── generate_student_subject_levels.py
 │   ├── import_competencies.py
 │   ├── import_competency_atcheves.py
@@ -193,11 +193,6 @@ Format as **3 concise paragraphs** describing:
 │   ├── core
 │   │   ├── asgi.py
 │   │   ├── __init__.py
-│   │   ├── __pycache__
-│   │   │   ├── __init__.cpython-312.pyc
-│   │   │   ├── settings.cpython-312.pyc
-│   │   │   ├── urls.cpython-312.pyc
-│   │   │   └── wsgi.cpython-312.pyc
 │   │   ├── settings.py
 │   │   ├── urls.py
 │   │   └── wsgi.py
@@ -206,19 +201,7 @@ Format as **3 concise paragraphs** describing:
 │   │   ├── apps.py
 │   │   ├── __init__.py
 │   │   ├── migrations
-│   │   │   ├── 0001_initial.py
-│   │   │   ├── 0002_initial.py
-│   │   │   ├── __init__.py
-│   │   │   └── __pycache__
 │   │   ├── models.py
-│   │   ├── __pycache__
-│   │   │   ├── admin.cpython-312.pyc
-│   │   │   ├── apps.cpython-312.pyc
-│   │   │   ├── __init__.cpython-312.pyc
-│   │   │   ├── models.cpython-312.pyc
-│   │   │   ├── serializers.cpython-312.pyc
-│   │   │   ├── urls.cpython-312.pyc
-│   │   │   └── views.cpython-312.pyc
 │   │   ├── serializers.py
 │   │   ├── tests.py
 │   │   ├── urls.py
@@ -228,21 +211,7 @@ Format as **3 concise paragraphs** describing:
 │   │   ├── apps.py
 │   │   ├── __init__.py
 │   │   ├── migrations
-│   │   │   ├── 0001_initial.py
-│   │   │   ├── 0002_initial.py
-│   │   │   ├── 0003_remove_lesson_description_lesson_content.py
-│   │   │   ├── 0004_remove_old_lesson_fields.py
-│   │   │   ├── __init__.py
-│   │   │   └── __pycache__
 │   │   ├── models.py
-│   │   ├── __pycache__
-│   │   │   ├── admin.cpython-312.pyc
-│   │   │   ├── apps.cpython-312.pyc
-│   │   │   ├── __init__.cpython-312.pyc
-│   │   │   ├── models.cpython-312.pyc
-│   │   │   ├── serializers.cpython-312.pyc
-│   │   │   ├── urls.cpython-312.pyc
-│   │   │   └── views.cpython-312.pyc
 │   │   ├── serializers.py
 │   │   ├── tests.py
 │   │   ├── urls.py
@@ -254,19 +223,7 @@ Format as **3 concise paragraphs** describing:
 │   │   ├── apps.py
 │   │   ├── __init__.py
 │   │   ├── migrations
-│   │   │   ├── 0001_initial.py
-│   │   │   ├── 0002_initial.py
-│   │   │   ├── __init__.py
-│   │   │   └── __pycache__
 │   │   ├── models.py
-│   │   ├── __pycache__
-│   │   │   ├── admin.cpython-312.pyc
-│   │   │   ├── apps.cpython-312.pyc
-│   │   │   ├── __init__.cpython-312.pyc
-│   │   │   ├── models.cpython-312.pyc
-│   │   │   ├── serializers.cpython-312.pyc
-│   │   │   ├── urls.cpython-312.pyc
-│   │   │   └── views.cpython-312.pyc
 │   │   ├── serializers.py
 │   │   ├── tests.py
 │   │   ├── urls.py
@@ -277,18 +234,7 @@ Format as **3 concise paragraphs** describing:
 │   │   ├── apps.py
 │   │   ├── __init__.py
 │   │   ├── migrations
-│   │   │   ├── 0001_initial.py
-│   │   │   ├── __init__.py
-│   │   │   └── __pycache__
 │   │   ├── models.py
-│   │   ├── __pycache__
-│   │   │   ├── admin.cpython-312.pyc
-│   │   │   ├── apps.cpython-312.pyc
-│   │   │   ├── __init__.cpython-312.pyc
-│   │   │   ├── models.cpython-312.pyc
-│   │   │   ├── serializers.cpython-312.pyc
-│   │   │   ├── urls.cpython-312.pyc
-│   │   │   └── views.cpython-312.pyc
 │   │   ├── serializers.py
 │   │   ├── tests.py
 │   │   ├── urls.py
@@ -298,25 +244,7 @@ Format as **3 concise paragraphs** describing:
 │   │   ├── apps.py
 │   │   ├── __init__.py
 │   │   ├── migrations
-│   │   │   ├── 0001_initial.py
-│   │   │   ├── 0002_initial.py
-│   │   │   ├── 0003_add_period_name_field.py
-│   │   │   ├── 0004_limit_user_to_mentors.py
-│   │   │   ├── 0005_remove_limit_choices_to.py
-│   │   │   ├── 0006_make_weekday_auto_and_lesson_optional.py
-│   │   │   ├── 0007_change_period_ordering_to_starttime.py
-│   │   │   ├── 0008_remove_globalschedule_lesson.py
-│   │   │   ├── __init__.py
-│   │   │   └── __pycache__
 │   │   ├── models.py
-│   │   ├── __pycache__
-│   │   │   ├── admin.cpython-312.pyc
-│   │   │   ├── apps.cpython-312.pyc
-│   │   │   ├── __init__.cpython-312.pyc
-│   │   │   ├── models.cpython-312.pyc
-│   │   │   ├── serializers.cpython-312.pyc
-│   │   │   ├── urls.cpython-312.pyc
-│   │   │   └── views.cpython-312.pyc
 │   │   ├── serializers.py
 │   │   ├── tests.py
 │   │   ├── urls.py
@@ -326,82 +254,22 @@ Format as **3 concise paragraphs** describing:
 │       ├── apps.py
 │       ├── __init__.py
 │       ├── migrations
-│       │   ├── 0001_initial.py
-│       │   ├── __init__.py
-│       │   └── __pycache__
 │       ├── models.py
-│       ├── __pycache__
-│       │   ├── admin.cpython-312.pyc
-│       │   ├── apps.cpython-312.pyc
-│       │   ├── __init__.cpython-312.pyc
-│       │   ├── models.cpython-312.pyc
-│       │   ├── serializers.cpython-312.pyc
-│       │   ├── urls.cpython-312.pyc
-│       │   └── views.cpython-312.pyc
 │       ├── serializers.py
 │       ├── tests.py
 │       ├── urls.py
 │       └── views.py
 ├── backup_before_reorganization.json
-├── .cursor
-│   └── rules
-├── .cursorignore
-├── .cursorrules
 ├── DOC
+│   ├── 2025-08-12.md
+│   ├── ACTIVITIES-LESSON-SELECTION.md
 │   ├── DATA-TABLE-COMPONENT.md
 │   ├── FILE_STRUCTURE.md
-│   └── MCP.md
+│   ├── IMU-PLAN-GENERATION.md
+│   ├── MCP.md
+│   └── SERVICES.md
 ├── frontend
 │   ├── eslint.config.mjs
-│   ├── .gitignore
-│   ├── .next
-│   │   ├── app-build-manifest.json
-│   │   ├── build
-│   │   │   └── chunks
-│   │   ├── build-manifest.json
-│   │   ├── cache
-│   │   │   ├── eslint
-│   │   │   ├── .previewinfo
-│   │   │   ├── .rscinfo
-│   │   │   ├── swc
-│   │   │   ├── .tsbuildinfo
-│   │   │   └── webpack
-│   │   ├── diagnostics
-│   │   │   ├── build-diagnostics.json
-│   │   │   └── framework.json
-│   │   ├── fallback-build-manifest.json
-│   │   ├── package.json
-│   │   ├── postcss.js
-│   │   ├── postcss.js.map
-│   │   ├── prerender-manifest.json
-│   │   ├── react-loadable-manifest.json
-│   │   ├── routes-manifest.json
-│   │   ├── server
-│   │   │   ├── app
-│   │   │   ├── app-paths-manifest.json
-│   │   │   ├── chunks
-│   │   │   ├── interception-route-rewrite-manifest.js
-│   │   │   ├── middleware-build-manifest.js
-│   │   │   ├── middleware-manifest.json
-│   │   │   ├── middleware-react-loadable-manifest.js
-│   │   │   ├── next-font-manifest.js
-│   │   │   ├── next-font-manifest.json
-│   │   │   ├── pages
-│   │   │   ├── pages-manifest.json
-│   │   │   ├── server-reference-manifest.js
-│   │   │   ├── server-reference-manifest.json
-│   │   │   └── webpack-runtime.js
-│   │   ├── static
-│   │   │   ├── chunks
-│   │   │   ├── css
-│   │   │   ├── development
-│   │   │   ├── media
-│   │   │   └── WCty7HCfqXOnt5i8a7Nce
-│   │   ├── trace
-│   │   └── types
-│   │       ├── app
-│   │       ├── cache-life.d.ts
-│   │       └── package.json
 │   ├── next.config.ts
 │   ├── next-env.d.ts
 │   ├── OPTIMIZATION.md
@@ -418,43 +286,116 @@ Format as **3 concise paragraphs** describing:
 │   │   └── window.svg
 │   ├── README.md
 │   ├── src
-│   │   ├── app
-│   │   │   ├── admin
-│   │   │   ├── auth
-│   │   │   ├── dashboard
-│   │   │   ├── favicon.ico
-│   │   │   ├── globals.css
+├── app
+│   ├── auth
+│   │   └── login
+│   │       └── page.tsx
+│   ├── dashboard
+│   │   ├── curators
+│   │   │   └── page.tsx
+│   │   ├── managers
 │   │   │   ├── layout.tsx
 │   │   │   └── page.tsx
-│   │   ├── components
-│   │   │   ├── auth
-│   │   │   ├── dashboard
-│   │   │   ├── DataTable
-│   │   │   ├── forms
-│   │   │   ├── layout
-│   │   │   └── ui
-│   │   ├── hooks
-│   │   │   ├── useAuth.ts
-│   │   │   ├── useCurriculum.ts
-│   │   │   ├── useGrades.ts
-│   │   │   ├── useLevels.ts
-│   │   │   ├── usePeriods.ts
-│   │   │   └── useSchedule.ts
-│   │   ├── lib
-│   │   │   ├── api.ts
-│   │   │   ├── types.ts
-│   │   │   └── utils.ts
-│   │   ├── styles
-│   │   │   └── datatables.css
-│   │   └── types
-│   │       └── jquery.d.ts
-│   ├── tsconfig.json
-│   └── tsconfig.tsbuildinfo
-├── .gitignore
+│   │   ├── mentors
+│   │   │   ├── activities
+│   │   │   │   ├── components
+│   │   │   │   │   ├── AttendanceMarker.tsx
+│   │   │   │   │   ├── index.ts
+│   │   │   │   │   ├── LessonDetailsPanel.tsx
+│   │   │   │   │   ├── LessonInfoCard.tsx
+│   │   │   │   │   ├── StudentRow.tsx
+│   │   │   │   │   ├── StudentsList.tsx
+│   │   │   │   │   └── StudentStats.tsx
+│   │   │   │   ├── page.tsx
+│   │   │   │   ├── README.md
+│   │   │   │   └── types.ts
+│   │   │   ├── lessons
+│   │   │   │   ├── create
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── edit
+│   │   │   │   │   └── [id]
+│   │   │   │   │       └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── page.tsx
+│   │   │   ├── plans
+│   │   │   │   ├── assign
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── create
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── edit
+│   │   │   │   │   └── [id]
+│   │   │   │   │       └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── schedule
+│   │   │   │   └── page.tsx
+│   │   │   └── students
+│   │   │       └── page.tsx
+│   │   ├── page.tsx
+│   │   ├── parents
+│   │   │   └── page.tsx
+│   │   └── students
+│   │       └── page.tsx
+│   ├── favicon.ico
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
+├── components
+│   ├── auth
+│   │   └── ClientAuthGuard.tsx
+│   ├── dashboard
+│   │   ├── ScheduleCard.tsx
+│   │   ├── TableCell.tsx
+│   │   ├── WeeklyScheduleCalendar.tsx
+│   │   └── WeeklySchedule.tsx
+│   ├── DataTable
+│   │   ├── FilterRow.tsx
+│   │   ├── index.ts
+│   │   ├── LocalDataTable.tsx
+│   │   └── ReactDataTable.tsx
+│   ├── forms
+│   ├── layout
+│   │   └── Header.tsx
+│   └── ui
+│       ├── Button.tsx
+│       ├── Card.tsx
+│       ├── DualListTransfer.tsx
+│       ├── DynamicList.tsx
+│       ├── GenerationResultsModal.tsx
+│       ├── Input.tsx
+│       ├── LessonDualListTransfer.tsx
+│       ├── LoadingSpinner.tsx
+│       ├── MultiSelect.tsx
+│       ├── ProgressModal.tsx
+│       ├── Select.tsx
+│       └── Textarea.tsx
+├── hooks
+│   ├── useAuth.ts
+│   ├── useCurriculum.ts
+│   ├── useGrades.ts
+│   ├── useLessonDetails.ts
+│   ├── useLessons.ts
+│   ├── useLevels.ts
+│   ├── usePeriods.ts
+│   ├── useSchedule.ts
+│   ├── useSelectedLesson.ts
+│   ├── useSubjects.ts
+│   ├── useWeekInfo.ts
+│   └── useWeeklySchedule.ts
+├── lib
+│   ├── api.ts
+│   ├── roleUtils.ts
+│   ├── types.ts
+│   └── utils.ts
+├── styles
+│   └── datatables.css
+└── types
+    └── jquery.d.ts
 ├── package.json
 ├── package-lock.json
+├── PROMPTS
 ├── README.md
 ├── requirements.txt
+├── tvarkarastis
 └── venv
     ├── bin
     │   ├── activate
@@ -474,7 +415,6 @@ Format as **3 concise paragraphs** describing:
     │   └── python3.12
     ├── lib
     │   └── python3.12
-    │       └── site-packages
     ├── lib64 -> lib
     └── pyvenv.cfg
 
