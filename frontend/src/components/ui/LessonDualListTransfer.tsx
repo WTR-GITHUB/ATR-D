@@ -31,11 +31,13 @@ interface LessonSequenceItem {
 
 interface LessonDualListTransferProps {
   availableLessons: Lesson[];
-  selectedLessons: LessonSequenceItem[];
-  onSelectionChange: (selected: LessonSequenceItem[]) => void;
+  selectedLessons: LessonSequenceItem[] | any[]; // Leidžiame bet kokį tipą
+  onSelectionChange: (selected: any[]) => void; // Leidžiame bet kokį tipą
   availableTitle?: string;
   selectedTitle?: string;
   isLoading?: boolean;
+  showDeletedWarning?: boolean; // Naujas prop įspėjimui apie ištrintas pamokas
+  deletedLessonsCount?: number; // Ištrintų pamokų skaičius
 }
 
 interface LessonItemProps {
@@ -163,10 +165,12 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
   onSelectionChange,
   availableTitle = "Galimos pamokos",
   selectedTitle = "Pasirinktos pamokos",
-  isLoading = false
+  isLoading = false,
+  showDeletedWarning = false,
+  deletedLessonsCount = 0
 }) => {
   const [internalAvailable, setInternalAvailable] = useState<Lesson[]>([]);
-  const [internalSelected, setInternalSelected] = useState<LessonSequenceItem[]>(selectedLessons);
+  const [internalSelected, setInternalSelected] = useState<any[]>(selectedLessons);
   const [availableSelected, setAvailableSelected] = useState<number[]>([]);
   const [selectedSelected, setSelectedSelected] = useState<number[]>([]);
   const [draggedPosition, setDraggedPosition] = useState<number | null>(null);
@@ -190,20 +194,42 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
 
   // Update internal state when props change
   useEffect(() => {
+    console.log('LessonDualListTransfer - availableLessons:', availableLessons);
+    console.log('LessonDualListTransfer - selectedLessons:', selectedLessons);
+    
     // Keep all available lessons - don't filter out selected ones (allow repeating lessons)
     setInternalAvailable(availableLessons);
     setInternalSelected(selectedLessons);
   }, [availableLessons, selectedLessons]);
 
   // Convert lesson to sequence item
-  const lessonToSequenceItem = (lesson: Lesson, position: number): LessonSequenceItem => ({
-    id: lesson.id,
-    title: lesson.title,
-    subject: lesson.subject,
-    levels: lesson.levels,
-    topic: lesson.topic,
-    position
-  });
+  const lessonToSequenceItem = (lesson: Lesson, position: number): any => {
+    console.log('Converting lesson:', lesson, 'to position:', position);
+    
+    // Patikriname ar lesson turi reikalingus laukus
+    if (!lesson || typeof lesson !== 'object') {
+      console.error('lesson yra neteisingas:', lesson);
+      return null;
+    }
+    
+    if (!('id' in lesson) || !('title' in lesson) || !('subject' in lesson)) {
+      console.error('lesson neturi reikalingų laukų:', lesson);
+      return null;
+    }
+    
+    const result = {
+      id: lesson.id,
+      lesson: lesson.id, // Išlaikome lesson ID
+      title: lesson.title || '',
+      subject: lesson.subject || '',
+      levels: lesson.levels || '',
+      topic: lesson.topic || '',
+      position: position
+    };
+    
+    console.log('Converted result:', result);
+    return result;
+  };
 
   // Move selected lessons from available to sequence
   const moveToSelected = () => {
@@ -233,16 +259,90 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
   };
 
   // Move all lessons to sequence
-  const moveAllToSelected = () => {
-    const newSequenceItems = internalAvailable.map((lesson, index) => 
-      lessonToSequenceItem(lesson, internalSelected.length + index + 1)
-    );
-    const newSelected = [...internalSelected, ...newSequenceItems];
+  const moveAllToSelected = (e?: React.MouseEvent) => {
+    // Prevent default behavior if event is provided
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     
-    // Keep lessons in available list (don't remove them)
-    setInternalSelected(newSelected);
-    setAvailableSelected([]);
-    onSelectionChange(newSelected);
+    console.log('moveAllToSelected called');
+    console.log('internalAvailable:', internalAvailable);
+    console.log('internalSelected:', internalSelected);
+    
+    try {
+      // Patikriname ar internalAvailable yra masyvas ir turi elementų
+      if (!Array.isArray(internalAvailable) || internalAvailable.length === 0) {
+        console.warn('internalAvailable yra tuščias arba ne masyvas');
+        return;
+      }
+      
+      // Patikriname ar visi internalAvailable elementai turi reikalingus laukus
+      const validLessons = internalAvailable.filter(lesson => 
+        lesson && 
+        typeof lesson === 'object' && 
+        'id' in lesson && 
+        'title' in lesson && 
+        'subject' in lesson
+      );
+      
+      if (validLessons.length !== internalAvailable.length) {
+        console.warn('Kai kurie internalAvailable elementai neturi reikalingų laukų');
+        console.log('validLessons:', validLessons);
+        console.log('internalAvailable:', internalAvailable);
+      }
+      
+      const newSequenceItems = validLessons.map((lesson, index) => {
+        console.log(`Converting lesson ${lesson.id} at position ${internalSelected.length + index + 1}`);
+        return lessonToSequenceItem(lesson, internalSelected.length + index + 1);
+      }).filter(item => item !== null); // Filtruojame null reikšmes
+      
+      if (newSequenceItems.length === 0) {
+        console.error('Nepavyko konvertuoti jokių pamokų');
+        return;
+      }
+      
+      const newSelected = [...internalSelected, ...newSequenceItems];
+      
+      console.log('newSequenceItems:', newSequenceItems);
+      console.log('newSelected:', newSelected);
+      
+      // Patikriname ar onSelectionChange yra funkcija
+      if (typeof onSelectionChange === 'function') {
+        console.log('Calling onSelectionChange with:', newSelected);
+        
+        // Patikriname ar newSelected turi teisingą struktūrą
+        const isValidData = newSelected.every(item => 
+          item && 
+          typeof item === 'object' && 
+          'id' in item && 
+          'title' in item && 
+          'subject' in item
+        );
+        
+        if (!isValidData) {
+          console.error('newSelected neturi teisingos struktūros:', newSelected);
+          return;
+        }
+        
+        // Keep lessons in available list (don't remove them)
+        setInternalSelected(newSelected);
+        setAvailableSelected([]);
+        
+        try {
+          onSelectionChange(newSelected);
+          console.log('onSelectionChange called successfully');
+        } catch (error) {
+          console.error('Error calling onSelectionChange:', error);
+        }
+        
+        console.log('moveAllToSelected completed successfully');
+      } else {
+        console.error('onSelectionChange nėra funkcija:', typeof onSelectionChange);
+      }
+    } catch (error) {
+      console.error('Error in moveAllToSelected:', error);
+    }
   };
 
   // Move all sequence items back to available (clear sequence)
@@ -321,8 +421,33 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <div className="grid grid-cols-12 gap-3">
+    <div className="space-y-4">
+      {/* Warning about deleted lessons */}
+      {showDeletedWarning && deletedLessonsCount > 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">
+                Dėmesio: Rasta ištrintų pamokų
+              </h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <p>
+                  Jūsų plane yra {deletedLessonsCount} pamokų, kurios buvo ištrintos. 
+                  Jos bus automatiškai pašalintos iš plano išsaugant.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main component */}
+      <div className="grid grid-cols-12 gap-4">
         {/* Available Lessons */}
         <div className="col-span-5">
           <div className="bg-gray-50 rounded-lg p-4">
@@ -365,7 +490,7 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
         {/* Control Buttons */}
         <div className="col-span-2 flex flex-col justify-center items-center space-y-2">
           <button
-            onClick={moveAllToSelected}
+            onClick={(e) => moveAllToSelected(e)}
             disabled={internalAvailable.length === 0}
             className="w-12 h-10 flex items-center justify-center bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200"
             title="Perkelti visas"

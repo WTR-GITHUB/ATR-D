@@ -35,6 +35,7 @@ class ClassroomViewSet(viewsets.ModelViewSet):
 class GlobalScheduleViewSet(viewsets.ModelViewSet):
     """
     Globalaus tvarkaraščio viewset - valdo tvarkaraščio informaciją
+    REFAKTORINIMAS: Pridėti plan_status, started_at, completed_at valdymas
     """
     queryset = GlobalSchedule.objects.all()
     serializer_class = GlobalScheduleSerializer
@@ -95,30 +96,102 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         """
         from datetime import datetime, timedelta
         
-        # Gauname savaitės pradžią iš parametro arba einamą savaitę
-        week_start_param = request.query_params.get('week_start')
-        if week_start_param:
-            try:
-                week_start = datetime.strptime(week_start_param, '%Y-%m-%d').date()
-            except ValueError:
-                return Response(
-                    {'error': 'Neteisingas datos formatas. Naudokite YYYY-MM-DD'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-        else:
-            # Gauname savaitės pradžią (pirmadienis)
-            today = datetime.now().date()
-            week_start = today - timedelta(days=today.weekday())
+        # Gauname šios savaitės datas
+        today = datetime.now().date()
+        start_of_week = today - timedelta(days=today.weekday())
+        end_of_week = start_of_week + timedelta(days=6)
         
-        # Filtruojame pagal vartotojo roles
-        queryset = self.get_queryset()
-        weekly_schedule = queryset.filter(
-            date__gte=week_start,
-            date__lt=week_start + timedelta(days=7)
-        ).order_by('date', 'period__starttime')
+        schedules = self.get_queryset().filter(
+            date__range=[start_of_week, end_of_week]
+        ).select_related('period', 'classroom', 'subject', 'level', 'user')
         
-        serializer = self.get_serializer(weekly_schedule, many=True)
+        serializer = self.get_serializer(schedules, many=True)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['post'])
+    def start_activity(self, request, pk=None):
+        """
+        REFAKTORINIMAS: Pradeda veiklą (GlobalSchedule plan_status -> 'in_progress')
+        """
+        schedule = self.get_object()
+        
+        # Tikriname, ar veikla gali būti pradėta
+        if schedule.plan_status != 'planned':
+            return Response(
+                {"error": "Veikla gali būti pradėta tik iš 'planned' būsenos"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Pradedame veiklą
+        result = GlobalSchedule.bulk_start_activity(schedule.id)
+        
+        # Atnaujiname objektą iš duomenų bazės
+        schedule.refresh_from_db()
+        
+        return Response({
+            "message": "Veikla sėkmingai pradėta",
+            "plan_status": schedule.plan_status,
+            "started_at": schedule.started_at,
+            "result": result
+        })
+    
+    @action(detail=True, methods=['post'])
+    def end_activity(self, request, pk=None):
+        """
+        REFAKTORINIMAS: Baigia veiklą (GlobalSchedule plan_status -> 'completed')
+        """
+        schedule = self.get_object()
+        
+        # Tikriname, ar veikla gali būti baigta
+        if schedule.plan_status != 'in_progress':
+            return Response(
+                {"error": "Veikla gali būti baigta tik iš 'in_progress' būsenos"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Baigiame veiklą
+        result = GlobalSchedule.bulk_end_activity(schedule.id)
+        
+        # Atnaujiname objektą iš duomenų bazės
+        schedule.refresh_from_db()
+        
+        return Response({
+            "message": "Veikla sėkmingai baigta",
+            "plan_status": schedule.plan_status,
+            "completed_at": schedule.completed_at,
+            "result": result
+        })
+    
+    @action(detail=True, methods=['post'])
+    def update_status(self, request, pk=None):
+        """
+        REFAKTORINIMAS: Atnaujina veiklos plan_status
+        """
+        schedule = self.get_object()
+        new_status = request.data.get('plan_status')
+        
+        if new_status not in dict(GlobalSchedule.PLAN_STATUS_CHOICES):
+            return Response(
+                {"error": "Netinkamas plan_status"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Automatiškai nustato laikus pagal plan_status
+        from django.utils import timezone
+        if new_status == 'in_progress' and not schedule.started_at:
+            schedule.started_at = timezone.now()
+        elif new_status == 'completed' and not schedule.completed_at:
+            schedule.completed_at = timezone.now()
+        
+        schedule.plan_status = new_status
+        schedule.save()
+        
+        return Response({
+            "message": "Veiklos būsena sėkmingai atnaujinta",
+            "plan_status": schedule.plan_status,
+            "started_at": schedule.started_at,
+            "completed_at": schedule.completed_at
+        })
     
     @action(detail=False, methods=['get'])
     def daily(self, request):

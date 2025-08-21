@@ -155,6 +155,51 @@ class LessonSequenceViewSet(viewsets.ModelViewSet):
         serializer = LevelSerializer(levels, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+    @action(detail=False, methods=['get'])
+    def all_lessons(self, request):
+        """Grąžina visas NE ištrintas pamokas pagal dalyką ir lygį (ne tik mentoriaus pamokas)"""
+        # Gauti query parametrus
+        subject_id = request.query_params.get('subject', None)
+        level_id = request.query_params.get('level', None)
+        
+        # Pradėti nuo visų NE ištrintų pamokų
+        all_lessons = Lesson.objects.filter(is_deleted=False).select_related('subject').prefetch_related('levels')
+        
+        # Filtruoti pagal dalyką jei nurodyta
+        if subject_id:
+            try:
+                all_lessons = all_lessons.filter(subject_id=int(subject_id))
+            except (ValueError, TypeError):
+                pass  # Ignoruoti neteisingus subject_id
+        
+        # Filtruoti pagal lygį jei nurodyta
+        if level_id:
+            try:
+                all_lessons = all_lessons.filter(levels__id=int(level_id)).distinct()
+            except (ValueError, TypeError):
+                pass  # Ignoruoti neteisingus level_id
+        
+        # Surikiuoti pagal sukūrimo datą
+        all_lessons = all_lessons.order_by('-created_at')
+        
+        lessons_data = []
+        for lesson in all_lessons:
+            # Gauti visų lygių pavadinimus
+            level_names = [level.name for level in lesson.levels.all()]
+            levels_text = ', '.join(level_names) if level_names else 'Nenurodyta'
+            
+            lessons_data.append({
+                'id': lesson.id,
+                'title': lesson.title,
+                'subject': lesson.subject.name,
+                'levels': levels_text,
+                'topic': lesson.topic or '',
+                'created_at': lesson.created_at,
+                'mentor': lesson.mentor.get_full_name() if lesson.mentor else 'Nenurodyta'
+            })
+        
+        return Response(lessons_data, status=status.HTTP_200_OK)
+    
     @action(detail=False, methods=['post'])
     def generate_student_plan_optimized(self, request):
         """
@@ -303,15 +348,15 @@ class LessonSequenceViewSet(viewsets.ModelViewSet):
             # Check existing IMUPlan
             existing = existing_plans_dict.get(schedule.id)
             
-            if existing and existing.status != 'planned':
+            if existing and existing.attendance_status != 'present':
                 result['skipped'] += 1
                 result['skipped_details'].append({
                     'date': schedule.date.strftime('%Y-%m-%d'),
                     'period_info': f"{schedule.period.name or f'{schedule.period.id} pamoka'} ({schedule.period.starttime.strftime('%H:%M')}-{schedule.period.endtime.strftime('%H:%M')})",
                     'subject': schedule.subject.name,
-                    'reason': f"Status '{existing.get_status_display()}' - cannot overwrite"
+                    'reason': f"Attendance status '{existing.get_attendance_status_display() if existing.attendance_status else 'Nepažymėta'}' - cannot overwrite"
                 })
-                logger.info(f"  SKIPPED: {schedule.date} - status {existing.status}")
+                logger.info(f"  SKIPPED: {schedule.date} - attendance status {existing.attendance_status}")
                 continue
             
             # Assign lesson or null
@@ -329,7 +374,7 @@ class LessonSequenceViewSet(viewsets.ModelViewSet):
                 global_schedule=schedule,
                 defaults={
                     'lesson': current_lesson,
-                    'status': 'planned'
+                    'attendance_status': None  # CHANGE: Pakeista iš 'present' į None - lankomumo būsena pradžioje tuščia
                 }
             )
             
@@ -370,12 +415,13 @@ class LessonSequenceItemViewSet(viewsets.ModelViewSet):
 class IMUPlanViewSet(viewsets.ModelViewSet):
     """
     Individualių mokinių ugdymo planų valdymas
+    REFAKTORINIMAS: Pašalinti plan_status, started_at, completed_at valdymas - perkelta į GlobalSchedule
     """
     queryset = IMUPlan.objects.all()
     serializer_class = IMUPlanSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['student', 'status', 'global_schedule', 'global_schedule__subject', 'global_schedule__level']
+    filterset_fields = ['student', 'attendance_status', 'global_schedule', 'global_schedule__subject', 'global_schedule__level']
     search_fields = ['student__first_name', 'student__last_name', 'lesson__title']
     ordering_fields = ['created_at', 'global_schedule__date']
     ordering = ['-created_at']
@@ -389,102 +435,62 @@ class IMUPlanViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def bulk_create_from_sequence(self, request):
         """
-        Masiniu būdu sukuria individualius planus iš sekos
+        REFAKTORINIMAS: Masiniškai sukuria IMU planus iš pamokų sekos
         """
         serializer = IMUPlanBulkCreateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
         data = serializer.validated_data
-        students = data['students']
-        sequence_id = data['sequence_id']
-        start_date = data['start_date']
-        end_date = data['end_date']
         
         try:
-            sequence = get_object_or_404(LessonSequence, id=sequence_id)
-            
-            # Gauna GlobalSchedule įrašus pagal datą
-            global_schedules = GlobalSchedule.objects.filter(
-                date__range=[start_date, end_date],
-                subject=sequence.subject,
-                level=sequence.level
-            ).order_by('date', 'period__starttime')
-            
-            if not global_schedules.exists():
-                return Response(
-                    {"error": "Nerasta veiklų nurodytame laikotarpyje"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Patikrina, ar yra pakankamai veiklų
-            sequence_items = sequence.items.all().order_by('position')
-            if len(global_schedules) < len(sequence_items):
-                return Response(
-                    {"error": f"Trūksta veiklų. Seka turi {len(sequence_items)} elementų, o veiklų yra {len(global_schedules)}"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            created_plans = []
-            warnings = []
-            
             with transaction.atomic():
-                for student_id in students:
-                    try:
-                        student = get_object_or_404(User, id=student_id)
+                created_plans = []
+                warnings = []
+                
+                for i, student_id in enumerate(data['student_ids']):
+                    for j, schedule_id in enumerate(data['global_schedule_ids']):
+                        # Priskiriame pamoką, jei yra
+                        lesson = None
+                        if j < len(data['lesson_ids']):
+                            lesson_id = data['lesson_ids'][j]
+                            try:
+                                lesson = Lesson.objects.get(id=lesson_id)
+                            except Lesson.DoesNotExist:
+                                warnings.append(f"Pamoka su ID {lesson_id} nerasta")
+                                continue
                         
-                        # Patikrina, ar mokinys turi atitinkamą lygį
-                        if not student.has_role('student'):
-                            warnings.append(f"Vartotojas {student.get_full_name()} nėra mokinys")
-                            continue
+                        # Sukuriame IMU planą
+                        plan, created = IMUPlan.objects.get_or_create(
+                            student_id=student_id,
+                            global_schedule_id=schedule_id,
+                            defaults={
+                                'lesson': lesson,
+                                'attendance_status': None  # CHANGE: Pakeista iš 'present' į None - lankomumo būsena pradžioje tuščia
+                            }
+                        )
                         
-                        # Sukuria planus kiekvienam mokiniui
-                        for i, (schedule, item) in enumerate(zip(global_schedules, sequence_items)):
-                            # Patikrina, ar planas jau egzistuoja
-                            existing_plan = IMUPlan.objects.filter(
-                                student=student,
-                                global_schedule=schedule
-                            ).first()
-                            
-                            if existing_plan:
-                                # Jei planas jau egzistuoja, tikrina ar galima keisti
-                                # REFAKTORINIMAS: Dabar tikriname plan_status vietoj status
-                                if existing_plan.plan_status in ['completed', 'in_progress']:
-                                    warnings.append(
-                                        f"Mokinys {student.get_full_name()} jau turi {existing_plan.get_plan_status_display()} "
-                                        f"pamoką {schedule.date} {schedule.period.starttime}"
-                                    )
-                                    continue
-                                else:
-                                    # Atnaujina esamą planą
-                                    existing_plan.lesson = item.lesson
-                                    existing_plan.save()
-                                    created_plans.append(existing_plan)
-                            else:
-                                # Sukuria naują planą
-                                # REFAKTORINIMAS: Dabar nustatome plan_status ir attendance_status
-                                plan = IMUPlan.objects.create(
-                                    student=student,
-                                    global_schedule=schedule,
-                                    lesson=item.lesson,
-                                    plan_status='planned',      # Planas suplanuotas
-                                    attendance_status='present' # Mokinys dalyvavo (default)
-                                )
-                                created_plans.append(plan)
-                    
-                    except User.DoesNotExist:
-                        warnings.append(f"Vartotojas su ID {student_id} nerastas")
-                        continue
-            
-            # Grąžina rezultatą
-            result = {
-                "message": f"Sėkmingai sukurti {len(created_plans)} planai",
-                "created_count": len(created_plans),
-                "warnings": warnings if warnings else None
-            }
-            
-            return Response(result, status=status.HTTP_201_CREATED)
-            
+                        if not created and lesson:
+                            # Atnaujiname esamą planą
+                            plan.lesson = lesson
+                            plan.save()
+                        
+                        created_plans.append({
+                            'id': plan.id,
+                            'student_id': student_id,
+                            'schedule_id': schedule_id,
+                            'lesson_id': lesson.id if lesson else None,
+                            'created': created
+                        })
+                
+                result = {
+                    "message": f"Sėkmingai sukurti {len(created_plans)} planai",
+                    "plans": created_plans,
+                    "warnings": warnings if warnings else None
+                }
+                
+                return Response(result, status=status.HTTP_201_CREATED)
+                
         except LessonSequence.DoesNotExist:
             return Response(
                 {"error": "Pamokų seka nerasta"},
@@ -492,140 +498,26 @@ class IMUPlanViewSet(viewsets.ModelViewSet):
             )
     
     @action(detail=True, methods=['post'])
-    def update_status(self, request, pk=None):
-        """Atnaujina plano statusą"""
+    def update_attendance(self, request, pk=None):
+        """
+        REFAKTORINIMAS: Atnaujina tik lankomumo statusą
+        Leidžia nustatyti null reikšmę lankomumo būsenos išvalymui
+        """
         plan = self.get_object()
-        new_status = request.data.get('status')
-        status_type = request.data.get('status_type', 'plan')  # 'plan' arba 'attendance'
+        new_status = request.data.get('attendance_status')
         
-        # REFAKTORINIMAS: Dabar galime atnaujinti plan_status arba attendance_status
-        if status_type == 'plan':
-            if new_status not in dict(IMUPlan.PLAN_STATUS_CHOICES):
-                return Response(
-                    {"error": "Netinkamas plano statusas"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Automatiškai nustato laikus pagal plan_status
-            if new_status == 'in_progress' and not plan.started_at:
-                plan.started_at = timezone.now()
-            elif new_status == 'completed' and not plan.completed_at:
-                plan.completed_at = timezone.now()
-            
-            plan.plan_status = new_status
-            
-        elif status_type == 'attendance':
-            if new_status not in dict(IMUPlan.ATTENDANCE_CHOICES):
-                return Response(
-                    {"error": "Netinkamas lankomumo statusas"},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            plan.attendance_status = new_status
-            
-        else:
+        # Leidžiama null reikšmė lankomumo būsenos išvalymui
+        if new_status is not None and new_status not in dict(IMUPlan.ATTENDANCE_CHOICES):
             return Response(
-                {"error": "Netinkamas status_type. Turi būti 'plan' arba 'attendance'"},
+                {"error": "Netinkamas lankomumo statusas"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        plan.attendance_status = new_status
         plan.save()
         
-        serializer = self.get_serializer(plan)
-        return Response(serializer.data)
-    
-    @action(detail=False, methods=['get'])
-    def student_plans(self, request):
-        """Gauna konkretaus mokinio planus"""
-        student_id = request.query_params.get('student_id')
-        if not student_id:
-            return Response(
-                {"error": "Reikalingas student_id parametras"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        plans = self.queryset.filter(student_id=student_id)
-        serializer = self.get_serializer(plans, many=True)
-        return Response(serializer.data)
-
-    @action(detail=False, methods=['post'])
-    def start_activity(self, request):
-        """
-        Pradeda veiklą visiems mokiniams, kurie priklauso konkrečiai veiklai (GlobalSchedule slot)
-        REFAKTORINIMAS: Atnaujina plan_status į 'in_progress' ir attendance_status į 'present'
-        """
-        global_schedule_id = request.data.get('global_schedule_id')
-        
-        if not global_schedule_id:
-            return Response(
-                {"error": "Reikalingas global_schedule_id parametras"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        try:
-            # Patikriname, ar GlobalSchedule egzistuoja
-            from schedule.models import GlobalSchedule
-            global_schedule = get_object_or_404(GlobalSchedule, id=global_schedule_id)
-            
-            # Pradedame veiklą visiems mokiniams
-            result = IMUPlan.bulk_start_activity(global_schedule_id)
-            
-            return Response({
-                "message": f"Veikla sėkmingai pradėta {result['updated_count']} mokiniui",
-                "global_schedule_id": global_schedule_id,
-                "started_at": result['started_at'],
-                "updated_count": result['updated_count']
-            }, status=status.HTTP_200_OK)
-            
-        except GlobalSchedule.DoesNotExist:
-            return Response(
-                {"error": "GlobalSchedule su nurodytu ID nerastas"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        except Exception as e:
-            logging.error(f"Klaida pradedant veiklą: {str(e)}")
-            return Response(
-                {"error": "Įvyko klaida pradedant veiklą"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-    @action(detail=False, methods=['post'])
-    def end_activity(self, request):
-        """
-        Baigia veiklą visiems mokiniams, kurie priklauso konkrečiai veiklai (GlobalSchedule slot)
-        REFAKTORINIMAS: Atnaujina plan_status į 'completed' ir palieka attendance_status nepakeistą
-        """
-        global_schedule_id = request.data.get('global_schedule_id')
-        
-        if not global_schedule_id:
-            return Response(
-                {"error": "Reikalingas global_schedule_id parametras"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        try:
-            # Patikriname, ar GlobalSchedule egzistuoja
-            from schedule.models import GlobalSchedule
-            global_schedule = get_object_or_404(GlobalSchedule, id=global_schedule_id)
-            
-            # Baigiame veiklą visiems mokiniams
-            result = IMUPlan.bulk_end_activity(global_schedule_id)
-            
-            return Response({
-                "message": f"Veikla sėkmingai baigta {result['updated_count']} mokiniui",
-                "global_schedule_id": global_schedule_id,
-                "completed_at": result['completed_at'],
-                "updated_count": result['updated_count']
-            }, status=status.HTTP_200_OK)
-            
-        except GlobalSchedule.DoesNotExist:
-            return Response(
-                {"error": "GlobalSchedule su nurodytu ID nerastas"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        except Exception as e:
-            logging.error(f"Klaida baigiant veiklą: {str(e)}")
-            return Response(
-                {"error": "Įvyko klaida baigiant veiklą"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        return Response({
+            "message": "Lankomumo statusas sėkmingai atnaujintas",
+            "attendance_status": plan.attendance_status,
+            "attendance_status_display": plan.get_attendance_status_display() if plan.attendance_status else "Nepažymėta"
+        })

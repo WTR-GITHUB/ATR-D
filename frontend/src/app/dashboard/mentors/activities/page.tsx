@@ -1,11 +1,12 @@
 // frontend/src/app/dashboard/mentors/activities/page.tsx
 
 // Veiklos puslapis - pamokų peržiūra ir detalės
-// Šis puslapis skirtas mentoriams peržiūrėti pasirinktas pamokas ir jų detales
+// Šis puslapis skirtas mentoriams vykdyti pamokas ir peržiūrėti pamokų detales
 // Rodo tvarkaraštį ir pasirinktos pamokos informaciją su mokinių sąrašu
 // CHANGE: Pašalintas StudentsList komponentas - mokiniai rodomi tik LessonInfoCard viduje
 // CHANGE: Pridėta veiklos statuso kortelė su mygtukais "Pradėti veiklą" ir "Užbaigti veiklą"
 // CHANGE: Pridėtas veiklos laiko rodymas viduryje su 2 eilučių rezervacija
+// REFAKTORINIMAS: Atnaujinta veiklos valdymo logika - naudojama GlobalSchedule plan_status vietoj IMUPlan
 
 'use client';
 
@@ -53,28 +54,35 @@ const VeiklosPage = () => {
     if (!globalScheduleId) return;
     
     try {
-      const response = await fetch('/api/plans/imu-plans/start_activity/', {
+      // CHANGE: Pridėtas JWT autentifikacijos header'is
+      const accessToken = localStorage.getItem('access_token');
+      if (!accessToken) {
+        console.error('Nėra autentifikacijos token\'o');
+        return;
+      }
+
+      const response = await fetch(`/api/schedule/schedules/${globalScheduleId}/start_activity/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          'Authorization': `Bearer ${accessToken}`
         },
-        body: JSON.stringify({
-          global_schedule_id: globalScheduleId
-        })
       });
-
+      
       if (response.ok) {
         const result = await response.json();
-        const startTime = new Date(result.started_at);
+        console.log('Veikla pradėta:', result);
         
-        setActivityStartTime(startTime);
+        // CHANGE: Nustatome veiklos pradžios laiką iš backend'o atsakymo
+        if (result.started_at) {
+          setActivityStartTime(new Date(result.started_at));
+        }
         setIsActivityActive(true);
         
-        // Atnaujinti mokinių duomenis
+        // CHANGE: Atnaujinti mokinių duomenis, kad matytų naują lankomumo statusą
         refreshLessonData();
       } else {
-        console.error('Klaida pradedant veiklą');
+        console.error('Klaida pradedant veiklą:', response.statusText);
       }
     } catch (error) {
       console.error('Klaida pradedant veiklą:', error);
@@ -86,28 +94,35 @@ const VeiklosPage = () => {
     if (!globalScheduleId) return;
     
     try {
-      const response = await fetch('/api/plans/imu-plans/end_activity/', {
+      // CHANGE: Pridėtas JWT autentifikacijos header'is
+      const accessToken = localStorage.getItem('access_token');
+      if (!accessToken) {
+        console.error('Nėra autentifikacijos token\'o');
+        return;
+      }
+
+      const response = await fetch(`/api/schedule/schedules/${globalScheduleId}/end_activity/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+          'Authorization': `Bearer ${accessToken}`
         },
-        body: JSON.stringify({
-          global_schedule_id: globalScheduleId
-        })
       });
-
+      
       if (response.ok) {
         const result = await response.json();
-        const endTime = new Date(result.completed_at);
+        console.log('Veikla baigta:', result);
         
-        setActivityEndTime(endTime);
+        // CHANGE: Nustatome veiklos pabaigos laiką iš backend'o atsakymo
+        if (result.completed_at) {
+          setActivityEndTime(new Date(result.completed_at));
+        }
         setIsActivityActive(false);
         
-        // Atnaujinti mokinių duomenis
+        // CHANGE: Atnaujinti mokinių duomenis
         refreshLessonData();
       } else {
-        console.error('Klaida baigiant veiklą');
+        console.error('Klaida baigiant veiklą:', response.statusText);
       }
     } catch (error) {
       console.error('Klaida baigiant veiklą:', error);
@@ -125,18 +140,72 @@ const VeiklosPage = () => {
     });
   };
 
+  // CHANGE: Nustatyti veiklos būseną pagal backend'o duomenis
+  React.useEffect(() => {
+    const fetchGlobalScheduleData = async () => {
+      if (!globalScheduleId) return;
+      
+      try {
+        const accessToken = localStorage.getItem('access_token');
+        if (!accessToken) return;
+
+        const response = await fetch(`/api/schedule/schedules/${globalScheduleId}/`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
+        });
+
+        if (response.ok) {
+          const scheduleData = await response.json();
+          
+          if (scheduleData.plan_status === 'in_progress') {
+            setIsActivityActive(true);
+            if (scheduleData.started_at) {
+              setActivityStartTime(new Date(scheduleData.started_at));
+            }
+            setActivityEndTime(null);
+          } else if (scheduleData.plan_status === 'completed') {
+            setIsActivityActive(false);
+            if (scheduleData.started_at) {
+              setActivityStartTime(new Date(scheduleData.started_at));
+            }
+            if (scheduleData.completed_at) {
+              setActivityEndTime(new Date(scheduleData.completed_at));
+            }
+          } else {
+            // 'planned' status
+            setIsActivityActive(false);
+            setActivityStartTime(null);
+            setActivityEndTime(null);
+          }
+        }
+      } catch (error) {
+        console.error('Klaida gaunant GlobalSchedule duomenis:', error);
+      }
+    };
+
+    fetchGlobalScheduleData();
+  }, [globalScheduleId]);
+
+  // CHANGE: Automatiškai atnaujinti duomenis po puslapio perkrovimo
+  React.useEffect(() => {
+    if (globalScheduleId) {
+      refreshLessonData();
+    }
+  }, [globalScheduleId, refreshLessonData]);
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Puslapio antraštė */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Veiklos</h1>
-          <p className="text-gray-600 mt-1">Pamokų vykdymas ir mokinių lankomumo registravimas</p>
+        {/* Antraštė */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Veiklos</h1>
+          <p className="text-gray-600">
+            Pamokų vykdymas ir mokinių lankomumo žymėjimas realiu laiku
+          </p>
         </div>
 
-        {/* Pamokos pasirinkimo komponentas pašalintas - nebe reikalingas */}
-
-        {/* Savaitės tvarkaraščio akordeoras */}
+        {/* Savaitės tvarkaraščio akordeonas */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
             <div className="flex items-center space-x-3 flex-1">
@@ -290,26 +359,48 @@ const VeiklosPage = () => {
           </div>
         </div>
 
-        {/* Pasirinktos pamokos detalės */}
-        <LessonDetailsPanel
-          lessonDetails={lessonDetails}
-          allLessonsDetails={allLessonsDetails}
-          imuPlans={imuPlans}
-          isLoading={lessonLoading}
-          error={lessonError}
-          isActivityActive={isActivityActive}
-          activityStartTime={activityStartTime}
-        />
-
-        {/* Auto-save indikatorius (fiksuotas pozicija apačioje dešinėje) */}
-        <div className="fixed bottom-6 right-6">
-          <div className="bg-green-100 border border-green-300 text-green-700 px-4 py-2 rounded-lg shadow-lg">
-            <div className="flex items-center space-x-2">
-              <CheckCircle size={16} />
-              <span className="text-sm">Pakeitimai automatiškai išsaugoti</span>
-            </div>
+        {/* Pasirinktos pamokos informacija */}
+        {globalScheduleId && (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Pasirinkta pamoka</h2>
+            
+            {lessonLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-2 text-gray-600">Kraunama...</p>
+              </div>
+            ) : lessonError ? (
+              <div className="text-center py-8">
+                <p className="text-red-600">Klaida: {lessonError}</p>
+              </div>
+            ) : lessonDetails ? (
+              <div className="space-y-6">
+                {/* Pamokos detalės */}
+                <LessonDetailsPanel
+                  lessonDetails={lessonDetails}
+                  allLessonsDetails={allLessonsDetails}
+                  imuPlans={imuPlans}
+                  isLoading={lessonLoading}
+                  error={lessonError}
+                />
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-600">Pasirinkite pamoką iš tvarkaraščio</p>
+              </div>
+            )}
           </div>
-        </div>
+        )}
+
+        {/* Mokinių sąrašas */}
+        {globalScheduleId && lessonDetails && (
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Mokinių sąrašas</h2>
+            <p className="text-gray-600 mb-4">
+              Pasirinkite pamoką iš viršuje esančio sąrašo, kad pamatytumėte mokinių informaciją
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

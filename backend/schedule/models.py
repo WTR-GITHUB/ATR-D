@@ -53,6 +53,13 @@ class GlobalSchedule(models.Model):
     """
     Globalaus tvarkaraščio modelis - valdo mokyklos tvarkaraštį
     """
+    # Planų valdymo statusai (ugdymo planų kūrimui ir valdymui)
+    PLAN_STATUS_CHOICES = [
+        ('planned', 'Suplanuota'),      # Planas sukurtas, bet dar nepradėtas
+        ('in_progress', 'Vyksta'),      # Planas vykdomas
+        ('completed', 'Baigta'),        # Planas baigtas
+    ]
+    
     date = models.DateField(_('Data'), help_text=_('Pamokos data'))
     weekday = models.CharField(_('Savaitės diena'), max_length=20, blank=True, null=True, help_text=_('Savaitės diena (skaičiuojama automatiškai)'))
     period = models.ForeignKey(Period, on_delete=models.CASCADE, verbose_name=_('Periodas'), help_text=_('Pamokos periodas'))
@@ -66,6 +73,18 @@ class GlobalSchedule(models.Model):
         verbose_name=_('Mentorius'), 
         help_text=_('Pamokos vedėjas (tik mentoriai)')
     )
+    
+    # REFAKTORINIMAS: Perkelti iš IMUPlan į GlobalSchedule
+    plan_status = models.CharField(
+        _('Plano būsena'), 
+        max_length=20, 
+        choices=PLAN_STATUS_CHOICES, 
+        default='planned',
+        help_text=_('Ugdymo plano būsena: suplanuota, vyksta, baigta')
+    )
+    
+    started_at = models.DateTimeField(_('Pradėta'), null=True, blank=True, help_text=_('Veiklos pradžios laikas'))
+    completed_at = models.DateTimeField(_('Baigta'), null=True, blank=True, help_text=_('Veiklos pabaigos laikas'))
     
     class Meta:
         verbose_name = _('Globalus tvarkaraštis')
@@ -115,3 +134,57 @@ class GlobalSchedule(models.Model):
         
         self.full_clean()
         super().save(*args, **kwargs)
+    
+    @classmethod
+    def bulk_start_activity(cls, global_schedule_id):
+        """
+        Pradeda veiklą visiems mokiniams, kurie priklauso šiai veiklai (GlobalSchedule slot)
+        REFAKTORINIMAS: Dabar atnaujina plan_status į 'in_progress' ir started_at laiką
+        CHANGE: Pridėtas IMUPlan atnaujinimas - visiems mokiniams nustatomas attendance_status = 'present'
+        """
+        from django.utils import timezone
+        from plans.models import IMUPlan
+        current_time = timezone.now()
+        
+        # Atnaujina GlobalSchedule plan_status ir started_at
+        updated_count = cls.objects.filter(
+            id=global_schedule_id,
+            plan_status='planned'  # Galima pradėti tik iš 'planned' būsenos
+        ).update(
+            plan_status='in_progress',      # Planas pradėtas vykdyti
+            started_at=current_time
+        )
+        
+        # CHANGE: Atnaujina visų mokinių lankomumą į 'present' šioje veikloje
+        imu_plans_updated = IMUPlan.objects.filter(
+            global_schedule_id=global_schedule_id
+        ).update(attendance_status='present')
+        
+        return {
+            'updated_count': updated_count,
+            'started_at': current_time,
+            'imu_plans_updated': imu_plans_updated  # CHANGE: Pridėtas IMUPlan atnaujinimų skaičius
+        }
+
+    @classmethod
+    def bulk_end_activity(cls, global_schedule_id):
+        """
+        Baigia veiklą visiems mokiniams, kurie priklauso šiai veiklai (GlobalSchedule slot)
+        REFAKTORINIMAS: Dabar atnaujina plan_status į 'completed' ir completed_at laiką
+        """
+        from django.utils import timezone
+        current_time = timezone.now()
+        
+        # Atnaujina GlobalSchedule plan_status ir completed_at
+        updated_count = cls.objects.filter(
+            id=global_schedule_id,
+            plan_status='in_progress'  # Galima baigti tik 'in_progress' planus
+        ).update(
+            plan_status='completed',        # Planas baigtas
+            completed_at=current_time
+        )
+        
+        return {
+            'updated_count': updated_count,
+            'completed_at': current_time
+        }

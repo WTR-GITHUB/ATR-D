@@ -41,6 +41,7 @@ class ClassroomSerializer(serializers.ModelSerializer):
 class GlobalScheduleSerializer(serializers.ModelSerializer):
     """
     Globalaus tvarkaraščio serializeris - valdo tvarkaraščio duomenų serializavimą
+    REFAKTORINIMAS: Pridėti plan_status, started_at, completed_at laukai
     """
     # Pilni objektai su visais laukais
     period = serializers.SerializerMethodField()
@@ -58,11 +59,16 @@ class GlobalScheduleSerializer(serializers.ModelSerializer):
     # lesson_title laukas pašalintas
     mentor_name = serializers.CharField(source='user.get_full_name', read_only=True)
     
+    # REFAKTORINIMAS: Pridėti planų valdymo laukai
+    plan_status_display = serializers.CharField(source='get_plan_status_display', read_only=True)
+    
     class Meta:
         model = GlobalSchedule
         fields = [
             'id', 'date', 'weekday', 'period', 'classroom', 'subject', 'level', 'user',
-            'period_name', 'classroom_name', 'subject_name', 'level_name', 'mentor_name'
+            'period_name', 'classroom_name', 'subject_name', 'level_name', 'mentor_name',
+            # REFAKTORINIMAS: Pridėti planų valdymo laukai
+            'plan_status', 'plan_status_display', 'started_at', 'completed_at'
         ]
         read_only_fields = ['weekday']  # Savaitės diena nustatoma automatiškai
         # lesson laukas pašalintas
@@ -93,10 +99,9 @@ class GlobalScheduleSerializer(serializers.ModelSerializer):
         if obj.user:
             return {
                 'id': obj.user.id,
-                'email': obj.user.email,
                 'first_name': obj.user.first_name,
                 'last_name': obj.user.last_name,
-                'full_name': obj.user.get_full_name()
+                'email': obj.user.email
             }
         return None
     

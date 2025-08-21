@@ -3,6 +3,7 @@ from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
 
 
 class Subject(models.Model):
@@ -136,6 +137,21 @@ class CompetencyAtcheve(models.Model):
         return f"{self.competency.name} - {self.subject.name if self.subject else 'Bendras'}"
 
 
+class LessonManager(models.Manager):
+    """
+    Manager'is pamokoms - automatiškai filtruoja ištrintas pamokas
+    """
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+    
+    def all_including_deleted(self):
+        """Grąžina visas pamokas, įskaitant ištrintas"""
+        return super().get_queryset()
+    
+    def deleted_only(self):
+        """Grąžina tik ištrintas pamokas"""
+        return super().get_queryset().filter(is_deleted=True)
+
 class Lesson(models.Model):
     """
     Pamokų modelis - ugdymo planų šablonai
@@ -216,8 +232,14 @@ class Lesson(models.Model):
         blank=True,
         verbose_name="BUP Kompetencijos"
     )
+    # Soft delete laukai
+    is_deleted = models.BooleanField(default=False, verbose_name="Ištrinta")
+    deleted_at = models.DateTimeField(null=True, blank=True, verbose_name="Ištrinta")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Sukurta")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atnaujinta")
+
+    # Naudojame custom manager'į
+    objects = LessonManager()
 
     class Meta:
         verbose_name = "Pamoka"
@@ -226,3 +248,22 @@ class Lesson(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.subject.name}"
+    
+    def delete(self, *args, **kwargs):
+        """
+        Soft delete - nebetriname pamokos, tik pažymime kaip ištrintą
+        Išlaikome visus susijusius duomenis (mokinio istoriją, atsiskaitymus)
+        """
+        self.is_deleted = True
+        self.deleted_at = timezone.now()
+        self.save()
+    
+    def restore(self):
+        """Atkurti pamoką"""
+        self.is_deleted = False
+        self.deleted_at = None
+        self.save()
+    
+    def hard_delete(self, *args, **kwargs):
+        """Sunkus trynimas - tik administratoriams"""
+        super().delete(*args, **kwargs)

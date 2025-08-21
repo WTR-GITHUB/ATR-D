@@ -39,7 +39,13 @@ class LessonSequenceItem(models.Model):
     Sekos elementas - konkreti pamoka ir jos eiliškumas
     """
     sequence = models.ForeignKey(LessonSequence, on_delete=models.CASCADE, related_name='items', verbose_name=_('Seka'))
-    lesson = models.ForeignKey('curriculum.Lesson', on_delete=models.CASCADE, verbose_name=_('Pamoka'))
+    lesson = models.ForeignKey(
+        'curriculum.Lesson', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        verbose_name=_('Pamoka')
+    )
     position = models.PositiveIntegerField(_('Eiliškumas'), default=1)
 
     class Meta:
@@ -49,20 +55,15 @@ class LessonSequenceItem(models.Model):
         unique_together = [('sequence', 'position')]
 
     def __str__(self):
-        return f"{self.sequence} → {self.position}: {self.lesson}"
+        lesson_info = self.lesson.title if self.lesson else 'IŠTRINTA PAMOKA'
+        return f"{self.sequence} → {self.position}: {lesson_info}"
 
 
 class IMUPlan(models.Model):
     """
     Individualus mokinio ugdymo planas - susieja mokinį, veiklą ir pamoką
+    REFAKTORINIMAS: Pašalinti plan_status, status, started_at, completed_at - perkelta į GlobalSchedule
     """
-    # Planų valdymo statusai (ugdymo planų kūrimui ir valdymui)
-    PLAN_STATUS_CHOICES = [
-        ('planned', 'Suplanuota'),      # Planas sukurtas, bet dar nepradėtas
-        ('in_progress', 'Vyksta'),      # Planas vykdomas
-        ('completed', 'Baigta'),        # Planas baigtas
-    ]
-    
     # Lankomumo statusai (AttendanceMarker komponentui)
     ATTENDANCE_CHOICES = [
         ('present', 'Dalyvavo'),        # Mokinys dalyvavo pamokoje
@@ -88,34 +89,17 @@ class IMUPlan(models.Model):
         verbose_name=_('Pamoka')
     )
     
-    # REFAKTORINIMAS: Atskiri statusai planų valdymui ir lankomumo žymėjimui
-    plan_status = models.CharField(
-        _('Plano būsena'), 
-        max_length=20, 
-        choices=PLAN_STATUS_CHOICES, 
-        default='planned',
-        help_text=_('Ugdymo plano būsena: suplanuota, vyksta, baigta')
-    )
-    
+    # REFAKTORINIMAS: Lankomumo statusas paliekamas IMUPlan, planų valdymas perkeltas į GlobalSchedule
     attendance_status = models.CharField(
         _('Lankomumo būsena'), 
         max_length=20, 
         choices=ATTENDANCE_CHOICES, 
-        default='present',
+        default=None,
+        null=True,     # leisti NULL reikšmes duomenų bazėje
+        blank=True,    # leisti tuščias reikšmes formose
         help_text=_('Mokinio lankomumo būsena: dalyvavo, nedalyvavo, vėlavo, pateisinta')
     )
     
-    # Laikinai paliekame seną status stulpelį migracijos metu (bus pašalintas vėliau)
-    status = models.CharField(
-        _('Būsena (senas)'), 
-        max_length=20, 
-        choices=PLAN_STATUS_CHOICES + ATTENDANCE_CHOICES, 
-        default='planned',
-        help_text=_('SENAS STULPELIS - bus pašalintas po migracijos')
-    )
-    
-    started_at = models.DateTimeField(_('Pradėta'), null=True, blank=True)
-    completed_at = models.DateTimeField(_('Baigta'), null=True, blank=True)
     notes = models.TextField(_('Pastabos'), blank=True)
     created_at = models.DateTimeField(_('Sukurta'), auto_now_add=True)
     updated_at = models.DateTimeField(_('Atnaujinta'), auto_now=True)
@@ -126,7 +110,8 @@ class IMUPlan(models.Model):
         unique_together = [('student', 'global_schedule')]
 
     def __str__(self):
-        return f"{self.student} - {self.global_schedule} - {self.lesson} (Planas: {self.get_plan_status_display()}, Lankomumas: {self.get_attendance_status_display()})"
+        attendance_display = self.get_attendance_status_display() if self.attendance_status else "Nepažymėta"
+        return f"{self.student} - {self.global_schedule} - {self.lesson} (Lankomumas: {attendance_display})"
 
     def clean(self):
         """Validacija: mokinys turi rolę student"""
@@ -135,72 +120,6 @@ class IMUPlan(models.Model):
 
     def save(self, *args, **kwargs):
         """
-        Automatiškai nustato pradžios laiką, jei planas pradėtas vykdyti
-        REFAKTORINIMAS: Dabar tikriname plan_status vietoj status
+        REFAKTORINIMAS: Pašalinta plan_status ir status logika - perkelta į GlobalSchedule
         """
-        if self.plan_status == 'in_progress' and not self.started_at:
-            self.started_at = timezone.now()
-        
-        # REFAKTORINIMAS: Sinchronizuojame seną status stulpelį migracijos metu
-        # Po migracijos šis kodas bus pašalintas
-        if hasattr(self, 'status'):
-            # Jei plan_status yra planų valdymo statusas, naudojame jį
-            if self.plan_status in ['planned', 'in_progress', 'completed']:
-                self.status = self.plan_status
-            # Jei attendance_status yra lankomumo statusas, naudojame jį
-            elif self.attendance_status in ['present', 'absent', 'late', 'excused']:
-                self.status = self.attendance_status
-        
         super().save(*args, **kwargs)
-
-    @classmethod
-    def bulk_start_activity(cls, global_schedule_id):
-        """
-        Pradeda veiklą visiems mokiniams, kurie priklauso šiai veiklai (GlobalSchedule slot)
-        REFAKTORINIMAS: Atnaujina attendance_status į 'present' ir plan_status į 'in_progress'
-        """
-        current_time = timezone.now()
-        
-        # Atnaujina visus planus, kurie priklauso šiai veiklai
-        # REFAKTORINIMAS: Dabar atnaujiname abu statusus
-        updated_count = cls.objects.filter(
-            global_schedule_id=global_schedule_id,
-            # Galima pradėti iš šių būsenų
-            plan_status__in=['planned'],
-            attendance_status__in=['absent', 'late', 'excused']
-        ).update(
-            plan_status='in_progress',      # Planas pradėtas vykdyti
-            attendance_status='present',    # Mokinys dalyvavo
-            started_at=current_time,
-            # REFAKTORINIMAS: Sinchronizuojame seną status stulpelį
-            status='present'  # Laikinai migracijos metu
-        )
-        
-        return {
-            'updated_count': updated_count,
-            'started_at': current_time
-        }
-
-    @classmethod
-    def bulk_end_activity(cls, global_schedule_id):
-        """
-        Baigia veiklą visiems mokiniams, kurie priklauso šiai veiklai (GlobalSchedule slot)
-        REFAKTORINIMAS: Atnaujina plan_status į 'completed' ir palieka attendance_status nepakeistą
-        """
-        current_time = timezone.now()
-        
-        # Atnaujina visus planus, kurie vyksta (plan_status 'in_progress')
-        updated_count = cls.objects.filter(
-            global_schedule_id=global_schedule_id,
-            plan_status='in_progress'  # Galima baigti tik 'in_progress' planus
-        ).update(
-            plan_status='completed',        # Planas baigtas
-            completed_at=current_time,
-            # REFAKTORINIMAS: Sinchronizuojame seną status stulpelį
-            status='completed'  # Laikinai migracijos metu
-        )
-        
-        return {
-            'updated_count': updated_count,
-            'completed_at': current_time
-        }

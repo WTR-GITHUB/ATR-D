@@ -11,7 +11,13 @@ import { SelectedLessonState, LessonDetails, IMUPlan, ScheduleItem } from '@/app
 
 const STORAGE_KEY = 'activities_selected_lesson';
 
-interface UseSelectedLessonReturn extends SelectedLessonState {
+interface UseSelectedLessonReturn {
+  globalScheduleId: number | null;
+  lessonDetails: LessonDetails | null;
+  allLessonsDetails: LessonDetails[];
+  imuPlans: IMUPlan[];
+  isLoading: boolean;
+  error: string | null;
   selectScheduleItem: (item: ScheduleItem | null) => void;
   clearSelection: () => void;
   refreshLessonData: () => Promise<void>;

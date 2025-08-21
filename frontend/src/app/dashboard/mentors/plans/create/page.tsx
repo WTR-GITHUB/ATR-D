@@ -1,4 +1,10 @@
 // frontend/src/app/dashboard/mentors/plans/create/page.tsx
+
+// Ugdymo plano kūrimo puslapis mentoriams
+// Leidžia mentoriams sukurti pamokų sekas su pasirinktomis pamokomis
+// CHANGE: Ištaisytas duomenų struktūros neatitikimas - items dabar siunčiami kaip ID sąrašas, ne objektų masyvas
+// CHANGE: Backend'as automatiškai priskiria pozicijas pagal masyvo indeksą
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -46,7 +52,7 @@ interface Level {
 import api from '@/lib/api';
 
 async function fetchMentorLessons(subjectId?: string, levelId?: string): Promise<Lesson[]> {
-  let url = '/plans/sequences/mentor_lessons/';
+  let url = '/plans/sequences/all_lessons/';
   const params = new URLSearchParams();
   
   if (subjectId) {
@@ -154,6 +160,41 @@ export default function CreateLessonSequencePage() {
       return;
     }
 
+    // Patikriname ar visos pamokos egzistuoja availableLessons masyve
+    const invalidLessons = selectedLessons.filter(item => 
+      !availableLessons.some(lesson => lesson.id === item.id)
+    );
+    
+    if (invalidLessons.length > 0) {
+      console.warn(`Rasta ${invalidLessons.length} pamokų, kurios nėra availableLessons masyve:`, invalidLessons);
+      
+      // Patikriname ar tai ištrintos pamokos
+      const deletedLessonIds = invalidLessons.map(lesson => lesson.id);
+      console.warn(`Pamokų ID, kurios gali būti ištrintos: ${deletedLessonIds.join(', ')}`);
+      
+      // Parodyti vartotojui pranešimą apie ištrintas pamokas
+      const confirmMessage = `Rasta ${invalidLessons.length} pamokų, kurios gali būti ištrintos arba neegzistuoti.\n\n` +
+                           `Ištrintos pamokos bus automatiškai pašalintos iš plano.\n\n` +
+                           `Ar norite tęsti?`;
+      
+      if (!confirm(confirmMessage)) {
+        return; // Vartotojas atsisakė
+      }
+      
+      // Ištrinti neegzistuojančias pamokas iš selectedLessons
+      const validLessons = selectedLessons.filter(lesson => 
+        availableLessons.some(available => available.id === lesson.id)
+      );
+      
+      if (validLessons.length === 0) {
+        alert('Po ištrintų pamokų pašalinimo, plane nebeliko jokių pamokų. Prašome pridėti naujų pamokų.');
+        return;
+      }
+      
+      setSelectedLessons(validLessons);
+      console.log(`Pašalintos ${invalidLessons.length} ištrintos pamokos. Liko ${validLessons.length} galiojančių pamokų.`);
+    }
+
     setIsLoading(true);
 
     try {
@@ -163,10 +204,7 @@ export default function CreateLessonSequencePage() {
         description: formData.description,
         subject: parseInt(formData.subject),
         level: parseInt(formData.level),
-        items: selectedLessons.map((lesson, index) => ({
-          lesson: lesson.id,
-          position: index + 1
-        }))
+        items: selectedLessons.map(lesson => lesson.id) // Siunčiame tik pamokų ID sąrašą
       };
 
       console.log('Siunčiami duomenys:', sequenceData);
@@ -184,14 +222,25 @@ export default function CreateLessonSequencePage() {
       console.error('Klaida kuriant pamokų seką:', error);
       
       let errorMessage = 'Įvyko klaida kuriant pamokų seką';
+      
+      // Geresnis klaidų apdorojimas
       if (error.response?.data) {
-        if (typeof error.response.data === 'string') {
+        if (Array.isArray(error.response.data)) {
+          // Jei backend grąžina klaidų sąrašą
+          errorMessage = error.response.data.join('\n');
+        } else if (typeof error.response.data === 'string') {
           errorMessage = error.response.data;
         } else if (error.response.data.detail) {
           errorMessage = error.response.data.detail;
         } else if (error.response.data.error) {
           errorMessage = error.response.data.error;
         }
+      }
+      
+      // Specialus pranešimas apie ištrintas pamokas
+      if (errorMessage.includes('yra ištrintos')) {
+        errorMessage = 'Kai kurios pamokos yra ištrintos ir negali būti naudojamos. ' +
+                      'Prašome pašalinti jas iš plano ir bandyti iš naujo.';
       }
       
       alert(errorMessage);

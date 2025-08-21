@@ -43,10 +43,16 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
     }
   };
 
-  // Statusų keitimo funkcija
-  const handleStudentStatusChange = (studentId: number, newStatus: string) => {
+  // CHANGE: Statusų keitimo funkcija - dabar naudojama tik frontend'o state sinchronizacijai
+  // Backend'o API iškvietimas tvarkomas StudentRow komponente
+  const handleStudentStatusChange = async (studentId: number, newStatus: string | null) => {
     console.log(`Keičiamas studento ${studentId} statusas į ${newStatus}`);
-    // Čia galima pridėti API iškvietimą statusui atnaujinti
+    
+    // CHANGE: Pašalintas API iškvietimas - StudentRow jau tvarko backend'o komunikaciją
+    // Dabar šis callback'as naudojamas tik frontend'o state sinchronizacijai
+    
+    // Galima pridėti papildomą logiką čia, jei reikia
+    // Pavyzdžiui: optimistinis UI atnaujinimas, notifikacijos, etc.
   };
 
   const objectives = parseJsonString(lesson.objectives);
@@ -83,6 +89,7 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
       </div>
 
       <div className="p-6">
+        {/* CHANGE: Grid layout pakeistas į 2 eilutes po 3 korteles pagal paveiksliuką */}
         <div className="grid grid-cols-3 gap-8">
           
           {/* Komponentai */}
@@ -94,8 +101,8 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
               </h3>
               <div className="space-y-2">
                 {components.map((component, index) => (
-                  <div key={index} className="p-3 bg-gray-100 rounded-lg border border-gray-200">
-                    <span className="text-gray-600 text-sm font-medium">{component}</span>
+                  <div key={index} className="p-3 bg-blue-100 rounded-lg border border-blue-200">
+                    <span className="text-blue-800 text-sm font-medium">{component}</span>
                   </div>
                 ))}
               </div>
@@ -111,8 +118,79 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
               </h3>
               <div className="space-y-2">
                 {objectives.map((objective, index) => (
-                  <div key={index} className="p-3 bg-gray-100 rounded-lg border border-gray-200">
-                    <span className="text-gray-600 text-sm font-medium">{objective}</span>
+                  <div key={index} className="p-3 bg-green-100 rounded-lg border border-green-200">
+                    <span className="text-green-800 text-sm font-medium">{objective}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Pasiekimo lygiai */}
+          {(lesson.slenkstinis || lesson.bazinis || lesson.pagrindinis || lesson.aukstesnysis) && (
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <Award size={18} className="mr-2 text-yellow-600" />
+                Pasiekimo lygiai
+              </h3>
+              <div className="space-y-2">
+                {lesson.slenkstinis && (
+                  <div className="p-3 bg-yellow-100 rounded-lg border border-yellow-200">
+                    <span className="text-yellow-800 text-sm font-medium">S: {lesson.slenkstinis}</span>
+                  </div>
+                )}
+                {lesson.bazinis && (
+                  <div className="p-3 bg-yellow-100 rounded-lg border border-yellow-200">
+                    <span className="text-yellow-800 text-sm font-medium">B: {lesson.bazinis}</span>
+                  </div>
+                )}
+                {lesson.pagrindinis && (
+                  <div className="p-3 bg-yellow-100 rounded-lg border border-yellow-200">
+                    <span className="text-yellow-800 text-sm font-medium">P: {lesson.pagrindinis}</span>
+                  </div>
+                )}
+                {lesson.aukstesnysis && (
+                  <div className="p-3 bg-yellow-100 rounded-lg border border-yellow-200">
+                    <span className="text-yellow-800 text-sm font-medium">A: {lesson.aukstesnysis}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* CHANGE: Antra eilutė - 3 kortelės */}
+        <div className="grid grid-cols-3 gap-8 mt-8">
+          
+          {/* Gebėjimai */}
+          {lesson.skills_list && lesson.skills_list.length > 0 && (
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <Users size={18} className="mr-2 text-purple-600" />
+                Gebėjimai
+              </h3>
+              <div className="space-y-2">
+                {/* CHANGE: Dabar rodomi gebėjimų pavadinimai vietoj ID */}
+                {lesson.skills_list.map((skillName, index) => (
+                  <div key={index} className="p-3 bg-purple-100 rounded-lg border border-purple-200">
+                    <span className="text-purple-800 text-sm font-medium">{skillName}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* BUP Kompetencijos */}
+          {lesson.competency_atcheve_name && lesson.competency_atcheve_name.length > 0 && (
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <Zap size={18} className="mr-2 text-indigo-600" />
+                BUP Kompetencijos
+              </h3>
+              <div className="space-y-2">
+                {lesson.competency_atcheve_name.map((competency, index) => (
+                  <div key={index} className="p-3 bg-indigo-100 rounded-lg border border-indigo-200">
+                    <span className="text-indigo-800 text-sm font-medium">{competency}</span>
                   </div>
                 ))}
               </div>
@@ -137,7 +215,7 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
           )}
         </div>
 
-        {/* Mokomoji medžiaga */}
+        {/* CHANGE: Mokomoji medžiaga atskirai apačioje (viso pločio) */}
         {lesson.content && (
           <div className="mt-8 pt-8 border-t border-gray-100">
             <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
@@ -165,9 +243,10 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
                     </h3>
                     <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
                       <span>Iš viso: {studentsForThisLesson.length}</span>
-                      {/* REFAKTORINIMAS: Dabar naudojame attendance_status tiesiogiai */}
+                      {/* REFAKTORINIMAS: Dabar naudojame attendance_status tiesiogiai su null reikšmių apdorojimu */}
                       <span className="text-green-600">Dalyvavo: {studentsForThisLesson.filter(s => s.attendance_status === 'present').length}</span>
                       <span className="text-red-600">Nedalyvavo: {studentsForThisLesson.filter(s => s.attendance_status === 'absent').length}</span>
+                      <span className="text-gray-600">Nepažymėta: {studentsForThisLesson.filter(s => s.attendance_status === null || s.attendance_status === undefined).length}</span>
                     </div>
                   </div>
 

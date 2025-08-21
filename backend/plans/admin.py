@@ -18,16 +18,21 @@ class LessonSequenceAdmin(admin.ModelAdmin):
     """
     Pamokų sekos administravimas
     """
-    list_display = ['name', 'subject', 'level', 'created_by', 'is_active', 'created_at', 'items_count']
+    list_display = ['name', 'subject', 'level', 'created_by', 'is_active', 'created_at']
     list_filter = ['subject', 'level', 'is_active', 'created_at']
-    search_fields = ['name', 'description']
+    search_fields = ['name', 'description', 'subject__name', 'level__name']
+    ordering = ['-created_at']
     readonly_fields = ['created_at']
-    inlines = [LessonSequenceItemInline]
     
-    def items_count(self, obj):
-        """Rodo sekos elementų skaičių"""
-        return obj.items.count()
-    items_count.short_description = 'Elementų skaičius'
+    fieldsets = (
+        ('Pagrindinė informacija', {
+            'fields': ('name', 'description', 'subject', 'level')
+        }),
+        ('Sistemos informacija', {
+            'fields': ('created_by', 'is_active', 'created_at'),
+            'classes': ('collapse',)
+        }),
+    )
 
 
 @admin.register(LessonSequenceItem)
@@ -35,19 +40,16 @@ class LessonSequenceItemAdmin(admin.ModelAdmin):
     """
     Sekos elementų administravimas
     """
-    list_display = ['sequence', 'lesson', 'position', 'subject', 'level']
-    list_filter = ['sequence__subject', 'sequence__level', 'sequence__is_active']
-    search_fields = ['sequence__name', 'lesson__title']
+    list_display = ['sequence', 'lesson', 'position']
+    list_filter = ['sequence', 'lesson__subject']
     ordering = ['sequence', 'position']
     
     def subject(self, obj):
-        """Rodo dalyką"""
-        return obj.sequence.subject
+        return obj.lesson.subject.name if obj.lesson else '-'
     subject.short_description = 'Dalykas'
     
     def level(self, obj):
-        """Rodo lygį"""
-        return obj.sequence.level
+        return obj.lesson.levels.first().name if obj.lesson and obj.lesson.levels.exists() else '-'
     level.short_description = 'Lygis'
 
 
@@ -55,20 +57,17 @@ class LessonSequenceItemAdmin(admin.ModelAdmin):
 class IMUPlanAdmin(admin.ModelAdmin):
     """
     Individualių mokinių ugdymo planų administravimas
+    REFAKTORINIMAS: Pašalinti plan_status, started_at, completed_at - perkelta į GlobalSchedule
     """
     list_display = [
         'student', 'lesson', 'global_schedule_display', 
-        # REFAKTORINIMAS: Dabar rodomi abu statusai
-        'plan_status', 'attendance_status',
-        # Laikinai paliekame seną status lauką migracijos metu
-        'status',
-        'started_at', 'completed_at', 'created_at'
+        # REFAKTORINIMAS: Lankomumo statusas paliekamas
+        'attendance_status',
+        'created_at'
     ]
     list_filter = [
-        # REFAKTORINIMAS: Dabar galime filtruoti pagal abu statusus
-        'plan_status', 'attendance_status',
-        # Laikinai paliekame seną status filtrą migracijos metu
-        'status',
+        # REFAKTORINIMAS: Lankomumo statusas paliekamas
+        'attendance_status',
         'global_schedule__subject', 'global_schedule__level',
         'global_schedule__date', 'created_at'
     ]

@@ -1,0 +1,173 @@
+import React from 'react';
+import { Target, Zap, Award, BookOpen, Users, Focus } from 'lucide-react';
+
+const ImprovedLessonContent = () => {
+  return (
+    <div className="max-w-5xl mx-auto p-6 bg-gray-50 min-h-screen">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        
+        {/* Antraštė */}
+        <div className="p-6 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">Vaikui B</h1>
+              <p className="text-gray-600 mt-1">Matematika • LVL4 • Tema 2</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-500">Dorybės:</span>
+              <div className="flex space-x-2">
+                <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium">Draugystė</span>
+                <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium">Drąsa</span>
+                <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium">Ištikimybė</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="grid grid-cols-3 gap-8">
+            
+            {/* Komponentai */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <Zap size={18} className="mr-2 text-blue-600" />
+                Komponentai
+              </h3>
+              <div className="space-y-2">
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                  <span className="text-blue-900 text-sm">Komponentas 1</span>
+                </div>
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                  <span className="text-blue-900 text-sm">Komponentas 2</span>
+                </div>
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                  <span className="text-blue-900 text-sm">Komponentas 3</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Tikslai */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <Target size={18} className="mr-2 text-indigo-600" />
+                Tikslai
+              </h3>
+              <div className="space-y-2">
+                <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                  <span className="text-indigo-900 text-sm">Tikslas 1</span>
+                </div>
+                <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                  <span className="text-indigo-900 text-sm">Tikslas 2</span>
+                </div>
+                <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+                  <span className="text-indigo-900 text-sm">Tikslas 3</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Pasiekimo lygiai */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <Award size={18} className="mr-2 text-amber-600" />
+                Pasiekimo lygiai
+              </h3>
+              <div className="space-y-2">
+                <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
+                  <div className="flex items-start space-x-3">
+                    <span className="text-amber-900 text-sm min-w-[20px]">S:</span>
+                    <span className="text-amber-900 text-sm">Ateiti į pamoką</span>
+                  </div>
+                </div>
+                
+                <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
+                  <div className="flex items-start space-x-3">
+                    <span className="text-amber-900 text-sm min-w-[20px]">B:</span>
+                    <span className="text-amber-900 text-sm">Pasiekti tikslą 1</span>
+                  </div>
+                </div>
+                
+                <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
+                  <div className="flex items-start space-x-3">
+                    <span className="text-amber-900 text-sm min-w-[20px]">P:</span>
+                    <span className="text-amber-900 text-sm">Išspręsti uždainį, atsiskaityti raštu</span>
+                  </div>
+                </div>
+                
+                <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
+                  <div className="flex items-start space-x-3">
+                    <span className="text-amber-900 text-sm min-w-[20px]">A:</span>
+                    <span className="text-amber-900 text-sm">Perskaityti papildomą literatūrą</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Antras blokas */}
+          <div className="grid grid-cols-3 gap-8 mt-8 pt-8 border-t border-gray-100">
+            
+            {/* Gebėjimai */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <Users size={18} className="mr-2 text-purple-600" />
+                Gebėjimai
+              </h3>
+              <div className="p-3 bg-gray-100 rounded-lg border border-gray-200">
+                <span className="text-gray-600 text-sm font-medium">Gebėjimas ID: 4</span>
+              </div>
+            </div>
+
+            {/* BUP Kompetencijos */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <Zap size={18} className="mr-2 text-cyan-600" />
+                BUP Kompetencijos
+              </h3>
+              <div className="p-3 bg-gray-100 rounded-lg border border-gray-200">
+                <span className="text-gray-600 text-sm font-medium">Komunikavimo kompetencija - Atkaklumas</span>
+              </div>
+            </div>
+
+            {/* Fokusai */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <Focus size={18} className="mr-2 text-rose-600" />
+                Fokusai
+              </h3>
+              <div className="space-y-2">
+                <div className="p-3 bg-gray-100 rounded-lg border border-gray-200">
+                  <span className="text-gray-600 text-sm font-medium">Fokusas 1</span>
+                </div>
+                <div className="p-3 bg-gray-100 rounded-lg border border-gray-200">
+                  <span className="text-gray-600 text-sm font-medium">Fokusas 2</span>
+                </div>
+                <div className="p-3 bg-gray-100 rounded-lg border border-gray-200">
+                  <span className="text-gray-600 text-sm font-medium">Fokusas 3</span>
+                </div>
+                <div className="p-3 bg-gray-100 rounded-lg border border-gray-200">
+                  <span className="text-gray-600 text-sm font-medium">Fokusas 4</span>
+                </div>
+                <div className="p-3 bg-gray-100 rounded-lg border border-gray-200">
+                  <span className="text-gray-600 text-sm font-medium">Fokusas 5</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mokomoji medžiaga */}
+          <div className="mt-8 pt-8 border-t border-gray-100">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <BookOpen size={18} className="mr-2 text-gray-600" />
+              Mokomoji medžiaga
+            </h3>
+            <div className="p-3 bg-gray-100 rounded-lg border border-gray-200">
+              <span className="text-gray-600 text-sm font-medium">Mokomoji medžiaga vaikui B</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ImprovedLessonContent;

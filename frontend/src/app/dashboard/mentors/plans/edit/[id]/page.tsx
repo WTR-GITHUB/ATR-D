@@ -1,4 +1,12 @@
 // frontend/src/app/dashboard/mentors/plans/edit/[id]/page.tsx
+
+// Ugdymo plano redagavimo puslapis mentoriams
+// Leidžia mentoriams redaguoti esamas pamokų sekas
+// CHANGE: Ištaisytas duomenų struktūros neatitikimas - items dabar siunčiami kaip ID sąrašas, ne objektų masyvas
+// CHANGE: Backend'as automatiškai priskiria pozicijas pagal masyvo indeksą
+// CHANGE: Pridėtas saugumo patikrinimas items laukui - naudojamas fallback tuščiam masyvui jei backend'as nepateikia
+// CHANGE: Suvienodintas dizainas su create puslapiu - naudojamas LessonDualListTransfer komponentas
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -9,7 +17,8 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { ArrowLeft, Plus, Trash2, GripVertical, Save } from 'lucide-react';
+import LessonDualListTransfer from '@/components/ui/LessonDualListTransfer';
+import { ArrowLeft, Save } from 'lucide-react';
 
 interface Lesson {
   id: number;
@@ -28,7 +37,7 @@ interface LessonSequenceItem {
 
 interface LessonSequenceItemDisplay {
   id: number;
-  lesson: number;
+  lesson: number; // Pamokos ID iš backend'o
   title: string;
   subject: string;
   levels: string;
@@ -70,7 +79,7 @@ interface LessonSequence {
 import api from '@/lib/api';
 
 async function fetchMentorLessons(subjectId?: string, levelId?: string): Promise<Lesson[]> {
-  let url = '/plans/sequences/mentor_lessons/';
+  let url = '/plans/sequences/all_lessons/';
   const params = new URLSearchParams();
   
   if (subjectId) {
@@ -127,8 +136,7 @@ export default function EditLessonSequencePage() {
   const [levels, setLevels] = useState<Level[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [draggedPosition, setDraggedPosition] = useState<number | null>(null);
-  const [dropTargetPosition, setDropTargetPosition] = useState<number | null>(null);
+
 
   // Gauname duomenis iš API
   useEffect(() => {
@@ -142,6 +150,37 @@ export default function EditLessonSequencePage() {
           fetchPlan(planId)
         ]);
         
+        console.log('Gauti plano duomenys:', planData);
+        console.log('Plano items:', planData.items);
+        console.log('Plano items tipas:', typeof planData.items);
+        console.log('Plano items ilgis:', planData.items?.length);
+        
+        // Užpildome pamokų seką
+        // Saugumo patikrinimas - items gali būti undefined jei backend'as nepateikia
+        const existingItems: LessonSequenceItemDisplay[] = (planData.items || []).map(item => ({
+          id: item.id,
+          lesson: item.lesson, // Pamokos ID iš backend'o
+          title: item.lesson_title || '',
+          subject: item.lesson_subject || '',
+          levels: 'Nenurodyta', // Backend'as nepateikia lesson_levels, naudojame default reikšmę
+          topic: item.lesson_topic || '',
+          position: item.position
+        }));
+        
+        console.log('Apdoroti existingItems:', existingItems);
+        console.log('existingItems ilgis:', existingItems.length);
+        
+        // Nustatome selectedLessons tiesiogiai iš plano duomenų
+        // Backend'as jau filtruoja ištrintas pamokas
+        if (existingItems && existingItems.length > 0) {
+          setSelectedLessons(existingItems);
+          console.log('Nustatytas selectedLessons iš plano duomenų:', existingItems);
+        } else {
+          setSelectedLessons([]);
+          console.log('Nustatytas tuščias selectedLessons - plane nėra pamokų');
+        }
+
+        
         setAvailableLessons(lessonsData);
         setSubjects(subjectsData);
         setLevels(levelsData);
@@ -153,25 +192,6 @@ export default function EditLessonSequencePage() {
           subject: planData.subject?.toString() || '',
           level: planData.level?.toString() || ''
         });
-
-        // Užpildome pamokų seką
-        const existingItems: LessonSequenceItemDisplay[] = planData.items.map(item => ({
-          id: item.id,
-          lesson: item.lesson,
-          title: item.lesson_title || '',
-          subject: item.lesson_subject || '',
-          levels: item.lesson_levels || 'Nenurodyta', // Placeholder for existing items
-          topic: item.lesson_topic || '',
-          position: item.position
-        }));
-        console.log('existingItems:', existingItems);
-        if (existingItems && existingItems.length > 0) {
-          setSelectedLessons(existingItems);
-          console.log('Nustatytas selectedLessons iš existingItems:', existingItems);
-        } else {
-          setSelectedLessons([]);
-          console.log('Nustatytas tuščias selectedLessons');
-        }
       } catch (error: any) {
         console.error('Klaida gaunant duomenis:', error);
         let errorMessage = 'Įvyko klaida gaunant duomenis';
@@ -214,74 +234,12 @@ export default function EditLessonSequencePage() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const addLessonToSequence = (lesson: Lesson) => {
-    const newItem: LessonSequenceItemDisplay = {
-      id: lesson.id,
-      lesson: lesson.id,
-      title: lesson.title,
-      subject: lesson.subject,
-      levels: lesson.levels,
-      topic: lesson.topic,
-      position: selectedLessons.length + 1
-    };
-    console.log('Sukurtas naujas elementas:', newItem);
-    setSelectedLessons(prev => {
-      const newList = [...prev, newItem];
-      console.log('Atnaujintas selectedLessons:', newList);
-      return newList;
-    });
+  // Handle lesson sequence changes from the dual list component
+  const handleLessonSequenceChange = (selected: LessonSequenceItemDisplay[]) => {
+    setSelectedLessons(selected);
   };
 
-  const removeLessonFromSequence = (position: number) => {
-    setSelectedLessons(prev => {
-      const filtered = prev.filter(item => item.position !== position);
-      // Atnaujinti pozicijas
-      return filtered.map((item, index) => ({ ...item, position: index + 1 }));
-    });
-  };
 
-  const moveLessonInSequence = (fromPosition: number, toPosition: number) => {
-    if (fromPosition === toPosition) return;
-
-    setSelectedLessons(prev => {
-      const newList = [...prev];
-      const [movedItem] = newList.splice(fromPosition - 1, 1);
-      newList.splice(toPosition - 1, 0, movedItem);
-
-      // Atnaujinti pozicijas
-      return newList.map((item, index) => ({ ...item, position: index + 1 }));
-    });
-  };
-
-  // Drag & Drop funkcionalumas
-  const handleDragStart = (e: React.DragEvent, position: number) => {
-    e.dataTransfer.setData('text/plain', position.toString());
-    e.dataTransfer.effectAllowed = 'move';
-    setDraggedPosition(position);
-  };
-
-  const handleDragOver = (e: React.DragEvent, position: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    setDropTargetPosition(position);
-  };
-
-  const handleDrop = (e: React.DragEvent, targetPosition: number) => {
-    e.preventDefault();
-    const fromPositionStr = e.dataTransfer.getData('text/plain');
-    const fromPosition = parseInt(fromPositionStr);
-    
-    if (!isNaN(fromPosition) && fromPosition !== targetPosition) {
-      moveLessonInSequence(fromPosition, targetPosition);
-    }
-    setDraggedPosition(null);
-    setDropTargetPosition(null);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedPosition(null);
-    setDropTargetPosition(null);
-  };
 
   const handleSubmit = async () => {
     if (!formData.name || !formData.subject || !formData.level) {
@@ -294,6 +252,47 @@ export default function EditLessonSequencePage() {
       return;
     }
 
+    // Patikriname ar visos pamokos egzistuoja availableLessons masyve
+    const invalidLessons = selectedLessons.filter(item => 
+      !availableLessons.some(lesson => lesson.id === item.lesson)
+    );
+    
+    if (invalidLessons.length > 0) {
+      console.warn(`Rasta ${invalidLessons.length} pamokų, kurios nėra availableLessons masyve:`, invalidLessons);
+      
+      // Patikriname ar tai ištrintos pamokos
+      const deletedLessonIds = invalidLessons.map(lesson => lesson.lesson);
+      console.warn(`Pamokų ID, kurios gali būti ištrintos: ${deletedLessonIds.join(', ')}`);
+      
+      // Parodyti vartotojui pranešimą apie ištrintas pamokas
+      const confirmMessage = `Rasta ${invalidLessons.length} pamokų, kurios gali būti ištrintos arba neegzistuoti.\n\n` +
+                           `Ištrintos pamokos bus automatiškai pašalintos iš plano.\n\n` +
+                           `Ar norite tęsti?`;
+      
+      if (!confirm(confirmMessage)) {
+        return; // Vartotojas atsisakė
+      }
+      
+      // Ištrinti neegzistuojančias pamokas iš selectedLessons
+      const validLessons = selectedLessons.filter(item => 
+        availableLessons.some(available => available.id === item.lesson)
+      );
+      
+      if (validLessons.length === 0) {
+        alert('Po ištrintų pamokų pašalinimo, plane nebeliko jokių pamokų. Prašome pridėti naujų pamokų.');
+        return;
+      }
+      
+      setSelectedLessons(validLessons);
+      console.log(`Pašalintos ${invalidLessons.length} ištrintos pamokos. Liko ${validLessons.length} galiojančių pamokų.`);
+    }
+    
+    // Papildomas patikrinimas - ar visos pamokos turi teisingus ID's
+    if (selectedLessons.some(item => !item.id || item.id <= 0)) {
+      alert('Kai kurios pamokos neturi teisingų ID. Prašome perkrauti puslapį.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -303,17 +302,14 @@ export default function EditLessonSequencePage() {
         description: formData.description,
         subject: parseInt(formData.subject),
         level: parseInt(formData.level),
-        items: selectedLessons.map((lesson, index) => ({
-          lesson: lesson.lesson,
-          position: index + 1
-        }))
+        items: selectedLessons.map(lesson => lesson.lesson) // Siunčiame pamokų ID sąrašą, ne item ID
       };
 
-             console.log('Siunčiami duomenys:', sequenceData);
-       console.log('selectedLessons:', selectedLessons);
-       console.log('planId:', planId);
-       console.log('items masyvas:', sequenceData.items);
       // Siunčiame užklausą į backend'ą
+      console.log('Siunčiami duomenys:', sequenceData);
+      console.log('selectedLessons:', selectedLessons);
+      console.log('planId:', planId);
+      
       const response = await api.put(`/plans/sequences/${planId}/`, sequenceData);
 
       if (response.status === 200) {
@@ -324,16 +320,28 @@ export default function EditLessonSequencePage() {
       }
     } catch (error: any) {
       console.error('Klaida atnaujinant pamokų seką:', error);
+      console.log('Backend response data:', error.response?.data);
       
       let errorMessage = 'Įvyko klaida atnaujinant pamokų seką';
+      
+      // Geresnis klaidų apdorojimas
       if (error.response?.data) {
-        if (typeof error.response.data === 'string') {
+        if (Array.isArray(error.response.data)) {
+          // Jei backend grąžina klaidų sąrašą
+          errorMessage = error.response.data.join('\n');
+        } else if (typeof error.response.data === 'string') {
           errorMessage = error.response.data;
         } else if (error.response.data.detail) {
           errorMessage = error.response.data.detail;
         } else if (error.response.data.error) {
           errorMessage = error.response.data.error;
         }
+      }
+      
+      // Specialus pranešimas apie ištrintas pamokas
+      if (errorMessage.includes('yra ištrintos')) {
+        errorMessage = 'Kai kurios pamokos yra ištrintos ir negali būti naudojamos. ' +
+                      'Prašome pašalinti jas iš plano ir bandyti iš naujo.';
       }
       
       alert(errorMessage);
@@ -444,88 +452,29 @@ export default function EditLessonSequencePage() {
           <CardHeader>
             <CardTitle>Pamokų seka</CardTitle>
             <p className="text-sm text-gray-600">
-              Pridėkite pamokas į seką ir nustatykite jų eiliškumą
+              Pridėkite pamokas į seką ir nustatykite jų eiliškumą vilkdami bei mesdami
             </p>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Galimos pamokos */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Galimos pamokos</h3>
-                {availableLessons.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>Jūs neturite sukurtų pamokų</p>
-                    <p className="text-sm">Pirmiausia sukurkite pamokas, kad galėtumėte jas pridėti į seką</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {availableLessons.map((lesson) => (
-                      <div
-                        key={lesson.id}
-                        className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                        onClick={() => addLessonToSequence(lesson)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-medium text-gray-900">{lesson.title}</h4>
-                            <p className="text-sm text-gray-600">{lesson.subject} • {lesson.levels} • {lesson.topic}</p>
-                          </div>
-                          <Plus className="w-4 h-4 text-blue-600" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+            {availableLessons.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <p className="text-lg font-medium">Jūs neturite sukurtų pamokų</p>
+                <p className="text-sm mt-2">Pirmiausia sukurkite pamokas, kad galėtumėte jas pridėti į seką</p>
               </div>
-
-              {/* Pasirinktos pamokos */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Pasirinktos pamokos</h3>
-                {selectedLessons.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>Pamokų nėra pridėta</p>
-                    <p className="text-sm">Paspauskite ant pamokos kairėje, kad pridėtumėte</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {selectedLessons.map((item) => (
-                      <div
-                        key={item.position}
-                        className={`p-3 border rounded-lg flex items-center space-x-3 transition-all duration-200 ${
-                          draggedPosition === item.position
-                            ? 'border-blue-500 bg-blue-50 shadow-lg scale-105'
-                            : dropTargetPosition === item.position
-                            ? 'border-blue-400 bg-blue-100'
-                            : 'border-gray-200 bg-white'
-                        }`}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, item.position)}
-                        onDragOver={(e) => handleDragOver(e, item.position)}
-                        onDrop={(e) => handleDrop(e, item.position)}
-                        onDragEnd={handleDragEnd}
-                      >
-                        <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">{item.title}</h4>
-                          <p className="text-sm text-gray-600">{item.subject} • {item.levels} • {item.topic}</p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm font-medium text-gray-500">#{item.position}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeLessonFromSequence(item.position)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+            ) : (
+              <LessonDualListTransfer
+                availableLessons={availableLessons}
+                selectedLessons={selectedLessons}
+                onSelectionChange={handleLessonSequenceChange}
+                availableTitle="Galimos pamokos"
+                selectedTitle="Pamokų seka"
+                isLoading={isLoadingData}
+                showDeletedWarning={true}
+                deletedLessonsCount={selectedLessons.filter(item => 
+                  !availableLessons.some(lesson => lesson.id === item.lesson)
+                ).length}
+              />
+            )}
           </CardContent>
         </Card>
 

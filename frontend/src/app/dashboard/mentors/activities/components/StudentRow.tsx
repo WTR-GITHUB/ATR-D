@@ -54,11 +54,14 @@ const StudentRow: React.FC<StudentRowProps> = ({
       return (student as IMUPlan).student_name;
     }
     const s = student as Student;
-    return `${s.firstName} ${s.lastName}`;
+    return `${s.first_name} ${s.last_name}`;
   };
 
   const getStudentStatus = (): string => {
-    return student.status;
+    if (isIMUPlan) {
+      return (student as IMUPlan).attendance_status || '';
+    }
+    return (student as Student).attendance_status || '';
   };
 
   const getAttendanceStats = () => {
@@ -72,9 +75,9 @@ const StudentRow: React.FC<StudentRowProps> = ({
     }
     const s = student as Student;
     return {
-      present: s.attendance.present,
-      total: s.attendance.total,
-      percentage: Math.round((s.attendance.present / s.attendance.total) * 100)
+      present: s.tasks_completed || 0,
+      total: s.total_tasks || 0,
+      percentage: s.total_tasks > 0 ? Math.round((s.tasks_completed / s.total_tasks) * 100) : 0
     };
   };
 
@@ -82,7 +85,7 @@ const StudentRow: React.FC<StudentRowProps> = ({
     if (isIMUPlan) {
       return !!(student as IMUPlan).notes;
     }
-    return (student as Student).hasRecentFeedback;
+    return !!(student as Student).notes;
   };
 
   // Statusų konvertavimas (reikalinga IMUPlan duomenims)
@@ -94,18 +97,14 @@ const StudentRow: React.FC<StudentRowProps> = ({
       if (imuPlan.attendance_status) {
         return imuPlan.attendance_status;
       }
-      // Fallback: jei attendance_status dar neegzistuoja
-      switch (status) {
-        case 'completed': return 'present';
-        case 'in_progress': return 'late';
-        case 'planned': return 'excused';
-        default: return 'present';
-      }
+      // CHANGE: Vietoj null grąžiname 'present' kaip default
+      return 'present';
     }
-    return status as AttendanceStatus;
+    // CHANGE: Vietoj null grąžiname 'present' kaip default
+    return (status as AttendanceStatus) || 'present';
   };
 
-  const convertFromAttendanceStatus = (status: AttendanceStatus): string => {
+  const convertFromAttendanceStatus = (status: AttendanceStatus): AttendanceStatus => {
     if (isIMUPlan) {
       // REFAKTORINIMAS: Dabar galime grąžinti attendance_status
       // Bet palaikome seną logiką migracijos metu
@@ -114,7 +113,7 @@ const StudentRow: React.FC<StudentRowProps> = ({
         case 'late': return 'late';        // Tiesiogiai attendance_status
         case 'absent': return 'absent';    // Tiesiogiai attendance_status
         case 'excused': return 'excused';  // Tiesiogiai attendance_status
-        default: return 'present';
+        default: return 'present';         // CHANGE: Vietoj null grąžiname 'present'
       }
     }
     return status;
@@ -124,18 +123,61 @@ const StudentRow: React.FC<StudentRowProps> = ({
   
   // Vertinimo būsenos
   const [evaluation, setEvaluation] = useState<StudentEvaluation>({
-    activity: '',
-    taskCompletion: '',
-    understanding: '',
+    student_id: getStudentId(),
+    attendance_status: isIMUPlan ? ((student as IMUPlan).attendance_status || 'present') : 'present', // CHANGE: Vietoj null naudojame 'present'
+    activity_level: 'medium',
+    task_completion: 'not_started',
+    understanding: 'good',
     notes: isIMUPlan ? ((student as IMUPlan).notes || '') : '',
-    tasks: []
+    tasks_completed: 0,
+    total_tasks: 0
   });
 
   // Lankomumo keitimo valdymas
-  const handleAttendanceChange = (status: AttendanceStatus) => {
-    setAttendance(status);
-    const finalStatus = isIMUPlan ? convertFromAttendanceStatus(status) : status;
-    onAttendanceChange(getStudentId(), finalStatus as AttendanceStatus);
+  const handleAttendanceChange = async (status: AttendanceStatus) => {
+    try {
+      // CHANGE: Iškviečiame backend API lankomumo statusui atnaujinti
+      const accessToken = localStorage.getItem('access_token');
+      if (!accessToken) {
+        console.error('Nėra autentifikacijos token\'o');
+        return;
+      }
+
+      // Ieškome IMU planą pagal studento ID ir global_schedule ID
+      if (isIMUPlan) {
+        const imuPlan = student as IMUPlan;
+        const response = await fetch(`/api/plans/imu-plans/${imuPlan.id}/update_attendance/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`
+          },
+          body: JSON.stringify({
+            attendance_status: status
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Lankomumo statusas atnaujintas:', result);
+          
+          // CHANGE: Atnaujiname local state po sėkmingo API atsakymo
+          setAttendance(status);
+          
+          // CHANGE: Iškviečiame parent callback'ą tik po sėkmingo backend'o atnaujinimo
+          // Tai užtikrina, kad frontend'o state būtų sinchronizuotas su backend'o duomenimis
+          onAttendanceChange(getStudentId(), status);
+        } else {
+          console.error('Klaida atnaujinant lankomumo statusą:', response.statusText);
+        }
+      } else {
+        // CHANGE: Jei ne IMUPlan, tiesiog atnaujiname local state
+        setAttendance(status);
+        onAttendanceChange(getStudentId(), status);
+      }
+    } catch (error) {
+      console.error('Klaida atnaujinant lankomumo statusą:', error);
+    }
   };
 
   // Vertinimo kriterijų keitimo valdymas
@@ -148,16 +190,27 @@ const StudentRow: React.FC<StudentRowProps> = ({
     }
   };
 
-  // Užduočių žymėjimo valdymas
-  const handleTaskToggle = (task: string) => {
-    const newTasks = evaluation.tasks.includes(task)
-      ? evaluation.tasks.filter(t => t !== task)
-      : [...evaluation.tasks, task];
-    
-    handleEvaluationChange('tasks', newTasks);
-  };
+  // Užduočių žymėjimo valdymas - pašalintas, nes tasks neegzistuoja StudentEvaluation tipas
+  // const handleTaskToggle = (task: string) => {
+  //   const newTasks = evaluation.tasks.includes(task)
+  //     ? evaluation.tasks.filter(t => t !== task)
+  //     : [...evaluation.tasks, task];
+  //   
+  //   handleEvaluationChange('tasks', newTasks);
+  // };
 
   const attendanceStats = getAttendanceStats();
+
+  // Lankomumo būsenos rodymas - dabar visada turi būti statusas
+  const getAttendanceDisplay = () => {
+    switch (attendance) {
+      case 'present': return 'Dalyvavo';
+      case 'absent': return 'Nedalyvavo';
+      case 'late': return 'Vėlavo';
+      case 'excused': return 'Pateisinta';
+      default: return 'Nepažymėta';
+    }
+  };
 
   return (
     <div className="border border-gray-200 rounded-lg mb-2 bg-white shadow-sm">
@@ -224,8 +277,8 @@ const StudentRow: React.FC<StudentRowProps> = ({
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Aktyvumas</label>
                 <select 
-                  value={evaluation.activity}
-                  onChange={(e) => handleEvaluationChange('activity', e.target.value as ActivityLevel)}
+                  value={evaluation.activity_level}
+                  onChange={(e) => handleEvaluationChange('activity_level', e.target.value as ActivityLevel)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Nepasirinkta</option>
@@ -237,8 +290,8 @@ const StudentRow: React.FC<StudentRowProps> = ({
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Užduočių atlikimas</label>
                 <select 
-                  value={evaluation.taskCompletion}
-                  onChange={(e) => handleEvaluationChange('taskCompletion', e.target.value as TaskCompletion)}
+                  value={evaluation.task_completion}
+                  onChange={(e) => handleEvaluationChange('task_completion', e.target.value as TaskCompletion)}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Nepasirinkta</option>

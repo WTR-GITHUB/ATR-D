@@ -4,6 +4,7 @@
 // Atsako už lankomumo būsenos vizualizavimą ir interaktyvų keitimą
 // Palaiko keturias būsenas: dalyvavo, nedalyvavo, vėlavo, pateisinta
 // CHANGE: Atnaujintos spalvos su aiškesniais skirtumais - aktyvūs: tamsūs su baltomis ikonoms, neaktyvūs: šviesūs su spalvotomis ikonoms
+// CHANGE: Pridėtas "Išvalyti" mygtukas lankomumo būsenos išvalymui (null reikšmė)
 
 'use client';
 
@@ -12,7 +13,8 @@ import {
   UserCheck, 
   UserX, 
   Clock, 
-  FileText 
+  FileText,
+  X
 } from 'lucide-react';
 import { AttendanceStatus } from '../types';
 
@@ -141,6 +143,30 @@ export const AttendanceButtonGroup: React.FC<AttendanceButtonGroupProps> = ({
   size = 'md'
 }) => {
   const statuses: AttendanceStatus[] = ['present', 'late', 'absent', 'excused'];
+
+  // Mygtuko dydžio nustatymas
+  const getSizeClasses = () => {
+    switch (size) {
+      case 'sm':
+        return 'w-6 h-6';
+      case 'lg':
+        return 'w-10 h-10';
+      default:
+        return 'w-8 h-8';
+    }
+  };
+
+  // Ikonos dydžio nustatymas
+  const getIconSize = () => {
+    switch (size) {
+      case 'sm':
+        return 12;
+      case 'lg':
+        return 20;
+      default:
+        return 16;
+    }
+  };
 
   return (
     <div className="flex space-x-2">

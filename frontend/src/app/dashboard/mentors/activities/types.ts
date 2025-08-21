@@ -1,155 +1,105 @@
 // frontend/src/app/dashboard/mentors/activities/types.ts
 
 // Veiklos modulio tipų aprašai
-// Centralizuoti tipų aprašymai, naudojami visuose Veiklos puslapio komponentuose
-// Skirta užtikrinti tipo saugumą ir kodo konsistenciją
-// CHANGE: Sukurtas centralizuotas tipų aprašų failas Veiklos moduliui
+// Šis failas centralizuojami visus TypeScript tipus, naudojamus Veiklos puslapyje
+// CHANGE: Pašalinti plan_status, started_at, completed_at iš IMUPlan interface - perkelta į GlobalSchedule
+// CHANGE: Atnaujintas AttendanceStatus tipas leisti null reikšmes - reikalinga lankomumo būsenos išvalymui
 
-// Lankomumo būsenų tipai
+// Lankomumo statusai - null leidžia išvalyti lankomumo būseną
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 
-// Mokinio duomenų struktūra
-export interface StudentAttendance {
-  present: number;
-  absent: number;
-  total: number;
-}
+// Aktyvumo lygiai
+export type ActivityLevel = 'high' | 'medium' | 'low';
 
+// Užduočių atlikimo lygiai
+export type TaskCompletion = 'completed' | 'partially' | 'not_started';
+
+// Supratimo lygiai
+export type Understanding = 'excellent' | 'good' | 'fair' | 'poor';
+
+// Mokinio duomenų tipas
 export interface Student {
   id: number;
-  firstName: string;
-  lastName: string;
-  attendance: StudentAttendance;
-  hasRecentFeedback: boolean;
-  status: AttendanceStatus;
+  first_name: string;
+  last_name: string;
+  email: string;
+  attendance_status: AttendanceStatus;
+  activity_level: ActivityLevel;
+  task_completion: TaskCompletion;
+  understanding: Understanding;
+  notes: string;
+  tasks_completed: number;
+  total_tasks: number;
 }
 
-// Dalyko duomenų struktūra
+// Dalyko informacija
 export interface Subject {
   id: number;
   name: string;
-  description: string;
+  description?: string;
 }
 
-// Periodo duomenų struktūra
-export interface Period {
-  id: number;
-  name: string;
-  starttime: string; // HH:MM formatu
-  duration: number;
-  endtime: string; // HH:MM formatu
-}
-
-// Pamokos duomenų struktūra
+// Pamokos duomenys
 export interface Lesson {
   id: number;
   title: string;
-  subject: string;
   topic: string;
-  subject_id: number;
-  time?: string;
+  subject: Subject;
+  content: string;
+  objectives: string[];
+  components: string[];
+  focus: string[];
+  skills: number[];
+  virtues: string[];
+  levels: string[];
+  slenkstinis: string;
+  bazinis: string;
+  pagrindinis: string;
+  aukstesnysis: string;
+  competency_atcheves: number[];
+  mentor: string;
   created_at: string;
+  updated_at: string;
 }
 
-// Tvarkaraščio elementas
-export interface ScheduleItem {
-  id: number;
-  date: string;
-  weekday: string;
-  period: {
-    id: number;
-    name: string;
-    starttime: string;
-    endtime: string;
-  };
-  classroom: {
-    id: number;
-    name: string;
-    description: string;
-  };
-  subject: {
-    id: number;
-    name: string;
-    description: string;
-  };
-  level: {
-    id: number;
-    name: string;
-    description: string;
-  };
-  user: {
-    id: number;
-    first_name: string;
-    last_name: string;
-    email: string;
-  };
-}
-
-// Vertinimo kriterijų tipai
-export type ActivityLevel = 'high' | 'medium' | 'low' | '';
-export type TaskCompletion = 'completed' | 'partial' | 'not_completed' | '';
-export type Understanding = 'excellent' | 'good' | 'needs_help' | '';
-
-// Mokinio vertinimo duomenys
+// Mokinio vertinimo tipas
 export interface StudentEvaluation {
-  activity: ActivityLevel;
-  taskCompletion: TaskCompletion;
+  student_id: number;
+  attendance_status: AttendanceStatus;
+  activity_level: ActivityLevel;
+  task_completion: TaskCompletion;
   understanding: Understanding;
   notes: string;
-  tasks: string[];
+  tasks_completed: number;
+  total_tasks: number;
 }
 
-// Filtravimo ir rūšiavimo tipai
-export type SortBy = 'name' | 'attendance' | 'recent';
+// Lankomumo statistikos tipas
+export interface AttendanceStats {
+  total_students: number;
+  present_count: number;
+  absent_count: number;
+  late_count: number;
+  excused_count: number;
+  attendance_percentage: number;
+}
+
+// Veiklos statistikos tipas
+export interface PerformanceStats {
+  high_activity_count: number;
+  medium_activity_count: number;
+  low_activity_count: number;
+  completed_tasks_count: number;
+  excellent_understanding_count: number;
+  needs_attention_count: number;
+}
+
+// Filtravimo tipai
 export type FilterBy = 'all' | 'present' | 'absent' | 'late' | 'excused';
 
-// Statistikos duomenų struktūros
-export interface AttendanceStats {
-  total: number;
-  present: number;
-  absent: number;
-  late: number;
-  excused: number;
-  attendanceRate: number;
-}
-
-export interface PerformanceStats {
-  highPerformers: number;
-  needsAttention: number;
-  averageAttendance: number;
-  totalFeedback: number;
-}
-
-// API atsakymų tipai (ateičiai)
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
-// Pamokos sesijos duomenys
-export interface LessonSession {
-  id: string;
-  lessonId: number;
-  date: string;
-  startTime: string;
-  endTime?: string;
-  studentEvaluations: Record<number, StudentEvaluation>;
-  notes: string;
-  status: 'planned' | 'active' | 'completed' | 'cancelled';
-}
-
-// Formos būsenų tipai
-export interface LessonSelectorState {
-  selectedDate: string;
-  selectedSubject: Subject;
-  selectedLesson: Lesson | null;
-}
-
+// Mokinių sąrašo būsena
 export interface StudentsListState {
-  searchTerm: string;
-  sortBy: SortBy;
+  searchQuery: string;
   filterBy: FilterBy;
   showFilters: boolean;
 }
@@ -191,40 +141,50 @@ export interface IMUPlan {
   lesson_title: string | null;
   lesson_subject: string | null;
   
-  // REFAKTORINIMAS: Dabar turime atskirus statusų laukus
-  plan_status: 'planned' | 'in_progress' | 'completed';
-  plan_status_display: string;
+  // REFAKTORINIMAS: Lankomumo statusas paliekamas IMUPlan
   attendance_status: AttendanceStatus;
   attendance_status_display: string;
   
-  // Laikinai paliekame senus laukus migracijos metu
-  status: 'planned' | 'in_progress' | 'completed' | AttendanceStatus;
-  status_display: string;
-  
-  started_at?: string;
-  completed_at?: string;
   notes: string;
   created_at: string;
   updated_at: string;
-  global_schedule_date: string;
-  global_schedule_time: string;
-  global_schedule_classroom: string;
 }
 
-// Pasirinktos pamokos būsena
-export interface SelectedLessonState {
-  globalScheduleId: number | null;
-  lessonDetails: LessonDetails | null; // Pagrindines pamokos detalės (jei yra)
-  allLessonsDetails: LessonDetails[]; // Visų pamokų detalės
-  imuPlans: IMUPlan[];
-  isLoading: boolean;
-  error: string | null;
+// Globalaus tvarkaraščio duomenys
+export interface GlobalSchedule {
+  id: number;
+  date: string;
+  weekday: string;
+  period: {
+    id: number;
+    name: string;
+    starttime: string;
+    endtime: string;
+  };
+  classroom: {
+    id: number;
+    name: string;
+    description: string;
+  };
+  subject: {
+    id: number;
+    name: string;
+    description: string;
+  };
+  level: {
+    id: number;
+    name: string;
+    description: string;
+  };
+  user: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+  // REFAKTORINIMAS: Pridėti planų valdymo laukai
+  plan_status: 'planned' | 'in_progress' | 'completed';
+  plan_status_display: string;
+  started_at?: string;
+  completed_at?: string;
 }
-
-// Callback funkcijų tipai
-export type AttendanceChangeHandler = (studentId: number, status: AttendanceStatus) => void;
-export type EvaluationChangeHandler = (studentId: number, evaluation: StudentEvaluation) => void;
-export type DateChangeHandler = (date: string) => void;
-export type SubjectChangeHandler = (subject: Subject) => void;
-export type LessonChangeHandler = (lesson: Lesson | null) => void;
-export type ScheduleItemSelectHandler = (item: ScheduleItem | null) => void;
