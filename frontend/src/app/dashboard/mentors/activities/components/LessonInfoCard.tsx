@@ -13,8 +13,6 @@ import {
   Zap, 
   Award,
   Users,
-  Search,
-  Filter,
   Focus
 } from 'lucide-react';
 import { LessonDetails, IMUPlan } from '../types';
@@ -230,6 +228,11 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
           </div>
         )}
 
+        {/* CHANGE: Pridėtas tarpas tarp mokomosios medžiagos ir mokinių sąrašo */}
+        {lesson.content && studentsForThisLesson.length > 0 && (
+          <div className="mt-12"></div>
+        )}
+
         {/* 5. Mokinių sąrašas su antrašte ir statistikomis */}
         {studentsForThisLesson.length > 0 && (
           <div>
@@ -242,31 +245,12 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
                       Mokinių sąrašas
                     </h3>
                     <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
-                      <span>Iš viso: {studentsForThisLesson.length}</span>
-                      {/* REFAKTORINIMAS: Dabar naudojame attendance_status tiesiogiai su null reikšmių apdorojimu */}
                       <span className="text-green-600">Dalyvavo: {studentsForThisLesson.filter(s => s.attendance_status === 'present').length}</span>
                       <span className="text-red-600">Nedalyvavo: {studentsForThisLesson.filter(s => s.attendance_status === 'absent').length}</span>
-                      <span className="text-gray-600">Nepažymėta: {studentsForThisLesson.filter(s => s.attendance_status === null || s.attendance_status === undefined).length}</span>
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-3">
-                    {/* Paieškos laukas */}
-                    <div className="relative">
-                      <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="text"
-                        placeholder="Ieškoti mokinio..."
-                        className="pl-9 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
-                      />
-                    </div>
-
-                    {/* Filtrų mygtukas */}
-                    <button className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50 transition-colors">
-                      <Filter size={16} />
-                      <span>Filtrai</span>
-                    </button>
-
                     {/* Pridėti mokinio mygtukas */}
                     <button className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
                       <span>+ Pridėti mokinį</span>

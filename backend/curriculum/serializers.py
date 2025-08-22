@@ -166,9 +166,9 @@ class LessonSerializer(serializers.ModelSerializer):
         return []
 
     def get_skills_list(self, obj):
-        # CHANGE: Grąžiname gebėjimų pavadinimus vietoj ID
-        # Dabar frontend'e bus rodomi tikrieji gebėjimų pavadinimai
-        return [skill.name for skill in obj.skills.all()]
+        # CHANGE: Grąžiname gebėjimų ID vietoj pavadinimų
+        # Frontend'e MultiSelect komponentas tikisi gauti ID masyvą
+        return [skill.id for skill in obj.skills.all()]
 
     def get_virtues_names(self, obj):
         return [virtue.name for virtue in obj.virtues.all()]

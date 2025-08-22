@@ -10,15 +10,12 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, MessageSquare, User } from 'lucide-react';
 import { AttendanceButtonGroup } from './AttendanceMarker';
-import { 
-  Student, 
+import {
+  Student,
   IMUPlan,
-  AttendanceStatus, 
-  StudentEvaluation, 
-  ActivityLevel, 
-  TaskCompletion, 
-  Understanding 
+  AttendanceStatus
 } from '../types';
+import GradeSelector from './GradeSelector';
 
 // Tipas, kuris gali priimti abu duomenų tipus
 type StudentData = Student | IMUPlan;
@@ -26,7 +23,6 @@ type StudentData = Student | IMUPlan;
 interface StudentRowProps {
   student: StudentData;
   onAttendanceChange: (studentId: number, status: AttendanceStatus) => void;
-  onEvaluationChange?: (studentId: number, evaluation: StudentEvaluation) => void;
   // Naujas prop nustatyti, ar tai IMUPlan duomenys
   isIMUPlan?: boolean;
 }
@@ -36,7 +32,6 @@ interface StudentRowProps {
 const StudentRow: React.FC<StudentRowProps> = ({ 
   student, 
   onAttendanceChange,
-  onEvaluationChange,
   isIMUPlan = false
 }) => {
   const [expanded, setExpanded] = useState(false);
@@ -121,17 +116,7 @@ const StudentRow: React.FC<StudentRowProps> = ({
 
   const [attendance, setAttendance] = useState<AttendanceStatus>(convertToAttendanceStatus(getStudentStatus()));
   
-  // Vertinimo būsenos
-  const [evaluation, setEvaluation] = useState<StudentEvaluation>({
-    student_id: getStudentId(),
-    attendance_status: isIMUPlan ? ((student as IMUPlan).attendance_status || 'present') : 'present', // CHANGE: Vietoj null naudojame 'present'
-    activity_level: 'medium',
-    task_completion: 'not_started',
-    understanding: 'good',
-    notes: isIMUPlan ? ((student as IMUPlan).notes || '') : '',
-    tasks_completed: 0,
-    total_tasks: 0
-  });
+
 
   // Lankomumo keitimo valdymas
   const handleAttendanceChange = async (status: AttendanceStatus) => {
@@ -180,15 +165,7 @@ const StudentRow: React.FC<StudentRowProps> = ({
     }
   };
 
-  // Vertinimo kriterijų keitimo valdymas
-  const handleEvaluationChange = (field: keyof StudentEvaluation, value: any) => {
-    const newEvaluation = { ...evaluation, [field]: value };
-    setEvaluation(newEvaluation);
-    
-    if (onEvaluationChange) {
-      onEvaluationChange(getStudentId(), newEvaluation);
-    }
-  };
+
 
   // Užduočių žymėjimo valdymas - pašalintas, nes tasks neegzistuoja StudentEvaluation tipas
   // const handleTaskToggle = (task: string) => {
@@ -268,67 +245,28 @@ const StudentRow: React.FC<StudentRowProps> = ({
         </div>
       </div>
 
-      {/* Išplėsta sekcija - tiksliai pagal paveiksliuko stilių */}
-      {expanded && (
-        <div className="px-4 pb-4 border-t border-gray-100 bg-gray-50">
-          <div className="pt-4 space-y-4">
-            {/* Vertinimo kriterijai - tiksliai pagal paveiksliuką */}
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Aktyvumas</label>
-                <select 
-                  value={evaluation.activity_level}
-                  onChange={(e) => handleEvaluationChange('activity_level', e.target.value as ActivityLevel)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Nepasirinkta</option>
-                  <option value="high">Aukštas</option>
-                  <option value="medium">Vidutinis</option>
-                  <option value="low">Žemas</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Užduočių atlikimas</label>
-                <select 
-                  value={evaluation.task_completion}
-                  onChange={(e) => handleEvaluationChange('task_completion', e.target.value as TaskCompletion)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Nepasirinkta</option>
-                  <option value="completed">Atlikta</option>
-                  <option value="partial">Dalinai atlikta</option>
-                  <option value="not_completed">Neatlikta</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Supratimas</label>
-                <select 
-                  value={evaluation.understanding}
-                  onChange={(e) => handleEvaluationChange('understanding', e.target.value as Understanding)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Nepasirinkta</option>
-                  <option value="excellent">Puikus</option>
-                  <option value="good">Geras</option>
-                  <option value="needs_help">Reikia pagalbos</option>
-                </select>
+                {/* CHANGE: Pridėtas GradeSelector komponentas išplėstoje sekcijoje */}
+          {expanded && (
+            <div className="px-4 pb-4 border-t border-gray-100 bg-gray-50">
+              <div className="pt-4">
+                                  <GradeSelector
+                    currentGrade={null} // TODO: Pridėti esamo vertinimo gavimą
+                    onGradeChange={(grade) => {
+                      console.log('Vertinimas pakeistas:', grade);
+                      // TODO: Atnaujinti būseną ir išsaugoti
+                    }}
+                    studentId={getStudentId()} // Naudojame pagalbinę funkciją, kuri grąžina teisingą studento ID
+                    lessonId={'lesson' in student ? student.lesson || 1 : 1} // Tikriname ar yra lesson laukas
+                    imuPlanId={isIMUPlan ? student.id : undefined} // IMU plan ID yra student.id
+                    mentorId={82} // Jūsų ID kaip mentorius
+                  />
+                  {/* CHANGE: Pridėtas debug informacijos rodymas */}
+                  <div className="mt-2 p-2 bg-gray-100 rounded text-xs text-gray-600">
+                    <p>Debug: Student ID: {getStudentId()}, Lesson ID: {'lesson' in student ? student.lesson || 1 : 1}, Mentor ID: 82</p>
+                  </div>
               </div>
             </div>
-
-            {/* Pastabos */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Pastabos</label>
-              <textarea
-                value={evaluation.notes}
-                onChange={(e) => handleEvaluationChange('notes', e.target.value)}
-                placeholder="Įrašykite pastabas apie mokinio dalyvavimą pamokoje..."
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                rows={3}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+          )}
     </div>
   );
 };

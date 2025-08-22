@@ -239,9 +239,59 @@ export default function EditLessonPage() {
       return;
     }
     
+    if (!formData.title || formData.title.trim() === '') {
+      alert('Prašome įvesti pamokos pavadinimą');
+      return;
+    }
+    
+    // Validate arrays - ensure they are not null/undefined
+    if (!Array.isArray(formData.skills)) {
+      console.error('Skills is not an array:', formData.skills);
+      alert('Klaida: gebėjimų duomenys neteisingi');
+      return;
+    }
+    
+    if (!Array.isArray(formData.virtues)) {
+      console.error('Virtues is not an array:', formData.virtues);
+      alert('Klaida: dorybių duomenys neteisingi');
+      return;
+    }
+    
+    if (!Array.isArray(formData.levels)) {
+      console.error('Levels is not an array:', formData.levels);
+      alert('Klaida: lygių duomenys neteisingi');
+      return;
+    }
+    
+    if (!Array.isArray(formData.competency_atcheve)) {
+      console.error('Competency atcheve is not an array:', formData.competency_atcheve);
+      alert('Klaida: kompetencijų duomenys neteisingi');
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
+      // Clean and prepare lesson data
+      const cleanArray = (arr: any[]) => {
+        if (!Array.isArray(arr)) return [];
+        return arr.filter(item => item != null && item !== '' && item !== undefined);
+      };
+      
+      const validateAndParseIds = (arr: any[], fieldName: string) => {
+        const cleaned = cleanArray(arr);
+        const parsed = cleaned.map(id => {
+          const parsedId = parseInt(id);
+          if (isNaN(parsedId) || parsedId <= 0) {
+            console.error(`Invalid ID in ${fieldName}:`, id);
+            return null;
+          }
+          return parsedId;
+        }).filter(id => id !== null);
+        
+        return parsed;
+      };
+      
       // Prepare lesson data
       const lessonData = {
         title: formData.title,
@@ -254,10 +304,10 @@ export default function EditLessonPage() {
         bazinis: formData.bazinis,
         pagrindinis: formData.pagrindinis,
         aukstesnysis: formData.aukstesnysis,
-        skills: formData.skills.map(id => parseInt(id)),
-        competency_atcheves: formData.competency_atcheve?.map((id: any) => parseInt(id)) || [],
-        virtues: formData.virtues.map(id => parseInt(id)),
-        levels: formData.levels.map(id => parseInt(id)),
+        skills: validateAndParseIds(formData.skills, 'skills'),
+        competency_atcheves: validateAndParseIds(formData.competency_atcheve, 'competency_atcheve'),
+        virtues: validateAndParseIds(formData.virtues, 'virtues'),
+        levels: validateAndParseIds(formData.levels, 'levels'),
         focus: JSON.stringify(formData.focus)
       };
       
@@ -270,7 +320,24 @@ export default function EditLessonPage() {
       console.error('Error response:', error.response?.data);
       console.error('Error status:', error.response?.status);
       console.error('Error message:', error.message);
-      alert('Nepavyko atnaujinti pamokos');
+      
+      // Show more detailed error information
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        console.error('Detailed error data:', errorData);
+        
+        // Check for specific field errors
+        if (errorData.skills) {
+          console.error('Skills error:', errorData.skills);
+          alert(`Klaida su gebėjimais: ${JSON.stringify(errorData.skills)}`);
+        } else if (errorData.non_field_errors) {
+          alert(`Bendroji klaida: ${errorData.non_field_errors.join(', ')}`);
+        } else {
+          alert(`Nepavyko atnaujinti pamokos. Klaida: ${JSON.stringify(errorData)}`);
+        }
+      } else {
+        alert('Nepavyko atnaujinti pamokos');
+      }
     } finally {
       setIsLoading(false);
     }
