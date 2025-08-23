@@ -348,15 +348,17 @@ class LessonSequenceViewSet(viewsets.ModelViewSet):
             # Check existing IMUPlan
             existing = existing_plans_dict.get(schedule.id)
             
-            if existing and existing.attendance_status != 'present':
+            # CHANGE: Tikriname GlobalSchedule plan_status vietoj IMUPlan attendance_status
+            # Pamoka negali būti perrašyta, jei planas jau vyksta arba baigtas
+            if existing and existing.global_schedule.plan_status != 'planned':
                 result['skipped'] += 1
                 result['skipped_details'].append({
                     'date': schedule.date.strftime('%Y-%m-%d'),
                     'period_info': f"{schedule.period.name or f'{schedule.period.id} pamoka'} ({schedule.period.starttime.strftime('%H:%M')}-{schedule.period.endtime.strftime('%H:%M')})",
                     'subject': schedule.subject.name,
-                    'reason': f"Attendance status '{existing.get_attendance_status_display() if existing.attendance_status else 'Nepažymėta'}' - cannot overwrite"
+                    'reason': f"Plan status '{existing.global_schedule.get_plan_status_display()}' - cannot overwrite"
                 })
-                logger.info(f"  SKIPPED: {schedule.date} - attendance status {existing.attendance_status}")
+                logger.info(f"  SKIPPED: {schedule.date} - plan status {existing.global_schedule.plan_status}")
                 continue
             
             # Assign lesson or null

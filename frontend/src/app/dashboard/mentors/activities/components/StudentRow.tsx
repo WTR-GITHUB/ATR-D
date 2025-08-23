@@ -18,6 +18,7 @@ import {
 } from '../types';
 import GradeSelector from './GradeSelector';
 import useGrades from '@/hooks/useGrades';
+import { useAuth } from '@/hooks/useAuth';
 
 // Tipas, kuris gali priimti abu duomenų tipus
 type StudentData = Student | IMUPlan;
@@ -44,6 +45,9 @@ const StudentRow: React.FC<StudentRowProps> = ({
   
   // CHANGE: Naudojame useGrades hook'ą esamo vertinimo gavimui
   const { getStudentGrade, isLoading: gradeLoading, error: gradeError } = useGrades();
+  
+  // CHANGE: Gaunome prisijungusio vartotojo duomenis mentorId nustatymui
+  const { user } = useAuth();
   
   // CHANGE: Apskaičiuojame lessonId komponento lygyje
   const getLessonId = (): number => {
@@ -284,7 +288,7 @@ const StudentRow: React.FC<StudentRowProps> = ({
               studentId={getStudentId()}
                                     lessonId={getLessonId()} // CHANGE: Naudojame apskaičiuotą lessonId
               imuPlanId={isIMUPlan ? student.id : undefined}
-              mentorId={82}
+              mentorId={user?.id || 82} // CHANGE: Naudojame tikrojo prisijungusio vartotojo ID, fallback 82
             />
           </div>
         </div>

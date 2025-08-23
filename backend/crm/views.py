@@ -1,6 +1,6 @@
 # /backend/crm/views.py
 from rest_framework import viewsets, status
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -31,14 +31,18 @@ class StudentParentViewSet(viewsets.ModelViewSet):
     """
     queryset = StudentParent.objects.all()
     serializer_class = StudentParentSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    # CHANGE: Pašalintas IsAdminUser permission, kad tėvai ir studentai galėtų pasiekti savo duomenis
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        # CHANGE: Jei vartotojas yra tėvas, grąžinti tik jo vaikus
+        # Jei vartotojas yra studentas, grąžinti tik jo tėvus
+        # Jei ne vienas iš jų, grąžinti tuščią queryset
         if self.request.user.has_role('parent'):
             return StudentParent.objects.filter(parent=self.request.user)
         elif self.request.user.has_role('student'):
             return StudentParent.objects.filter(student=self.request.user)
-        return super().get_queryset()
+        return StudentParent.objects.none()
 
 class StudentCuratorViewSet(viewsets.ModelViewSet):
     """
@@ -46,14 +50,18 @@ class StudentCuratorViewSet(viewsets.ModelViewSet):
     """
     queryset = StudentCurator.objects.all()
     serializer_class = StudentCuratorSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    # CHANGE: Pašalintas IsAdminUser permission, kad kuratoriai galėtų pasiekti savo duomenis
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        # CHANGE: Jei vartotojas yra kuratorius, grąžinti tik jo studentus
+        # Jei vartotojas yra studentas, grąžinti tik jo kuratorius
+        # Jei ne vienas iš jų, grąžinti tuščią queryset
         if self.request.user.has_role('curator'):
             return StudentCurator.objects.filter(curator=self.request.user)
         elif self.request.user.has_role('student'):
             return StudentCurator.objects.filter(student=self.request.user)
-        return super().get_queryset()
+        return StudentCurator.objects.none()
 
 class StudentSubjectLevelViewSet(viewsets.ModelViewSet):
     """
@@ -61,16 +69,29 @@ class StudentSubjectLevelViewSet(viewsets.ModelViewSet):
     """
     queryset = StudentSubjectLevel.objects.all()
     serializer_class = StudentSubjectLevelSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    # CHANGE: Pašalintas IsAdminUser permission, kad mentoriai ir kuratoriai galėtų pasiekti studentų duomenis
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        # CHANGE: Jei vartotojas yra studentas, grąžinti tik jo dalykus
+        # Jei vartotojas yra mentorius arba kuratorius, grąžinti visus studentų dalykus (tam tikriems endpoint'ams)
+        # Jei ne vienas iš jų, grąžinti tuščią queryset
         if self.request.user.has_role('student'):
             return StudentSubjectLevel.objects.filter(student=self.request.user)
-        return super().get_queryset()
+        elif self.request.user.has_role('mentor') or self.request.user.has_role('curator'):
+            return StudentSubjectLevel.objects.all()
+        return StudentSubjectLevel.objects.none()
 
     @action(detail=False, methods=['get'])
     def students_by_subject_level(self, request):
         """Grąžina studentus pagal dalyką ir lygį ugdymo planų priskyrimui"""
+        # CHANGE: Patikriname, ar vartotojas turi teises pasiekti šį endpoint'ą
+        if not (request.user.has_role('mentor') or request.user.has_role('curator')):
+            return Response(
+                {'error': 'Tik mentoriai ir kuratoriai gali matyti studentų sąrašą'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         subject_id = request.query_params.get('subject')
         level_id = request.query_params.get('level')
         
@@ -114,12 +135,15 @@ class MentorSubjectViewSet(viewsets.ModelViewSet):
     """
     queryset = MentorSubject.objects.all()
     serializer_class = MentorSubjectSerializer
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    # CHANGE: Pašalintas IsAdminUser permission, kad mentoriai galėtų pasiekti savo dalykus
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        # CHANGE: Jei vartotojas yra mentorius, grąžinti tik jo dalykus
+        # Jei ne mentorius, grąžinti tuščią queryset
         if self.request.user.has_role('mentor'):
             return MentorSubject.objects.filter(mentor=self.request.user)
-        return super().get_queryset()
+        return MentorSubject.objects.none()
 
     @action(detail=False, methods=['get'])
     def my_subjects(self, request):
