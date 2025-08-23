@@ -55,6 +55,15 @@ Frontend implemented with:
 - **Axios** HTTP client for backend communication
 - Automatic API proxying: `/api/:path*` → `http://localhost:8000/api/:path*`
 
+#### Static Assets Organization
+
+Static assets are organized in `frontend/public/` directory with structured subdirectories:
+- `images/logos/` - logos and brand assets
+- `images/icons/` - icons (SVG, PNG, ICO)
+- `images/backgrounds/` - background images
+- `images/avatars/` - profile pictures
+- All assets are automatically accessible from root URL (e.g., `/images/icons/globe.svg`)
+
 ### Functionality Spectrum
 
 Documented in README.md and FILE_STRUCTURE.md, functionality includes:
@@ -494,3 +503,42 @@ This includes:
 ```
 
 **Purpose:** Centralizes all project documentation in one location for easy access and maintenance.
+
+### STATIC ASSETS ORGANIZATION RULES
+
+**When working with static assets (images, icons, logos, etc.), ALWAYS FOLLOW:**
+
+1. **Directory Structure:** Use organized subdirectories in `frontend/public/images/`
+   ```
+   frontend/public/images/
+   ├── logos/        # Logos and brand assets
+   ├── icons/        # Icons (SVG, PNG, ICO)
+   ├── backgrounds/  # Background images
+   └── avatars/      # Profile pictures
+   ```
+
+2. **File Naming:** Use descriptive, lowercase names with hyphens
+   ```
+   user-profile-icon.svg
+   company-logo.png
+   login-background.jpg
+   ```
+
+3. **File Formats:** Choose appropriate formats
+   - **Icons:** SVG (preferred), PNG (with transparency), ICO (Windows)
+   - **Logos:** PNG (with transparency), SVG (vector versions)
+   - **Photos:** JPG, WebP (modern), PNG (with transparency)
+   - **Backgrounds:** JPG, WebP, PNG (with transparency)
+
+4. **Access Pattern:** All assets are automatically accessible from root URL
+   ```tsx
+   // Access from /images/icons/globe.svg
+   <img src="/images/icons/globe.svg" alt="Globe icon" />
+   
+   // Use Next.js Image component for optimization
+   <Image src="/images/backgrounds/login-bg.jpg" alt="Login background" />
+   ```
+
+5. **Documentation:** Update `frontend/public/images/README.md` when adding new asset types or changing structure
+
+**Purpose:** Maintains organized, accessible, and optimized static asset management for consistent UI/UX across the application.

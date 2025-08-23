@@ -1,11 +1,16 @@
 // frontend/src/components/layout/Header.tsx
+
+// Header komponentas - pagrindinė navigacijos juosta
+// Rodo logo, navigacijos meniu ir vartotojo informaciją
+// CHANGE: Pridėtas User dropdown meniu su Nustatymai ir Logout opcijomis
+
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/ui/Button';
-import { User, LogOut, Menu } from 'lucide-react';
+import { User, LogOut, Menu, Settings, ChevronDown } from 'lucide-react';
 
 // Funkcija rolių pavadinimams gauti
 const getRoleDisplayName = (role: string): string => {
@@ -43,10 +48,27 @@ const hasRole = (roles: string[] | null | undefined, role: string): boolean => {
 
 const Header: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = () => {
     logout();
+    setIsDropdownOpen(false);
   };
+
+  // Uždaryti dropdown, kai paspaudžiama už jo ribų
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
@@ -147,24 +169,44 @@ const Header: React.FC = () => {
           {/* User menu */}
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center space-x-2">
+              <div className="relative" ref={dropdownRef}>
+                {/* User dropdown trigger */}
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-100 transition-colors"
+                >
                   <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                     <User className="w-4 h-4 text-gray-600" />
                   </div>
                   <span className="text-sm text-gray-700">
                     {user?.first_name} {user?.last_name}
                   </span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="flex items-center space-x-1"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Logout</span>
-                </Button>
+                  <ChevronDown className={`w-4 h-4 text-gray-600 transition-transform ${
+                    isDropdownOpen ? 'rotate-180' : ''
+                  }`} />
+                </button>
+
+                {/* Dropdown menu */}
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                    <Link
+                      href="/dashboard/settings"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>Nustatymai</span>
+                    </Link>
+                    
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex items-center space-x-3">

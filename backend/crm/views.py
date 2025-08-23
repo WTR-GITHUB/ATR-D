@@ -3,9 +3,8 @@ from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, action
-from rest_framework_simplejwt.views import TokenObtainPairView
+
 from .serializers import (
-    CustomTokenObtainPairSerializer,
     StudentParentSerializer,
     StudentCuratorSerializer,
     StudentSubjectLevelSerializer,
@@ -18,11 +17,7 @@ from .models import (
     MentorSubject
 )
 
-class CustomTokenObtainPairView(TokenObtainPairView):
-    """
-    JWT token gavimo view - valdo prisijungimo procesą
-    """
-    serializer_class = CustomTokenObtainPairSerializer
+
 
 # Relationship Views
 class StudentParentViewSet(viewsets.ModelViewSet):

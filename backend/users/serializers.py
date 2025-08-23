@@ -1,9 +1,14 @@
 # backend/users/serializers.py
+
+# User management serializers for A-DIENYNAS system
+# Defines serializers for user registration, authentication, and profile management
+# CHANGE: Atkurtas teisingas CustomTokenObtainPairSerializer, kuris paveldi iš TokenObtainPairSerializer
+
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth.password_validation import validate_password
 from .models import User
 
-# Authentication Serializers
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
     JWT token serializeris - sukuria prisijungimo tokenus su papildoma informacija
@@ -19,38 +24,32 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     """
-    Vartotojų serializatorius - valdo vartotojų duomenų serializavimą
+    User serializer for CRUD operations
     """
     class Meta:
         model = User
-        fields = [
-            'id', 'first_name', 'last_name', 'email', 'birth_date', 
-            'phone_number', 'roles', 'contract_number', 'is_active', 
-            'date_joined', 'last_login'
-        ]
-        read_only_fields = ['id', 'date_joined', 'last_login']
-        extra_kwargs = {
-            'password': {'write_only': True}
-        }
+        fields = ['id', 'email', 'first_name', 'last_name', 'roles', 'is_active', 'date_joined']
+        read_only_fields = ['id', 'date_joined']
 
-    def create(self, validated_data):
-        """
-        Sukuria naują vartotoją su užšifruotu slaptažodžiu
-        """
-        password = validated_data.pop('password', None)
-        user = User.objects.create_user(**validated_data)
-        if password:
-            user.set_password(password)
-            user.save()
-        return user
+class ChangePasswordSerializer(serializers.Serializer):
+    """
+    Serializer for password change functionality
+    """
+    old_password = serializers.CharField(required=True, style={'input_type': 'password'})
+    new_password = serializers.CharField(required=True, style={'input_type': 'password'})
 
-    def update(self, instance, validated_data):
-        """
-        Atnaujina vartotojo duomenis
-        """
-        password = validated_data.pop('password', None)
-        user = super().update(instance, validated_data)
-        if password:
-            user.set_password(password)
-            user.save()
+    def validate_old_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError('Neteisingas senas slaptažodis.')
+        return value
+
+    def validate_new_password(self, value):
+        validate_password(value, self.context['request'].user)
+        return value
+
+    def save(self):
+        user = self.context['request'].user
+        user.set_password(self.validated_data['new_password'])
+        user.save()
         return user 

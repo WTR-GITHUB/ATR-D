@@ -208,11 +208,18 @@ frontend/
 ### Public aplankas (Statiniai failai)
 ```
 frontend/public/
-├── 🎯 file.svg                   # Failo ikonos SVG grafika
-├── 🌐 globe.svg                  # Globuso ikonos SVG grafika
-├── ▶️ next.svg                   # Next.js logotipo SVG grafika
-├── ✅ vercel.svg                 # Vercel platformos logotipo SVG
-├── 🪟 window.svg                 # Lango ikonos SVG grafika
+├── 📁 images/                    # Paveikslėlių organizavimas
+│   ├── 📁 logos/                 # Logotipai ir prekės ženklai
+│   ├── 📁 icons/                 # Ikonos (SVG, PNG, ICO)
+│   │   ├── 🎯 file.svg           # Failo ikonos SVG grafika
+│   │   ├── 🌐 globe.svg          # Globuso ikonos SVG grafika
+│   │   ├── ▶️ next.svg           # Next.js logotipo SVG grafika
+│   │   ├── ✅ vercel.svg         # Vercel platformos logotipo SVG
+│   │   └── 🪟 window.svg         # Lango ikonos SVG grafika
+│   ├── 📁 backgrounds/           # Fono paveikslėliai
+│   ├── 📁 avatars/               # Profilių nuotraukos
+│   ├── 📄 README.md              # Statinių failų organizavimo dokumentacija
+│   └── 📄 example-usage.md       # Statinių failų naudojimo pavyzdžiai
 ├── 📊 dataTables.js              # DataTables biblioteka lentelių funkcionalumui
 └── 📚 jquery-3.7.1.js           # jQuery biblioteka DOM manipuliacijoms
 ```

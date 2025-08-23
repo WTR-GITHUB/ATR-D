@@ -2,11 +2,11 @@
 from django.shortcuts import render
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import User
-from .serializers import UserSerializer, CustomTokenObtainPairSerializer
+from .serializers import UserSerializer, CustomTokenObtainPairSerializer, ChangePasswordSerializer
 
 # Create your views here.
 
@@ -48,3 +48,31 @@ class UserViewSet(viewsets.ModelViewSet):
         else:
             # Grąžinti tik savo duomenis
             return User.objects.filter(id=self.request.user.id)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def change_password(self, request, pk=None):
+        """
+        Slaptažodžio keitimo endpoint'as
+        CHANGE: Pridėtas pk parametras ir saugumo patikra, kad vartotojas keistų tik savo slaptažodį
+        CHANGE: Pašalinti debug console log'ai
+        """
+        # Saugumo patikra - vartotojas gali keisti tik savo slaptažodį
+        if str(pk) != str(request.user.id):
+            return Response({
+                'success': False,
+                'message': 'Galite keisti tik savo slaptažodį'
+            }, status=403)
+        
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response({
+                'success': True,
+                'message': 'Slaptažodis sėkmingai pakeistas!'
+            })
+        return Response({
+            'success': False,
+            'message': 'Klaida keičiant slaptažodį',
+            'errors': serializer.errors
+        }, status=400)

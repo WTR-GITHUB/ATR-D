@@ -1,27 +1,17 @@
 # /backend/crm/serializers.py
+
+# CRM serializers for A-DIENYNAS system
+# Defines serializers for student-parent, student-curator, and mentor-subject relationships
+# CHANGE: Pašalintas duplikatinis CustomTokenObtainPairSerializer, kad nė būtų konfliktų
+
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import (
     StudentParent,
     StudentCurator,
     StudentSubjectLevel,
     MentorSubject
 )
-
-# Authentication Serializers
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """
-    JWT token serializeris - sukuria prisijungimo tokenus su papildoma informacija
-    """
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-        # Add custom claims
-        token['email'] = user.email
-        token['roles'] = user.roles
-        token['full_name'] = f"{user.first_name} {user.last_name}"
-        return token
 
 # Relationship Serializers
 class StudentParentSerializer(serializers.ModelSerializer):
