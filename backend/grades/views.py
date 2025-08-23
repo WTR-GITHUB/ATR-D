@@ -91,6 +91,11 @@ class GradeViewSet(viewsets.ModelViewSet):
         if mentor_id:
             queryset = queryset.filter(mentor_id=mentor_id)
         
+        # CHANGE: Pridėtas IMU plan filtravimas
+        imu_plan_id = self.request.query_params.get('imu_plan')
+        if imu_plan_id:
+            queryset = queryset.filter(imu_plan_id=imu_plan_id)
+        
         # Filtravimas pagal pasiekimų lygį
         achievement_level = self.request.query_params.get('achievement_level')
         if achievement_level:
@@ -101,9 +106,14 @@ class GradeViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         """
         Pasirenkame serializer pagal veiksmą
-        CHANGE: Optimizuotas serializer sąrašo rodymui
+        CHANGE: Optimizuotas serializer sąrašo rodymui, bet pilnas serializer kai reikia detalių
         """
-        if self.action == 'list':
+        # CHANGE: Jei užklausa turi specifius parametrus (ieškoma konkretaus vertinimo), naudojame pilną serializer
+        if self.action == 'list' and not any([
+            self.request.query_params.get('student'),
+            self.request.query_params.get('lesson'), 
+            self.request.query_params.get('imu_plan')
+        ]):
             return GradeListSerializer
         return GradeSerializer
     
@@ -280,5 +290,80 @@ class GradeViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response(
                 {'error': f'Klaida perskaičiuojant: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'])
+    def get_or_create(self, request):
+        """
+        Gauna esamą vertinimą arba sukuria naują
+        POST /api/grades/grades/get_or_create/
+        CHANGE: Pridėtas get_or_create funkcionalumas esamų įrašų atnaujinimui
+        """
+        try:
+            student_id = request.data.get('student')
+            lesson_id = request.data.get('lesson')
+            mentor_id = request.data.get('mentor')
+            percentage = request.data.get('percentage')
+            imu_plan_id = request.data.get('imu_plan')
+            notes = request.data.get('notes', '')
+            
+            if not all([student_id, lesson_id, mentor_id, percentage]):
+                return Response(
+                    {'error': 'Trūksta privalomų laukų: student, lesson, mentor, percentage'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # CHANGE: Ieškome esamą įrašą su tais pačiais parametrais
+            existing_grade = None
+            if imu_plan_id:
+                # CHANGE: Jei yra IMU plan, ieškome pagal jį
+                existing_grade = Grade.objects.filter(
+                    student_id=student_id,
+                    lesson_id=lesson_id,
+                    imu_plan_id=imu_plan_id
+                ).first()
+            else:
+                # CHANGE: Jei nėra IMU plan, ieškome pagal student ir lesson
+                existing_grade = Grade.objects.filter(
+                    student_id=student_id,
+                    lesson_id=lesson_id,
+                    imu_plan__isnull=True
+                ).first()
+            
+            if existing_grade:
+                # CHANGE: Atnaujiname esamą įrašą
+
+                existing_grade.percentage = percentage
+                existing_grade.mentor_id = mentor_id
+                existing_grade.notes = notes
+                existing_grade.save()
+                
+                serializer = self.get_serializer(existing_grade)
+
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            else:
+                # CHANGE: Kuriamas naujas įrašas
+
+                grade_data = {
+                    'student': student_id,      # CHANGE: student_id -> student
+                    'lesson': lesson_id,        # CHANGE: lesson_id -> lesson
+                    'mentor': mentor_id,        # CHANGE: mentor_id -> mentor
+                    'percentage': percentage,
+                    'imu_plan': imu_plan_id,    # CHANGE: imu_plan_id -> imu_plan
+                    'notes': notes
+                }
+                
+                serializer = self.get_serializer(data=grade_data)
+                if serializer.is_valid():
+                    grade = serializer.save()
+                    return Response(serializer.data, status=status.HTTP_201_CREATED)
+                else:
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    
+        except Exception as e:
+    
+            return Response(
+                {'error': f'Klaida: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

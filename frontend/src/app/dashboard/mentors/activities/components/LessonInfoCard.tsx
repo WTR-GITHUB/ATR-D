@@ -268,6 +268,7 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
                       student={student}
                       onAttendanceChange={(studentId, status) => handleStudentStatusChange(studentId, status as string)}
                       isIMUPlan={true}
+                      lessonId={lesson.id} // CHANGE: Perduodame tikrą pamokos ID
                     />
                   ))}
                 </div>

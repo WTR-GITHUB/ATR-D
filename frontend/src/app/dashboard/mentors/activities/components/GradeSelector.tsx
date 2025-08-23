@@ -2,6 +2,7 @@
 
 // Pasiekimų lygių valdymo komponentas StudentRow komponente
 // CHANGE: Pritaikytas iš EXAMPLES/grades su API integracija ir real-time išsaugojimu
+// CHANGE: Pridėtas esamo vertinimo teisingas tvarkymas
 
 'use client';
 
@@ -24,7 +25,9 @@ interface Grade {
   student: number;
   lesson: number;
   mentor: number;
-  achievement_level: AchievementLevel;
+  achievement_level?: AchievementLevel;  // CHANGE: Optional for GradeListSerializer compatibility
+  achievement_level_code?: string;       // CHANGE: From GradeListSerializer
+  achievement_level_name?: string;       // CHANGE: From GradeListSerializer
   percentage: number;
   imu_plan?: number;
   notes?: string;
@@ -56,6 +59,9 @@ export default function GradeSelector({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // CHANGE: Debug informacija apie props
+
+
   // Nustatome default procentus pagal frontend logiką
   const defaultPercents = {
     'S': 54,
@@ -68,10 +74,12 @@ export default function GradeSelector({
   useEffect(() => {
     const fetchAchievementLevels = async () => {
       try {
+    
         const response = await api.get('/grades/achievement-levels/');
+
         setAchievementLevels(response.data);
       } catch (error) {
-        console.error('Klaida gaunant pasiekimų lygius:', error);
+        console.error('❌ GradeSelector: Klaida gaunant pasiekimų lygius:', error);
         setError('Nepavyko gauti pasiekimų lygių');
       }
     };
@@ -79,7 +87,21 @@ export default function GradeSelector({
     fetchAchievementLevels();
   }, []);
 
-  // CHANGE: Pašalintas nereikalingas useEffect, nes duomenys gaunami iš backend'o
+  // CHANGE: Automatiškai nustatome state'us pagal esamą vertinimą su safe access
+  useEffect(() => {
+    if (currentGrade) {
+  
+      // CHANGE: Naudojame safe access - palaikome abu serializer'ių formatus
+      const gradeCode = currentGrade.achievement_level?.code || currentGrade.achievement_level_code || '';
+      setSelectedGrade(gradeCode);
+      setPercentage(currentGrade.percentage.toString());
+      setError(null);
+    } else {
+
+      setSelectedGrade('');
+      setPercentage('');
+    }
+  }, [currentGrade]);
 
   // Apskaičiuojame pasiekimų lygį pagal procentus
   const getGradeByPercent = (percent: number): string | null => {
@@ -89,8 +111,6 @@ export default function GradeSelector({
     if (percent >= 85 && percent <= 100) return 'A';
     return null;
   };
-
-
 
   // Procentų validacija
   const handlePercentageBlur = () => {
@@ -104,6 +124,7 @@ export default function GradeSelector({
 
   // Pasiekimų lygio pasirinkimas (be automatinio išsaugojimo)
   const handleGradeSelect = (grade: string) => {
+
     setSelectedGrade(grade);
     const percent = defaultPercents[grade as keyof typeof defaultPercents];
     setPercentage(percent.toString());
@@ -112,47 +133,14 @@ export default function GradeSelector({
 
   // Procentų keitimo valdymas (be automatinio išsaugojimo)
   const handlePercentageChange = (value: string) => {
+
     setPercentage(value);
     const grade = getGradeByPercent(parseInt(value) || 0);
     setSelectedGrade(grade || '');
     setError(null);
   };
 
-  // CHANGE: Duomenų gavimas iš backend'o su automatinis state'ų atsinaujinimu
-  useEffect(() => {
-    const fetchExistingGrade = async () => {
-      if (studentId && lessonId) {
-        try {
-          const params = new URLSearchParams({
-            student: studentId.toString(),
-            lesson: lessonId.toString(),
-            ...(imuPlanId && { imu_plan: imuPlanId.toString() })
-          });
-          
-          const response = await api.get(`/grades/grades/?${params}`);
-          if (response.data.results && response.data.results.length > 0) {
-            const existingGrade = response.data.results[0];
-            // CHANGE: Automatiškai atsinaujiname UI pagal backend'o duomenis
-            setSelectedGrade(existingGrade.achievement_level?.code || '');
-            setPercentage(existingGrade.percentage.toString());
-            console.log('Rastas esamas vertinimas:', existingGrade);
-          } else {
-            // CHANGE: Jei nėra esamo vertinimo, išvalome state'us
-            setSelectedGrade('');
-            setPercentage('');
-            console.log('Nėra esamo vertinimo');
-          }
-        } catch (error) {
-          console.log('Klaida gaunant esamą vertinimą:', error);
-          // CHANGE: Klaidos atveju išvalome state'us
-          setSelectedGrade('');
-          setPercentage('');
-        }
-      }
-    };
-
-    fetchExistingGrade();
-  }, [studentId, lessonId, imuPlanId]);
+  // CHANGE: Pašalintas nereikalingas useEffect, nes duomenys gaunami iš parent komponento
 
   // CHANGE: Save mygtuko funkcionalumas
   const handleSave = async () => {
@@ -167,7 +155,7 @@ export default function GradeSelector({
       return;
     }
     
-    console.log('Išsaugant vertinimą:', { selectedGrade, percentage: percent, studentId, lessonId, imuPlanId });
+
     await saveGrade(percent);
   };
 
@@ -190,28 +178,33 @@ export default function GradeSelector({
         notes: ''
       };
 
+  
+
       let response;
       
       // CHANGE: Patikriname ar egzistuoja įrašas su tais pačiais parametrais
       if (currentGrade?.id) {
         // Atnaujiname esamą vertinimą
+
         response = await api.put(`/grades/grades/${currentGrade.id}/`, gradeData);
-        console.log('Atnaujintas esamas vertinimas:', response.data);
+
       } else {
-        // Sukuriame naują vertinimą
-        response = await api.post('/grades/grades/', gradeData);
-        console.log('Sukurtas naujas vertinimas:', response.data);
+        // CHANGE: Naudojame naują get_or_create endpoint'ą
+        response = await api.post('/grades/grades/get_or_create/', gradeData);
+
       }
 
       // Informuojame parent komponentą apie atnaujintą/sukurtą vertinimą
       onGradeChange(response.data);
       setError(null);
     } catch (error: any) {
-      console.error('Klaida išsaugant vertinimą:', error);
+      console.error('❌ GradeSelector: Klaida išsaugant vertinimą:', error);
       
       // CHANGE: Detalesnis klaidos pranešimas
       if (error.response?.status === 400) {
-        setError('Vertinimas jau egzistuoja arba neteisingi duomenys');
+        const errorData = error.response.data;
+        console.error('❌ GradeSelector: 400 klaidos detalės:', errorData);
+        setError(`Vertinimas jau egzistuoja arba neteisingi duomenys: ${JSON.stringify(errorData)}`);
       } else {
         setError(error.response?.data?.error || 'Nepavyko išsaugoti vertinimo');
       }
@@ -255,6 +248,8 @@ export default function GradeSelector({
           Pasiekimų lygis
         </h3>
         
+
+        
         <div className="flex items-start gap-6">
           {/* Pasiekimų lygių mygtukai */}
           <div className="flex flex-col gap-3 flex-1">
@@ -278,9 +273,9 @@ export default function GradeSelector({
           
           {/* Procentų įvedimo sekcija */}
           <div className="flex flex-col items-center min-w-28 mt-8">
-                        <input
+            <input
               type="number"
-              value={currentGrade?.percentage || percentage || ''}
+              value={percentage}
               onChange={(e) => handlePercentageChange(e.target.value)}
               onBlur={handlePercentageBlur}
               min="0"
@@ -304,7 +299,7 @@ export default function GradeSelector({
                 className="mt-4 p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
                 title="Išsaugoti vertinimą"
               >
-                <Save className="w-4 h-4" />
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               </button>
             </div>
           </div>
@@ -321,7 +316,7 @@ export default function GradeSelector({
         {currentGrade && !error && (
           <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-sm text-green-700">
-              ✓ Vertinimas išsaugotas: {currentGrade.achievement_level.name} ({currentGrade.percentage}%)
+              ✓ Vertinimas išsaugotas: {currentGrade.achievement_level?.name || currentGrade.achievement_level_name || 'N/A'} ({currentGrade.percentage}%)
             </p>
           </div>
         )}      

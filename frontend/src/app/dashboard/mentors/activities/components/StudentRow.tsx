@@ -4,10 +4,11 @@
 // Rodo pagrindinę mokinio informaciją ir leidžia išplėsti papildomus vertinimo laukus
 // Integruoja lankomumo žymėjimą, aktyvumo vertinimą ir pastabų rašymą
 // CHANGE: Sujungtas su StudentRowForLesson - dabar vienas komponentas dirba su abiem duomenų tipais
+// CHANGE: Pridėtas useGrades hook esamo vertinimo gavimui iš duomenų bazės
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, MessageSquare, User } from 'lucide-react';
 import { AttendanceButtonGroup } from './AttendanceMarker';
 import {
@@ -16,6 +17,7 @@ import {
   AttendanceStatus
 } from '../types';
 import GradeSelector from './GradeSelector';
+import useGrades from '@/hooks/useGrades';
 
 // Tipas, kuris gali priimti abu duomenų tipus
 type StudentData = Student | IMUPlan;
@@ -25,6 +27,8 @@ interface StudentRowProps {
   onAttendanceChange: (studentId: number, status: AttendanceStatus) => void;
   // Naujas prop nustatyti, ar tai IMUPlan duomenys
   isIMUPlan?: boolean;
+  // CHANGE: Pridėtas pamokos ID prop'as
+  lessonId?: number;
 }
 
 // Mokinio eilutės komponentas
@@ -32,9 +36,19 @@ interface StudentRowProps {
 const StudentRow: React.FC<StudentRowProps> = ({ 
   student, 
   onAttendanceChange,
-  isIMUPlan = false
+  isIMUPlan = false,
+  lessonId
 }) => {
   const [expanded, setExpanded] = useState(false);
+  const [currentGrade, setCurrentGrade] = useState<any>(null);
+  
+  // CHANGE: Naudojame useGrades hook'ą esamo vertinimo gavimui
+  const { getStudentGrade, isLoading: gradeLoading, error: gradeError } = useGrades();
+  
+  // CHANGE: Apskaičiuojame lessonId komponento lygyje
+  const getLessonId = (): number => {
+    return lessonId || ('lesson' in student ? student.lesson || 1 : 1);
+  };
   
   // Pagalbinės funkcijos duomenų gavimui iš skirtingų tipų
   const getStudentId = (): number => {
@@ -83,6 +97,28 @@ const StudentRow: React.FC<StudentRowProps> = ({
     return !!(student as Student).notes;
   };
 
+  // CHANGE: Gauname esamą vertinimą iš duomenų bazės, kai komponentas išsiplečia
+  useEffect(() => {
+    const fetchCurrentGrade = async () => {
+      if (expanded) {
+
+        
+        const studentId = getStudentId();
+        const imuPlanId = isIMUPlan ? student.id : undefined;
+        
+        try {
+          const grade = await getStudentGrade(studentId, getLessonId(), imuPlanId);
+          
+          setCurrentGrade(grade);
+        } catch (error) {
+          console.error('❌ StudentRow: Klaida gaunant vertinimą:', error);
+        }
+      }
+    };
+
+    fetchCurrentGrade();
+  }, [expanded, getStudentGrade, student, isIMUPlan]);
+
   // Statusų konvertavimas (reikalinga IMUPlan duomenims)
   // REFAKTORINIMAS: Dabar naudojame attendance_status tiesiogiai
   const convertToAttendanceStatus = (status: string): AttendanceStatus => {
@@ -116,8 +152,6 @@ const StudentRow: React.FC<StudentRowProps> = ({
 
   const [attendance, setAttendance] = useState<AttendanceStatus>(convertToAttendanceStatus(getStudentStatus()));
   
-
-
   // Lankomumo keitimo valdymas
   const handleAttendanceChange = async (status: AttendanceStatus) => {
     try {
@@ -144,7 +178,7 @@ const StudentRow: React.FC<StudentRowProps> = ({
 
         if (response.ok) {
           const result = await response.json();
-          console.log('Lankomumo statusas atnaujintas:', result);
+  
           
           // CHANGE: Atnaujiname local state po sėkmingo API atsakymo
           setAttendance(status);
@@ -164,17 +198,6 @@ const StudentRow: React.FC<StudentRowProps> = ({
       console.error('Klaida atnaujinant lankomumo statusą:', error);
     }
   };
-
-
-
-  // Užduočių žymėjimo valdymas - pašalintas, nes tasks neegzistuoja StudentEvaluation tipas
-  // const handleTaskToggle = (task: string) => {
-  //   const newTasks = evaluation.tasks.includes(task)
-  //     ? evaluation.tasks.filter(t => t !== task)
-  //     : [...evaluation.tasks, task];
-  //   
-  //   handleEvaluationChange('tasks', newTasks);
-  // };
 
   const attendanceStats = getAttendanceStats();
 
@@ -245,28 +268,27 @@ const StudentRow: React.FC<StudentRowProps> = ({
         </div>
       </div>
 
-                {/* CHANGE: Pridėtas GradeSelector komponentas išplėstoje sekcijoje */}
-          {expanded && (
-            <div className="px-4 pb-4 border-t border-gray-100 bg-gray-50">
-              <div className="pt-4">
-                                  <GradeSelector
-                    currentGrade={null} // TODO: Pridėti esamo vertinimo gavimą
-                    onGradeChange={(grade) => {
-                      console.log('Vertinimas pakeistas:', grade);
-                      // TODO: Atnaujinti būseną ir išsaugoti
-                    }}
-                    studentId={getStudentId()} // Naudojame pagalbinę funkciją, kuri grąžina teisingą studento ID
-                    lessonId={'lesson' in student ? student.lesson || 1 : 1} // Tikriname ar yra lesson laukas
-                    imuPlanId={isIMUPlan ? student.id : undefined} // IMU plan ID yra student.id
-                    mentorId={82} // Jūsų ID kaip mentorius
-                  />
-                  {/* CHANGE: Pridėtas debug informacijos rodymas */}
-                  <div className="mt-2 p-2 bg-gray-100 rounded text-xs text-gray-600">
-                    <p>Debug: Student ID: {getStudentId()}, Lesson ID: {'lesson' in student ? student.lesson || 1 : 1}, Mentor ID: 82</p>
-                  </div>
-              </div>
-            </div>
-          )}
+      {/* CHANGE: Pridėtas GradeSelector komponentas išplėstoje sekcijoje su esamu vertinimu */}
+      {expanded && (
+        <div className="px-4 pb-4 border-t border-gray-100 bg-gray-50">
+          <div className="pt-4">
+
+            
+            <GradeSelector
+              currentGrade={currentGrade} // CHANGE: Dabar perduodame tikrą esamą vertinimą
+              onGradeChange={(grade) => {
+        
+                // CHANGE: Atnaujiname local state su nauju vertinimu
+                setCurrentGrade(grade);
+              }}
+              studentId={getStudentId()}
+                                    lessonId={getLessonId()} // CHANGE: Naudojame apskaičiuotą lessonId
+              imuPlanId={isIMUPlan ? student.id : undefined}
+              mentorId={82}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
