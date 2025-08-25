@@ -237,6 +237,8 @@ class IMUPlanSerializer(serializers.ModelSerializer):
     lesson_subject = serializers.CharField(source='lesson.subject.name', read_only=True)
     global_schedule_date = serializers.DateField(source='global_schedule.date', read_only=True)
     global_schedule_time = serializers.TimeField(source='global_schedule.period.starttime', read_only=True)
+    global_schedule_period_name = serializers.CharField(source='global_schedule.period.name', read_only=True)
+    global_schedule_level = serializers.CharField(source='global_schedule.level.name', read_only=True)
     global_schedule_classroom = serializers.CharField(source='global_schedule.classroom.name', read_only=True)
     
     # REFAKTORINIMAS: Lankomumo statusas paliekamas IMUPlan
@@ -250,7 +252,7 @@ class IMUPlanSerializer(serializers.ModelSerializer):
             'lesson', 'lesson_title', 'lesson_subject',  # CHANGE: Pridėti trūkstami lesson laukai
             'attendance_status', 'attendance_status_display',
             'notes', 'created_at', 'updated_at', 
-            'global_schedule_date', 'global_schedule_time', 'global_schedule_classroom'
+            'global_schedule_date', 'global_schedule_time', 'global_schedule_period_name', 'global_schedule_level', 'global_schedule_classroom'
         ]
         read_only_fields = ['created_at', 'updated_at']
     

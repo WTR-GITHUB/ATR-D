@@ -156,10 +156,13 @@ export default function MentorPlansPage() {
               </div>
             </button>
             
-            <button className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+            <button 
+              onClick={() => window.location.href = '/dashboard/mentors/plans/imuplan-assigned'}
+              className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+            >
               <div className="flex items-center space-x-3">
                 <Edit className="w-5 h-5 text-purple-600" />
-                <span className="text-sm font-medium">Koreguoti priskirtą ugdymo planą</span>
+                <span className="text-sm font-medium">Peržiūrėti priskirtus ugdymo planus</span>
               </div>
             </button>
           </div>

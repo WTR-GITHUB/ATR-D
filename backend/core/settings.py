@@ -13,24 +13,29 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-o+kbs@e+_dri$pe3do2*2t2eid(f%y5_cdlw$*&r*$9(*thefq'
+SECRET_KEY = os.getenv('SECRET_KEY')  # Perkelta į .env failą
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'  # Perkelta į .env failą
 
-ALLOWED_HOSTS = ['*']  # Development only
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')  # Perkelta į .env failą
 
-CORS_ALLOW_ALL_ORIGINS = True  # Development only
-CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True').lower() == 'true'  # Perkelta į .env failą
+CORS_ALLOW_CREDENTIALS = os.getenv('CORS_ALLOW_CREDENTIALS', 'True').lower() == 'true'  # Perkelta į .env failą
 
 # Application definition
 
@@ -97,8 +102,8 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': os.getenv('DATABASE_ENGINE', 'django.db.backends.sqlite3'),  # Perkelta į .env failą
+        'NAME': BASE_DIR / os.getenv('DATABASE_NAME', 'db.sqlite3'),  # Perkelta į .env failą
     }
 }
 
@@ -141,8 +146,8 @@ REST_FRAMEWORK = {
 
 # JWT settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME', 60))),  # Perkelta į .env failą
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME', 1))),  # Perkelta į .env failą
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': True,
@@ -180,7 +185,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'static'
+STATIC_ROOT = BASE_DIR / os.getenv('STATIC_ROOT', 'static')  # Perkelta į .env failą
 
 # Additional static files directories for development
 STATICFILES_DIRS = [
@@ -188,7 +193,7 @@ STATICFILES_DIRS = [
 ]
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = BASE_DIR / os.getenv('MEDIA_ROOT', 'media')  # Perkelta į .env failą
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
