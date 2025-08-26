@@ -68,7 +68,7 @@ class IMUPlan(models.Model):
     ATTENDANCE_CHOICES = [
         ('present', 'Dalyvavo'),        # Mokinys dalyvavo pamokoje
         ('absent', 'Nedalyvavo'),       # Mokinys nedalyvavo pamokoje
-        ('late', 'Vėlavo'),            # Mokinys vėlavo į pamoką
+        ('left', 'Paliko'),            # Mokinys paliko pamoką
         ('excused', 'Pateisinta'),     # Mokinys pateisintas
     ]
     
