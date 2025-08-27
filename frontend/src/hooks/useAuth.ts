@@ -23,6 +23,8 @@ interface AuthActions {
   setLoading: (loading: boolean) => void;
   clearError: () => void;
   initializeAuth: () => Promise<void>;
+  refreshAuthToken: () => Promise<boolean>;
+  getCurrentUserId: () => number | null;
 }
 
 type AuthStore = AuthState & AuthActions;
@@ -43,6 +45,13 @@ export const useAuth = create<AuthStore>()(
         set({ isLoading: true, error: null });
         
         try {
+          // CHANGE: Išvalyti senus duomenis PRISIJUNGIMO pradžioje
+          // Tai užtikrina, kad naujas vartotojas negaus ankstesnio vartotojo duomenų
+          if (typeof window !== 'undefined') {
+            localStorage.clear();
+            sessionStorage.clear();
+          }
+          
           const response = await authAPI.login(credentials);
           const { access, refresh }: AuthResponse = response.data;
           
@@ -65,6 +74,7 @@ export const useAuth = create<AuthStore>()(
               isLoading: false,
             });
           } catch (userError: any) {
+            // CHANGE: Improved error handling for user data fetching
             // If fetching user data fails, use basic info from login
             const user = {
               id: 0,
@@ -95,8 +105,10 @@ export const useAuth = create<AuthStore>()(
 
       logout: () => {
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
+          // CHANGE: Išvalyti VISUS duomenis iš localStorage ir sessionStorage
+          // Tai užtikrina, kad kitas vartotojas negaus ankstesnio vartotojo duomenų
+          localStorage.clear();
+          sessionStorage.clear();
         }
         set({
           user: null,
@@ -108,8 +120,6 @@ export const useAuth = create<AuthStore>()(
         // Perkrauti puslapį į root po logout
         window.location.href = '/';
       },
-
-
 
       setUser: (user: User) => {
         set({ user });
@@ -127,23 +137,62 @@ export const useAuth = create<AuthStore>()(
         set({ error: null });
       },
 
+      // CHANGE: Pridėta pagalbinė funkcija dabartinio vartotojo ID gavimui
+      getCurrentUserId: () => {
+        const user = get().user;
+        return user?.id || null;
+      },
+
+      // CHANGE: Added new method to handle token refresh with better error handling
+      refreshAuthToken: async () => {
+        try {
+          const refreshToken = get().refreshToken;
+          if (!refreshToken) {
+            return false;
+          }
+
+          const response = await authAPI.refresh(refreshToken);
+          const { access } = response.data;
+          
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('access_token', access);
+          }
+          
+          set({ token: access });
+          return true;
+        } catch (error) {
+          // Refresh failed, clear auth state
+          get().logout();
+          return false;
+        }
+      },
+
       // Initialize user data from stored token
       initializeAuth: async () => {
-        if (typeof window !== 'undefined') {
-          const token = localStorage.getItem('access_token');
-          if (token) {
-            try {
-              const userResponse = await authAPI.me();
-              const user = userResponse.data;
-              
-              set({
-                user,
-                token,
-                refreshToken: localStorage.getItem('refresh_token'),
-                isAuthenticated: true,
-                isLoading: false,
-              });
-            } catch (error) {
+        // CHANGE: Improved initialization to handle server-side rendering better
+        if (typeof window === 'undefined') {
+          // Server-side: set loading to false without trying to access localStorage
+          set({ isLoading: false });
+          return;
+        }
+
+        const token = localStorage.getItem('access_token');
+        if (token) {
+          try {
+            const userResponse = await authAPI.me();
+            const user = userResponse.data;
+            
+            set({
+              user,
+              token,
+              refreshToken: localStorage.getItem('refresh_token'),
+              isAuthenticated: true,
+              isLoading: false,
+            });
+          } catch (error) {
+            // CHANGE: Better error handling - try to refresh token first
+            const refreshSuccess = await get().refreshAuthToken();
+            if (!refreshSuccess) {
               // Token is invalid, clear storage
               localStorage.removeItem('access_token');
               localStorage.removeItem('refresh_token');
@@ -155,9 +204,9 @@ export const useAuth = create<AuthStore>()(
                 isLoading: false,
               });
             }
-          } else {
-            set({ isLoading: false });
           }
+        } else {
+          set({ isLoading: false });
         }
       },
     }),

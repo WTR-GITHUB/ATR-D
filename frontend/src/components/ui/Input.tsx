@@ -1,5 +1,5 @@
 // frontend/src/components/ui/Input.tsx
-import React from 'react';
+import React, { useId } from 'react';
 import { clsx } from 'clsx';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -20,7 +20,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   id,
   ...props
 }, ref) => {
-  const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+  // CHANGE: Replaced Math.random() with useId() to fix hydration mismatch
+  // useId() generates stable, unique IDs that are consistent between server and client
+  const generatedId = useId();
+  const inputId = id || `input-${generatedId}`;
 
   return (
     <div className="w-full">

@@ -19,6 +19,7 @@ import {
 import GradeSelector from './GradeSelector';
 import useGrades from '@/hooks/useGrades';
 import { useAuth } from '@/hooks/useAuth';
+// CHANGE: Pašalintas individual API import'as, naudojame tik bulk API
 
 // Tipas, kuris gali priimti abu duomenų tipus
 type StudentData = Student | IMUPlan;
@@ -30,6 +31,10 @@ interface StudentRowProps {
   isIMUPlan?: boolean;
   // CHANGE: Pridėtas pamokos ID prop'as
   lessonId?: number;
+  // CHANGE: Pridėtas subject ID prop'as lankomumo statistikai skaičiuoti
+  subjectId?: number;
+  // CHANGE: Pridėtas bulk stats prop'as lankomumo statistikai
+  bulkStats?: { [studentId: number]: any } | null;
 }
 
 // Mokinio eilutės komponentas
@@ -38,8 +43,11 @@ const StudentRow: React.FC<StudentRowProps> = ({
   student, 
   onAttendanceChange,
   isIMUPlan = false,
-  lessonId
+  lessonId,
+  subjectId,
+  bulkStats
 }) => {
+  // CHANGE: Debug console.log'ai pašalinti - bulk API veikia
   const [expanded, setExpanded] = useState(false);
   const [currentGrade, setCurrentGrade] = useState<any>(null);
   
@@ -48,6 +56,8 @@ const StudentRow: React.FC<StudentRowProps> = ({
   
   // CHANGE: Gaunome prisijungusio vartotojo duomenis mentorId nustatymui
   const { user } = useAuth();
+  
+  // CHANGE: Pašalintas individual API hook'as, naudojame tik bulk API
   
   // CHANGE: Apskaičiuojame lessonId komponento lygyje
   const getLessonId = (): number => {
@@ -78,14 +88,29 @@ const StudentRow: React.FC<StudentRowProps> = ({
   };
 
   const getAttendanceStats = () => {
+    if (isIMUPlan && bulkStats) {
+      // Realūs duomenys iš bulk API
+      const studentId = getStudentId();
+      const studentStats = bulkStats[studentId];
+      
+      if (studentStats) {
+        return {
+          present: studentStats.present_records,
+          total: studentStats.total_records,
+          percentage: studentStats.percentage
+        };
+      }
+    }
+    
+    // Fallback duomenys, kol bulk API duomenys kraunasi
     if (isIMUPlan) {
-      // Mock duomenys IMUPlan tipo duomenims
       return {
-        present: 18,
-        total: 20,
-        percentage: 90
+        present: 0,
+        total: 0,
+        percentage: 0
       };
     }
+    
     const s = student as Student;
     return {
       present: s.tasks_completed || 0,
@@ -123,6 +148,11 @@ const StudentRow: React.FC<StudentRowProps> = ({
     fetchCurrentGrade();
   }, [expanded, getStudentGrade, student, isIMUPlan]);
 
+  // CHANGE: Pašalintas individual API useEffect, naudojame tik bulk API
+  
+  // Pridėti lankomumo statistikos atnaujinimą po statuso keitimo
+  // CHANGE: Pašalinta individual API logika, naudojame tik bulk API
+
   // Statusų konvertavimas (reikalinga IMUPlan duomenims)
   // REFAKTORINIMAS: Dabar naudojame attendance_status tiesiogiai
   const convertToAttendanceStatus = (status: string): AttendanceStatus => {
@@ -145,7 +175,7 @@ const StudentRow: React.FC<StudentRowProps> = ({
       // Bet palaikome seną logiką migracijos metu
       switch (status) {
         case 'present': return 'present';  // Tiesiogiai attendance_status
-        case 'late': return 'late';        // Tiesiogiai attendance_status
+        case 'left': return 'left';        // CHANGE: Pakeista 'late' į 'left'
         case 'absent': return 'absent';    // Tiesiogiai attendance_status
         case 'excused': return 'excused';  // Tiesiogiai attendance_status
         default: return 'present';         // CHANGE: Vietoj null grąžiname 'present'
@@ -203,14 +233,14 @@ const StudentRow: React.FC<StudentRowProps> = ({
     }
   };
 
-  const attendanceStats = getAttendanceStats();
+  const localAttendanceStats = getAttendanceStats();
 
   // Lankomumo būsenos rodymas - dabar visada turi būti statusas
   const getAttendanceDisplay = () => {
     switch (attendance) {
       case 'present': return 'Dalyvavo';
       case 'absent': return 'Nedalyvavo';
-      case 'late': return 'Vėlavo';
+      case 'left': return 'Paliko';
       case 'excused': return 'Pateisinta';
       default: return 'Nepažymėta';
     }
@@ -237,7 +267,7 @@ const StudentRow: React.FC<StudentRowProps> = ({
             <div>
               <h4 className="font-medium text-gray-900">{getStudentName()}</h4>
               <div className="text-sm text-gray-500">
-                Lankomumas: {attendanceStats.present}/{attendanceStats.total} ({attendanceStats.percentage}%)
+                Lankomumas: {localAttendanceStats.present}/{localAttendanceStats.total} ({localAttendanceStats.percentage}%)
               </div>
             </div>
           </div>
@@ -247,10 +277,10 @@ const StudentRow: React.FC<StudentRowProps> = ({
           {/* Statistikos ženkliukai - tiksliai pagal paveiksliuką */}
           <div className="flex items-center space-x-2 text-sm">
             <div className="bg-green-100 px-2 py-1 rounded text-green-700 font-medium">
-              +{attendanceStats.present}
+              +{localAttendanceStats.present}
             </div>
             <div className="bg-red-100 px-2 py-1 rounded text-red-700 font-medium">
-              -{attendanceStats.total - attendanceStats.present}
+              -{localAttendanceStats.total - localAttendanceStats.present}
             </div>
           </div>
 

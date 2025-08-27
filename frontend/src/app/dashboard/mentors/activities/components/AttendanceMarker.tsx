@@ -1,8 +1,7 @@
 // frontend/src/app/dashboard/mentors/activities/components/AttendanceMarker.tsx
 
-// Lankomumo žymėjimo komponentas
-// Atsako už lankomumo būsenos vizualizavimą ir interaktyvų keitimą
-// Palaiko keturias būsenas: dalyvavo, nedalyvavo, vėlavo, pateisinta
+// Lankomumo žymėjimo komponentas - rodo ir leidžia keisti mokinio lankomumo būseną
+// Palaiko keturias būsenas: dalyvavo, nedalyvavo, paliko, pateisinta // CHANGE: Pakeista 'vėlavo' į 'paliko'
 // CHANGE: Atnaujintos spalvos su aiškesniais skirtumais - aktyvūs: tamsūs su baltomis ikonoms, neaktyvūs: šviesūs su spalvotomis ikonoms
 // CHANGE: Pridėtas "Išvalyti" mygtukas lankomumo būsenos išvalymui (null reikšmė)
 
@@ -70,7 +69,7 @@ const AttendanceMarker: React.FC<AttendanceMarkerProps> = ({
         return `${baseStyle} ${active 
           ? 'bg-pink-600 text-white shadow-md' 
           : 'bg-pink-100 text-pink-600 border border-pink-300 hover:bg-pink-200'}`;
-      case 'late':
+      case 'left': // CHANGE: Pakeista 'late' į 'left'
         return `${baseStyle} ${active 
           ? 'bg-yellow-600 text-white shadow-md' 
           : 'bg-yellow-100 text-yellow-600 border border-yellow-300 hover:bg-yellow-200'}`;
@@ -92,7 +91,7 @@ const AttendanceMarker: React.FC<AttendanceMarkerProps> = ({
         return <UserCheck size={iconSize} />;
       case 'absent':
         return <UserX size={iconSize} />;
-      case 'late':
+      case 'left': // CHANGE: Pakeista 'late' į 'left'
         return <Clock size={iconSize} />;
       case 'excused':
         return <FileText size={iconSize} />;
@@ -108,8 +107,8 @@ const AttendanceMarker: React.FC<AttendanceMarkerProps> = ({
         return 'Dalyvavo';
       case 'absent':
         return 'Nedalyvavo';
-      case 'late':
-        return 'Vėlavo';
+      case 'left': // CHANGE: Pakeista 'late' į 'left'
+        return 'Paliko'; // CHANGE: Pakeista 'Vėlavo' į 'Paliko'
       case 'excused':
         return 'Pateisinta';
       default:
@@ -142,7 +141,7 @@ export const AttendanceButtonGroup: React.FC<AttendanceButtonGroupProps> = ({
   onStatusChange,
   size = 'md'
 }) => {
-  const statuses: AttendanceStatus[] = ['present', 'late', 'absent', 'excused'];
+  const statuses: AttendanceStatus[] = ['present', 'left', 'absent', 'excused']; // CHANGE: Pakeista 'late' į 'left'
 
   // Mygtuko dydžio nustatymas
   const getSizeClasses = () => {

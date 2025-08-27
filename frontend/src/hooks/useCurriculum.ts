@@ -1,6 +1,6 @@
 // frontend/src/hooks/useCurriculum.ts
-import { useState, useEffect } from 'react';
-import { curriculumAPI } from '@/lib/api';
+import { useState, useEffect, useCallback } from 'react';
+import { curriculumAPI, plansAPI } from '@/lib/api';
 import { Subject, Level, Lesson, Skill, Competency, CompetencyAtcheve, Virtue, Objective, Component } from '@/lib/types';
 
 // Hook dalykų valdymui
@@ -65,6 +65,109 @@ export const useSubjects = () => {
     createSubject,
     updateSubject,
     deleteSubject,
+  };
+};
+
+// Hook lankomumo statistikai skaičiuoti
+export const useAttendanceStats = () => {
+  const [stats, setStats] = useState<{
+    total_records: number;
+    present_records: number;
+    absent_records: number;
+    left_records: number;
+    excused_records: number;
+    percentage: number;
+    calculated_from: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchAttendanceStats = async (studentId: number, subjectId: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await plansAPI.imuPlans.getAttendanceStats(studentId, subjectId);
+      setStats(response.data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Klaida gaunant lankomumo statistiką');
+      setStats(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearStats = () => {
+    setStats(null);
+    setError(null);
+  };
+
+  return {
+    stats,
+    loading,
+    error,
+    fetchAttendanceStats,
+    clearStats,
+  };
+};
+
+// Hook bulk lankomumo statistikai skaičiuoti (visiems mokiniams viena užklausa)
+export const useBulkAttendanceStats = () => {
+  const [stats, setStats] = useState<{
+    [studentId: number]: {
+      student_id: number;
+      student_name: string;
+      total_records: number;
+      present_records: number;
+      absent_records: number;
+      left_records: number;
+      excused_records: number;
+      percentage: number;
+      calculated_from: string;
+    };
+  } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchBulkAttendanceStats = useCallback(async (subjectId: number, globalScheduleId?: number, lessonId?: number) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await plansAPI.imuPlans.getBulkAttendanceStats(subjectId, globalScheduleId, lessonId);
+      
+      // Konvertuoti į objektą su student_id kaip raktu
+      const statsObject: { [studentId: number]: any } = {};
+      
+      // CHANGE: Backend'o API grąžina 'student_stats', ne 'students'
+      const studentsArray = response.data.students || response.data.student_stats;
+      
+      if (studentsArray && Array.isArray(studentsArray)) {
+        studentsArray.forEach((student: any) => {
+          statsObject[student.student_id] = student;
+        });
+      }
+      
+      setStats(statsObject);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Klaida gaunant bulk lankomumo statistiką');
+      setStats(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []); // CHANGE: useCallback su tuščiu dependency array
+
+  const clearStats = () => {
+    setStats(null);
+    setError(null);
+  };
+
+  return {
+    stats,
+    loading,
+    error,
+    fetchBulkAttendanceStats,
+    clearStats,
   };
 };
 

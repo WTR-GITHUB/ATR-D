@@ -499,6 +499,232 @@ class IMUPlanViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
     
+    @action(detail=False, methods=['get'])
+    def attendance_stats(self, request):
+        """
+        Skaičiuoja mokinio lankomumo statistiką pagal subject (dalyką)
+        Išskaičiuoja įrašus su attendance_status = None (neįskaičiuojami)
+        """
+        student_id = request.query_params.get('student_id')
+        subject_id = request.query_params.get('subject_id')
+        
+        if not student_id or not subject_id:
+            return Response(
+                {"error": "Reikalingi parametrai: student_id ir subject_id"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Skaičiuojame visus įrašus mokiniui pagal subject (išskaičiuojame None)
+            total_records = IMUPlan.objects.filter(
+                student_id=student_id,
+                global_schedule__subject_id=subject_id
+            ).exclude(attendance_status__isnull=True).count()
+            
+            # Skaičiuojame present įrašus
+            present_records = IMUPlan.objects.filter(
+                student_id=student_id,
+                global_schedule__subject_id=subject_id,
+                attendance_status='present'
+            ).count()
+            
+            # Skaičiuojame procentą
+            percentage = 0
+            if total_records > 0:
+                percentage = round((present_records / total_records) * 100)
+            
+            # Skaičiuojame kitus statusus
+            absent_records = IMUPlan.objects.filter(
+                student_id=student_id,
+                global_schedule__subject_id=subject_id,
+                attendance_status='absent'
+            ).count()
+            
+            left_records = IMUPlan.objects.filter(
+                student_id=student_id,
+                global_schedule__subject_id=subject_id,
+                attendance_status='left'
+            ).count()
+            
+            excused_records = IMUPlan.objects.filter(
+                student_id=student_id,
+                global_schedule__subject_id=subject_id,
+                attendance_status='excused'
+            ).count()
+            
+            return Response({
+                "student_id": student_id,
+                "subject_id": subject_id,
+                "total_records": total_records,
+                "present_records": present_records,
+                "absent_records": absent_records,
+                "left_records": left_records,
+                "excused_records": excused_records,
+                "percentage": percentage,
+                "calculated_from": f"{present_records}/{total_records}"
+            })
+            
+        except Exception as e:
+            return Response(
+                {"error": f"Klaida skaičiuojant statistiką: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['get'])
+    def bulk_attendance_stats(self, request):
+        """
+        Skaičiuoja mokinių lankomumo statistiką pagal subject (dalyką) ir global_schedule (pamoką) viena užklausa
+        Išskaičiuoja įrašus su attendance_status = None (neįskaičiuojami)
+        """
+        subject_id = request.query_params.get('subject_id')
+        global_schedule_id = request.query_params.get('global_schedule_id')
+        lesson_id = request.query_params.get('lesson_id')
+        
+        if not subject_id:
+            return Response(
+                {"error": "Reikalingas parametras: subject_id"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Filtruoti pagal subject, global_schedule ir lesson (jei pateikti)
+            filter_kwargs = {
+                'global_schedule__subject_id': subject_id
+            }
+            
+            if global_schedule_id:
+                filter_kwargs['global_schedule_id'] = global_schedule_id
+                
+            if lesson_id:
+                filter_kwargs['lesson'] = lesson_id
+            
+            # Gauti tik tų mokinių IMUPlan įrašus, kurie yra konkrečioje pamokoje
+            imu_plans = IMUPlan.objects.filter(
+                **filter_kwargs
+            ).select_related('student', 'global_schedule__subject')
+            
+            # Grupuoti pagal student_id
+            student_stats = {}
+            
+            for plan in imu_plans:
+                student_id = plan.student_id
+                if student_id not in student_stats:
+                    student_stats[student_id] = {
+                        'student_id': student_id,
+                        'student_name': plan.student.first_name + ' ' + plan.student.last_name,
+                        'total_records': 0,
+                        'present_records': 0,
+                        'absent_records': 0,
+                        'left_records': 0,
+                        'excused_records': 0
+                    }
+                
+                # Skaičiuoti tik įrašus su attendance_status
+                if plan.attendance_status:
+                    student_stats[student_id]['total_records'] += 1
+                    
+                    if plan.attendance_status == 'present':
+                        student_stats[student_id]['present_records'] += 1
+                    elif plan.attendance_status == 'absent':
+                        student_stats[student_id]['absent_records'] += 1
+                    elif plan.attendance_status == 'left':
+                        student_stats[student_id]['left_records'] += 1
+                    elif plan.attendance_status == 'excused':
+                        student_stats[student_id]['excused_records'] += 1
+            
+            # Apskaičiuoti procentus
+            for student_id in student_stats:
+                stats = student_stats[student_id]
+                if stats['total_records'] > 0:
+                    stats['percentage'] = round((stats['present_records'] / stats['total_records']) * 100)
+                else:
+                    stats['percentage'] = 0
+                stats['calculated_from'] = f"{stats['present_records']}/{stats['total_records']}"
+            
+            return Response({
+                "subject_id": subject_id,
+                "global_schedule_id": global_schedule_id,
+                "lesson_id": lesson_id,
+                "students_count": len(student_stats),
+                "students": list(student_stats.values())
+            })
+            
+        except Exception as e:
+            return Response(
+                {"error": f"Klaida skaičiuojant bulk statistiką: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['get'])
+    def bulk_attendance_stats(self, request):
+        """
+        Skaičiuoja visų mokinių lankomumo statistiką pagal subject (dalyką) viena užklausa
+        Optimizuota, kad išvengti per daug API užklausų
+        """
+        subject_id = request.query_params.get('subject_id')
+        
+        if not subject_id:
+            return Response(
+                {"error": "Reikalingas parametras: subject_id"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Gauname visus IMUPlan įrašus šiam subject su student informacija
+            imu_plans = IMUPlan.objects.filter(
+                global_schedule__subject_id=subject_id
+            ).select_related('student', 'global_schedule__subject')
+            
+            # Grupuojame pagal student_id
+            student_stats = {}
+            
+            for plan in imu_plans:
+                student_id = plan.student_id
+                
+                if student_id not in student_stats:
+                    student_stats[student_id] = {
+                        'student_id': student_id,
+                        'student_name': f"{plan.student.first_name} {plan.student.last_name}",
+                        'total_records': 0,
+                        'present_records': 0,
+                        'absent_records': 0,
+                        'left_records': 0,
+                        'excused_records': 0
+                    }
+                
+                # Skaičiuojame tik įrašus su attendance_status
+                if plan.attendance_status is not None:
+                    student_stats[student_id]['total_records'] += 1
+                    
+                    if plan.attendance_status == 'present':
+                        student_stats[student_id]['present_records'] += 1
+                    elif plan.attendance_status == 'absent':
+                        student_stats[student_id]['absent_records'] += 1
+                    elif plan.attendance_status == 'left':
+                        student_stats[student_id]['left_records'] += 1
+                    elif plan.attendance_status == 'excused':
+                        student_stats[student_id]['excused_records'] += 1
+            
+            # Skaičiuojame procentus
+            for stats in student_stats.values():
+                if stats['total_records'] > 0:
+                    stats['percentage'] = round((stats['present_records'] / stats['total_records']) * 100)
+                    stats['calculated_from'] = f"{stats['present_records']}/{stats['total_records']}"
+                else:
+                    stats['percentage'] = 0
+                    stats['calculated_from'] = "0/0"
+            
+            return Response({
+                "subject_id": subject_id,
+                "student_stats": list(student_stats.values())
+            })
+            
+        except Exception as e:
+            return Response(
+                {"error": f"Klaida skaičiuojant bulk statistiką: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
     @action(detail=True, methods=['post'])
     def update_attendance(self, request, pk=None):
         """

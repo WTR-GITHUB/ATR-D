@@ -37,6 +37,7 @@ const VeiklosPage = () => {
     lessonDetails,
     allLessonsDetails,
     imuPlans,
+    globalSchedule, // CHANGE: Pridėtas globalSchedule
     isLoading: lessonLoading,
     error: lessonError,
     selectScheduleItem,
@@ -48,6 +49,7 @@ const VeiklosPage = () => {
   const [activityStartTime, setActivityStartTime] = useState<Date | null>(null);
   const [activityEndTime, setActivityEndTime] = useState<Date | null>(null);
   const [isActivityActive, setIsActivityActive] = useState(false);
+  const [isActivityCompleted, setIsActivityCompleted] = useState(false); // CHANGE: Pridėtas naujas state veiklos užbaigimo būsenai
 
   // Veiklos pradžios funkcija
   const handleStartActivity = async () => {
@@ -78,6 +80,7 @@ const VeiklosPage = () => {
           setActivityStartTime(new Date(result.started_at));
         }
         setIsActivityActive(true);
+        setIsActivityCompleted(false); // CHANGE: Nustatome, kad veikla nebaigta
         
         // CHANGE: Atnaujinti mokinių duomenis, kad matytų naują lankomumo statusą
         refreshLessonData();
@@ -118,6 +121,7 @@ const VeiklosPage = () => {
           setActivityEndTime(new Date(result.completed_at));
         }
         setIsActivityActive(false);
+        setIsActivityCompleted(true); // CHANGE: Nustatome, kad veikla užbaigta
         
         // CHANGE: Atnaujinti mokinių duomenis
         refreshLessonData();
@@ -160,12 +164,14 @@ const VeiklosPage = () => {
           
           if (scheduleData.plan_status === 'in_progress') {
             setIsActivityActive(true);
+            setIsActivityCompleted(false); // CHANGE: Veikla vyksta, todėl nebaigta
             if (scheduleData.started_at) {
               setActivityStartTime(new Date(scheduleData.started_at));
             }
             setActivityEndTime(null);
           } else if (scheduleData.plan_status === 'completed') {
             setIsActivityActive(false);
+            setIsActivityCompleted(true); // CHANGE: Veikla užbaigta
             if (scheduleData.started_at) {
               setActivityStartTime(new Date(scheduleData.started_at));
             }
@@ -175,6 +181,7 @@ const VeiklosPage = () => {
           } else {
             // 'planned' status
             setIsActivityActive(false);
+            setIsActivityCompleted(false); // CHANGE: Veikla planuojama, todėl nebaigta
             setActivityStartTime(null);
             setActivityEndTime(null);
           }
@@ -329,13 +336,13 @@ const VeiklosPage = () => {
                 {/* Veiklos valdymo mygtukai */}
                 <button
                   onClick={handleStartActivity}
-                  disabled={!lessonDetails || isActivityActive}
+                  disabled={!lessonDetails || isActivityActive || isActivityCompleted} // CHANGE: Pridėtas isActivityCompleted
                   className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
-                    lessonDetails && !isActivityActive
+                    lessonDetails && !isActivityActive && !isActivityCompleted // CHANGE: Pridėtas !isActivityCompleted
                       ? 'bg-green-600 text-white hover:bg-green-700 active:bg-green-800' 
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
-                  title={lessonDetails ? (isActivityActive ? "Veikla jau pradėta" : "Pradėti veiklą") : "Pirmiausia pasirinkite pamoką"}
+                  title={lessonDetails ? (isActivityActive ? "Veikla jau pradėta" : isActivityCompleted ? "Veikla užbaigta" : "Pradėti veiklą") : "Pirmiausia pasirinkite pamoką"} // CHANGE: Pridėtas isActivityCompleted patikrinimas
                 >
                   <Play size={16} />
                   <span>Pradėti veiklą</span>
@@ -343,13 +350,13 @@ const VeiklosPage = () => {
                 
                 <button
                   onClick={handleEndActivity}
-                  disabled={!lessonDetails || !isActivityActive}
+                  disabled={!lessonDetails || !isActivityActive || isActivityCompleted} // CHANGE: Pridėtas isActivityCompleted
                   className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
-                    lessonDetails && isActivityActive
+                    lessonDetails && isActivityActive && !isActivityCompleted // CHANGE: Pridėtas !isActivityCompleted
                       ? 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800' 
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
-                  title={lessonDetails ? (isActivityActive ? "Užbaigti veiklą" : "Pirmiausia pradėkite veiklą") : "Pirmiausia pasirinkite pamoką"}
+                  title={lessonDetails ? (isActivityActive && !isActivityCompleted ? "Užbaigti veiklą" : isActivityCompleted ? "Veikla jau užbaigta" : "Pirmiausia pradėkite veiklą") : "Pirmiausia pasirinkite pamoką"} // CHANGE: Pridėtas isActivityCompleted patikrinimas
                 >
                   <Square size={16} />
                   <span>Užbaigti veiklą</span>
@@ -382,6 +389,8 @@ const VeiklosPage = () => {
                   imuPlans={imuPlans}
                   isLoading={lessonLoading}
                   error={lessonError}
+                  subjectId={globalSchedule?.subject?.id} // CHANGE: Pridėtas subject ID iš GlobalSchedule
+                  globalScheduleId={globalScheduleId} // CHANGE: Pridėtas globalScheduleId
                 />
               </div>
             ) : (

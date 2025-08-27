@@ -7,7 +7,19 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
-import { SelectedLessonState, LessonDetails, IMUPlan, ScheduleItem } from '@/app/dashboard/mentors/activities/types';
+import { useAuth } from '@/hooks/useAuth';
+import { LessonDetails, IMUPlan, ScheduleItem } from '@/app/dashboard/mentors/activities/types';
+
+// CHANGE: Sukurtas SelectedLessonState tipas tiesiogiai hook'e
+interface SelectedLessonState {
+  globalScheduleId: number | null;
+  lessonDetails: LessonDetails | null;
+  allLessonsDetails: LessonDetails[];
+  imuPlans: IMUPlan[];
+  globalSchedule: any | null; // CHANGE: Pridėtas GlobalSchedule objektas
+  isLoading: boolean;
+  error: string | null;
+}
 
 const STORAGE_KEY = 'activities_selected_lesson';
 
@@ -16,6 +28,7 @@ interface UseSelectedLessonReturn {
   lessonDetails: LessonDetails | null;
   allLessonsDetails: LessonDetails[];
   imuPlans: IMUPlan[];
+  globalSchedule: any | null; // CHANGE: Pridėtas GlobalSchedule objektas
   isLoading: boolean;
   error: string | null;
   selectScheduleItem: (item: ScheduleItem | null) => void;
@@ -24,11 +37,13 @@ interface UseSelectedLessonReturn {
 }
 
 export const useSelectedLesson = (): UseSelectedLessonReturn => {
+  const { getCurrentUserId } = useAuth();
   const [state, setState] = useState<SelectedLessonState>({
     globalScheduleId: null,
     lessonDetails: null,
     allLessonsDetails: [],
     imuPlans: [],
+    globalSchedule: null, // CHANGE: Pridėtas GlobalSchedule state
     isLoading: false,
     error: null
   });
@@ -53,7 +68,11 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Pirma gauti IMU planus šiai veiklai
+      // Pirma gauti GlobalSchedule duomenis
+      const globalScheduleResponse = await api.get(`/schedule/schedules/${globalScheduleId}/`);
+      const globalSchedule = globalScheduleResponse.data;
+      
+      // Tada gauti IMU planus šiai veiklai
       const imuPlansResponse = await api.get(`/plans/imu-plans/?global_schedule=${globalScheduleId}`);
       
       // IMUPlan API grąžina masyvą tiesiogiai, ne objektą su results lauku
@@ -89,12 +108,27 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
         lessonDetails,
         allLessonsDetails,
         imuPlans,
+        globalSchedule, // CHANGE: Pridėtas GlobalSchedule
         isLoading: false,
         error: null
       }));
 
     } catch (err: any) {
       console.error('Klaida gaunant pamokos duomenis:', err);
+      
+      // CHANGE: Specialus 404 klaidos apdorojimas - pamoka neegzistuoja
+      if (err.response?.status === 404) {
+        console.warn('Pamoka su ID', globalScheduleId, 'neegzistuoja. Išvaloma...');
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: 'Pasirinkta pamoka neegzistuoja. Prašome pasirinkti pamoką iš tvarkaraščio.'
+        }));
+        // Išvalyti neteisingą ID iš localStorage
+        saveToStorage(null);
+        return;
+      }
+      
       setState(prev => ({
         ...prev,
         isLoading: false,
@@ -113,6 +147,7 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
         lessonDetails: null,
         allLessonsDetails: [],
         imuPlans: [],
+        globalSchedule: null, // CHANGE: Pridėtas GlobalSchedule
         isLoading: false,
         error: null
       });
@@ -140,10 +175,19 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
   // Atkurti pasirinkimą iš localStorage komponento mount metu
   useEffect(() => {
     const savedId = loadFromStorage();
-    if (savedId) {
+    const currentUserId = getCurrentUserId();
+    
+    // CHANGE: Tikrinti, ar išsaugotas ID priklauso dabartiniam vartotojui
+    if (savedId && currentUserId) {
+      // Čia galėtume pridėti papildomą tikrinimą, jei būtų reikia
+      // Kol kas tiesiog bandoma gauti duomenis
       fetchLessonData(savedId);
+    } else if (savedId && !currentUserId) {
+      // CHANGE: Jei yra išsaugotas ID, bet nėra vartotojo - išvalyti
+      console.warn('Rastas išsaugotas pamokos ID, bet vartotojas neprisijungęs. Išvaloma...');
+      clearSelection();
     }
-  }, [loadFromStorage, fetchLessonData]);
+  }, [loadFromStorage, fetchLessonData, getCurrentUserId, clearSelection]);
 
   return {
     ...state,

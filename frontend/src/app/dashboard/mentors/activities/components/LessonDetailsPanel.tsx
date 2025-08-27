@@ -22,6 +22,8 @@ interface LessonDetailsPanelProps {
   error: string | null;
   isActivityActive?: boolean; // Ar veikla aktyvi (vyksta)
   activityStartTime?: Date | null; // Veiklos pradžios laikas
+  subjectId?: number; // CHANGE: Pridėtas subject ID lankomumo statistikai
+  globalScheduleId?: number; // CHANGE: Pridėtas globalScheduleId prop
 }
 
 const LessonDetailsPanel: React.FC<LessonDetailsPanelProps> = ({
@@ -31,7 +33,9 @@ const LessonDetailsPanel: React.FC<LessonDetailsPanelProps> = ({
   isLoading,
   error,
   isActivityActive = false,
-  activityStartTime = null
+  activityStartTime = null,
+  subjectId, // CHANGE: Pridėtas subjectId parametras
+  globalScheduleId // CHANGE: Pridėtas globalScheduleId parametras
 }) => {
   if (isLoading) {
     return (
@@ -81,6 +85,8 @@ const LessonDetailsPanel: React.FC<LessonDetailsPanelProps> = ({
           studentsForThisLesson={getStudentsForLesson(lesson.id)}
           isActivityActive={isActivityActive}
           activityStartTime={activityStartTime}
+          subjectId={subjectId} // CHANGE: Pridėtas subjectId
+          globalScheduleId={globalScheduleId} // CHANGE: Pridėtas globalScheduleId
         />
       ))}
       
@@ -108,7 +114,7 @@ const LessonDetailsPanel: React.FC<LessonDetailsPanelProps> = ({
                   </p>
                 </div>
                 <div className="text-xs text-gray-500">
-                  {plan.status_display}
+                  {plan.attendance_status_display || 'Nepažymėta'}
                 </div>
               </div>
             ))}

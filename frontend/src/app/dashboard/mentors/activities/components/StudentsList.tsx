@@ -28,14 +28,17 @@ const StudentsList: React.FC<StudentsListProps> = ({
   showAddButton = true
 }) => {
   // Statistikų skaičiavimas
-  const stats = React.useMemo(() => {
+  const getAttendanceStats = () => {
     const present = students.filter(s => s.attendance_status === 'present').length;
     const absent = students.filter(s => s.attendance_status === 'absent').length;
-    const late = students.filter(s => s.attendance_status === 'late').length;
+    const left = students.filter(s => s.attendance_status === 'left').length; // CHANGE: Pakeista 'late' į 'left'
     const excused = students.filter(s => s.attendance_status === 'excused').length;
     
-    return { present, absent, late, excused };
-  }, [students]);
+    return { present, absent, left, excused }; // CHANGE: Pakeista 'late' į 'left'
+  };
+
+  // CHANGE: Gauname statistikas
+  const stats = getAttendanceStats();
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -49,7 +52,7 @@ const StudentsList: React.FC<StudentsListProps> = ({
             <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
               <span className="text-green-600">Dalyvavo: {stats.present}</span>
               <span className="text-red-600">Nedalyvavo: {stats.absent}</span>
-              {stats.late > 0 && <span className="text-yellow-600">Vėlavo: {stats.late}</span>}
+              {stats.left > 0 && <span className="text-yellow-600">Paliko: {stats.left}</span>} {/* CHANGE: Pakeista 'Vėlavo:' į 'Paliko:' */}
               {stats.excused > 0 && <span className="text-blue-600">Pateisinta: {stats.excused}</span>}
             </div>
           </div>

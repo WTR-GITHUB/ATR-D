@@ -6,7 +6,7 @@
 // CHANGE: Atnaujintas AttendanceStatus tipas leisti null reikšmes - reikalinga lankomumo būsenos išvalymui
 
 // Lankomumo statusai - null leidžia išvalyti lankomumo būseną
-export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
+export type AttendanceStatus = 'present' | 'absent' | 'left' | 'excused'; // CHANGE: Pakeista 'late' į 'left'
 
 // Aktyvumo lygiai
 export type ActivityLevel = 'high' | 'medium' | 'low';
@@ -79,7 +79,7 @@ export interface AttendanceStats {
   total_students: number;
   present_count: number;
   absent_count: number;
-  late_count: number;
+  left_count: number; // CHANGE: Pakeista 'late_count' į 'left_count'
   excused_count: number;
   attendance_percentage: number;
 }
@@ -95,7 +95,7 @@ export interface PerformanceStats {
 }
 
 // Filtravimo tipai
-export type FilterBy = 'all' | 'present' | 'absent' | 'late' | 'excused';
+export type FilterBy = 'all' | 'present' | 'absent' | 'left' | 'excused'; // CHANGE: Pakeista 'late' į 'left'
 
 // Mokinių sąrašo būsena
 export interface StudentsListState {

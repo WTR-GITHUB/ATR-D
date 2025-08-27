@@ -29,8 +29,8 @@ const StudentStats: React.FC<StudentStatsProps> = ({
   isActivityActive = false,
   activityStartTime = null
 }) => {
-  // Apskaičiuojame aktyvų lankomumą (dalyvavo + vėlavo)
-  const activeAttendance = attendanceStats.present + attendanceStats.late;
+  // CHANGE: Apskaičiuojame aktyvų lankomumą (dalyvavo + paliko)
+  const activeAttendance = attendanceStats.present + attendanceStats.left; // CHANGE: Pakeista 'late' į 'left'
   
   // Nustatome "Dalyvavo" statuso spalvą pagal veiklos būseną
   const getParticipatedColor = () => {
@@ -100,10 +100,31 @@ const StudentStats: React.FC<StudentStatsProps> = ({
             </div>
           </div>
           
-          {/* Vėlavo */}
-          <div className="text-center">
-            <div className="text-2xl font-bold text-yellow-600">{attendanceStats.late}</div>
-            <div className="text-sm text-gray-600">Vėlavo</div>
+          {/* Paliko statistikos kortelė */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-yellow-800">Paliko</p> {/* CHANGE: Pakeista 'Vėlavo' į 'Paliko' */}
+                <div className="text-2xl font-bold text-yellow-600">{attendanceStats.left}</div> {/* CHANGE: Pakeista 'late' į 'left' */}
+              </div>
+              <div className="text-yellow-600">
+                <Clock className="h-8 w-8" />
+              </div>
+            </div>
+            <div className="mt-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-yellow-600">Procentas</span>
+                <span className="text-yellow-800 font-medium">
+                  {attendanceStats.total > 0 ? Math.round((attendanceStats.left / attendanceStats.total) * 100) : 0}% {/* CHANGE: Pakeista 'late' į 'left' */}
+                </span>
+              </div>
+              <div className="mt-1 w-full bg-yellow-200 rounded-full h-2">
+                <div 
+                  className="bg-yellow-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(attendanceStats.left / attendanceStats.total) * 100}%` }} {/* CHANGE: Pakeista 'late' į 'left' */}
+                ></div>
+              </div>
+            </div>
           </div>
           
           {/* Nedalyvavo */}
@@ -133,7 +154,7 @@ const StudentStats: React.FC<StudentStatsProps> = ({
               />
               <div 
                 className="bg-yellow-500" 
-                style={{ width: `${(attendanceStats.late / attendanceStats.total) * 100}%` }}
+                style={{ width: `${(attendanceStats.left / attendanceStats.total) * 100}%` }} {/* CHANGE: Pakeista 'late' į 'left' */}
               />
               <div 
                 className="bg-blue-500" 
