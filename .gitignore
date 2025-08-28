@@ -372,4 +372,15 @@ uploads/
 # static/          # Pašalintas - ignoruoja backend/static
 # staticfiles/     # Pašalintas - ignoruoja backend/staticfiles
 
+# CHANGE: Ignoruoti nurodytus aplankus ir failus naujai "fixed" branch
 ADITIONAL/
+DOC/
+EXAMPLES/
+docker/
+scripts/
+docker-compose.yml
+PROMPTS/
+pvz/
+README_DOCKER.md
+README.md
+requirements.docker.txt
