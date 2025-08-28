@@ -1,15 +1,43 @@
 # /home/master/DIENYNAS/.gitignore
 # A-DIENYNAS Project .gitignore
-# CHANGE: Created .gitignore for clean repository
+# CHANGE: Resolved merge conflict by overwriting .gitignore
 # PURPOSE: Exclude unnecessary files from version control
-# UPDATES: Initial setup with Docker-specific exclusions
+# UPDATES: Combined Docker config and project code exclusions
 
-# Environment variables (nekeisti!)
+# Environment variables
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Dependencies
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Production builds
+frontend/.next/
+frontend/out/
+frontend/build/
+backend/staticfiles/
+backend/media/
+backend/static/
 
 # Logs
 logs/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Database
 *.db
@@ -38,24 +66,39 @@ Thumbs.db
 *.swp
 *.swo
 
-# Python
-__pycache__/
-*.py[cod]
-*.so
-.Python
-env/
-venv/
-ENV/
+# Coverage directory
+coverage/
+*.lcov
+.nyc_output
 
-# Node.js
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
 
-# Build outputs
-.next/
-build/
-dist/
-staticfiles/
-media/
+# Optional npm cache
+.npm
+.eslintcache
+
+# Parcel cache
+.cache
+.parcel-cache
+
+# Next.js
+.next
+
+# Nuxt.js
+.nuxt
+dist
+
+# Gatsby
+.cache/
+public
+
+# Storybook
+.out
+.storybook-out
+
+# Local development
+local_settings.py

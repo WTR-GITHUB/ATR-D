@@ -1,0 +1,213 @@
+/* /frontend/src/styles/datatables.css */
+/* DataTables Modern Styling */
+
+/* Wrapper styling */
+.dataTables_wrapper {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #212529;
+}
+
+/* Controls styling */
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_processing,
+.dataTables_wrapper .dataTables_paginate {
+  color: #495057;
+  font-size: 14px;
+  margin: 16px 0;
+}
+
+.dataTables_wrapper .dataTables_length select {
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 6px 12px;
+  background: #fff;
+  color: #495057;
+  font-size: 14px;
+  margin: 0 8px;
+}
+
+.dataTables_wrapper .dataTables_filter {
+  float: right !important;
+  text-align: right !important;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+  border: 1px solid #dee2e6 !important;
+  border-radius: 4px !important;
+  padding: 6px 12px !important;
+  margin-left: 8px !important;
+  background: #fff !important;
+  color: #495057 !important;
+  font-size: 14px !important;
+  min-width: 200px !important;
+}
+
+.dataTables_wrapper .dataTables_filter input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Pagination styling */
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 6px 12px;
+  margin: 0 2px;
+  cursor: pointer;
+  background: #fff;
+  color: #495057;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+  color: #212529;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  background: #007bff;
+  color: #fff;
+  border-color: #007bff;
+  font-weight: 600;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+  background: #0056b3;
+  border-color: #0056b3;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+  color: #6c757d;
+  cursor: not-allowed;
+  background: #f8f9fa;
+  border-color: #dee2e6;
+}
+
+/* Table styling - FORCE BORDERS */
+.dataTables_wrapper .dataTable {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  border: 1px solid #dee2e6 !important;
+  background-color: #fff !important;
+  margin-bottom: 1rem !important;
+}
+
+/* Header styling */
+.dataTables_wrapper .dataTable thead th {
+  background-color: #f8f9fa !important;
+  border: 1px solid #dee2e6 !important;
+  padding: 12px !important;
+  font-weight: 600 !important;
+  text-align: left !important;
+  color: #495057 !important;
+  font-size: 14px !important;
+  cursor: pointer !important;
+  position: relative !important;
+  vertical-align: top !important;
+}
+
+.dataTables_wrapper .dataTable thead th:hover {
+  background-color: #e9ecef !important;
+}
+
+/* Body styling */
+.dataTables_wrapper .dataTable tbody td {
+  border: 1px solid #dee2e6 !important;
+  padding: 12px !important;
+  vertical-align: top !important;
+  color: #212529 !important;
+  font-size: 14px !important;
+  background-color: #fff !important;
+}
+
+.dataTables_wrapper .dataTable tbody tr:hover {
+  background-color: #f8f9fa !important;
+}
+
+/* Footer styling for column filters */
+.dataTables_wrapper .dataTable tfoot th {
+  background-color: #f8f9fa !important;
+  border: 1px solid #dee2e6 !important;
+  padding: 8px !important;
+  text-align: left !important;
+  color: #6c757d !important;
+  font-size: 12px !important;
+  vertical-align: top !important;
+}
+
+/* Column filter inputs */
+.dataTables_wrapper .dataTables_scrollFoot input,
+.dataTables_wrapper .dataTable tfoot input {
+  width: 100% !important;
+  border: 1px solid #dee2e6 !important;
+  border-radius: 4px !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  background: #fff !important;
+  color: #495057 !important;
+}
+
+.dataTables_wrapper .dataTables_scrollFoot input:focus,
+.dataTables_wrapper .dataTable tfoot input:focus {
+  outline: none !important;
+  border-color: #007bff !important;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25) !important;
+}
+
+/* Override any DataTables default styles */
+.dataTables_wrapper .dataTable.no-footer {
+  border-bottom: 1px solid #dee2e6 !important;
+}
+
+.dataTables_wrapper .dataTable thead th,
+.dataTables_wrapper .dataTable thead td {
+  border-bottom: 1px solid #dee2e6 !important;
+}
+
+.dataTables_wrapper .dataTable tbody th,
+.dataTables_wrapper .dataTable tbody td {
+  border-top: 1px solid #dee2e6 !important;
+  border-bottom: 1px solid #dee2e6 !important;
+}
+
+/* Force all borders to be visible */
+.dataTables_wrapper .dataTable * {
+  border-collapse: collapse !important;
+}
+
+.dataTables_wrapper .dataTable th,
+.dataTables_wrapper .dataTable td {
+  border-style: solid !important;
+  border-width: 1px !important;
+  border-color: #dee2e6 !important;
+}
+
+/* Ensure first and last columns have proper borders */
+.dataTables_wrapper .dataTable th:first-child,
+.dataTables_wrapper .dataTable td:first-child {
+  border-left: 1px solid #dee2e6 !important;
+}
+
+.dataTables_wrapper .dataTable th:last-child,
+.dataTables_wrapper .dataTable td:last-child {
+  border-right: 1px solid #dee2e6 !important;
+}
+
+/* Remove any DataTables default styling that might interfere */
+.dataTables_wrapper .dataTable {
+  border-spacing: 0 !important;
+  border: 1px solid #dee2e6 !important;
+}
+
+/* Ensure table wrapper doesn't interfere */
+.dataTables_wrapper {
+  border: none !important;
+  background: transparent !important;
+} 
