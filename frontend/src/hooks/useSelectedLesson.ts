@@ -8,7 +8,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
-import { LessonDetails, IMUPlan, ScheduleItem } from '@/app/dashboard/mentors/activities/types';
+// CHANGE: Pataisytas import'as - tipai importuojami iš useSchedule hook'o
+import { LessonDetails, IMUPlan, ScheduleItem } from '@/hooks/useSchedule';
 
 // CHANGE: Sukurtas SelectedLessonState tipas tiesiogiai hook'e
 interface SelectedLessonState {
@@ -16,7 +17,7 @@ interface SelectedLessonState {
   lessonDetails: LessonDetails | null;
   allLessonsDetails: LessonDetails[];
   imuPlans: IMUPlan[];
-  globalSchedule: any | null; // CHANGE: Pridėtas GlobalSchedule objektas
+  globalSchedule: ScheduleItem | null; // CHANGE: Pridėtas GlobalSchedule objektas su konkretaus tipo
   isLoading: boolean;
   error: string | null;
 }
@@ -28,7 +29,7 @@ interface UseSelectedLessonReturn {
   lessonDetails: LessonDetails | null;
   allLessonsDetails: LessonDetails[];
   imuPlans: IMUPlan[];
-  globalSchedule: any | null; // CHANGE: Pridėtas GlobalSchedule objektas
+  globalSchedule: ScheduleItem | null; // CHANGE: Pridėtas GlobalSchedule objektas su konkretaus tipo
   isLoading: boolean;
   error: string | null;
   selectScheduleItem: (item: ScheduleItem | null) => void;
@@ -83,13 +84,13 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
       // Gauti unikalių pamokų ID sąrašą iš IMU planų
       const lessonIds = [...new Set(
         imuPlans
-          .map((plan: any) => plan.lesson)
-          .filter((lessonId: any) => lessonId !== null)
+          .map((plan: IMUPlan) => plan.lesson)
+          .filter((lessonId: number) => lessonId !== null)
       )];
 
       // Gauti visų pamokų detales paraleliai
-      let lessonDetails = null;
-      let allLessonsDetails: any[] = [];
+      let lessonDetails: LessonDetails | null = null;
+      let allLessonsDetails: LessonDetails[] = [];
       
       if (lessonIds.length > 0) {
         // Gauti visas pamokas paraleliai
@@ -113,29 +114,38 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
         error: null
       }));
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Klaida gaunant pamokos duomenis:', err);
       
-      // CHANGE: Specialus 404 klaidos apdorojimas - pamoka neegzistuoja
-      if (err.response?.status === 404) {
-        console.warn('Pamoka su ID', globalScheduleId, 'neegzistuoja. Išvaloma...');
+      // CHANGE: Type-safe error handling for lesson data fetching
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosError = err as any;
+        if (axiosError.response?.status === 404) {
+          console.warn('Pamoka su ID', globalScheduleId, 'neegzistuoja. Išvaloma...');
+          setState(prev => ({
+            ...prev,
+            isLoading: false,
+            error: 'Pasirinkta pamoka neegzistuoja. Prašome pasirinkti pamoką iš tvarkaraščio.'
+          }));
+          // Išvalyti neteisingą ID iš localStorage
+          saveToStorage(null);
+          return;
+        }
+        
         setState(prev => ({
           ...prev,
           isLoading: false,
-          error: 'Pasirinkta pamoka neegzistuoja. Prašome pasirinkti pamoką iš tvarkaraščio.'
+          error: axiosError.response?.data?.error || 
+                 axiosError.response?.data?.detail || 
+                 'Nepavyko gauti pamokos duomenų'
         }));
-        // Išvalyti neteisingą ID iš localStorage
-        saveToStorage(null);
-        return;
+      } else {
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: 'Nepavyko gauti pamokos duomenų'
+        }));
       }
-      
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-        error: err.response?.data?.error || 
-               err.response?.data?.detail || 
-               'Nepavyko gauti pamokos duomenų'
-      }));
     }
   }, []);
 

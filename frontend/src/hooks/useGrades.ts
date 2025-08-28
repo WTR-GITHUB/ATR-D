@@ -88,9 +88,14 @@ export const useGrades = (): UseGradesReturn => {
         setIsLoading(false);
         return null;
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ useGrades: Klaida gaunant vertinimą:', err);
-      const errorMessage = err.response?.data?.error || 'Nepavyko gauti vertinimo';
+      
+      // CHANGE: Type-safe error handling for grades fetching
+      const errorMessage = err && typeof err === 'object' && 'response' in err 
+        ? (err as any).response?.data?.error || 'Nepavyko gauti vertinimo'
+        : 'Nepavyko gauti vertinimo';
+      
       setError(errorMessage);
       setIsLoading(false);
       return null;

@@ -20,8 +20,8 @@ const useWeekInfo = (currentWeek: Date = new Date()): WeekInfo => {
   // Naudojame tiesiogiai prop'ą vietoj state - taip išvengime ciklo
 
   const { weekDates, weekNumber, weekStatus, dateRangeText, statusText, statusColor } = useMemo(() => {
-    const getWeekDates = () => {
-      const week = [];
+    const getWeekDates = (): Date[] => {
+      const week: Date[] = [];
       const startOfWeek = new Date(currentWeek);
       // Nustatome pirmadienį kaip savaitės pradžią (0=Sekmadienis, 1=Pirmadienis)
       const dayOfWeek = startOfWeek.getDay();
@@ -36,13 +36,13 @@ const useWeekInfo = (currentWeek: Date = new Date()): WeekInfo => {
       return week;
     };
 
-    const getWeekNumber = (date: Date) => {
+    const getWeekNumber = (date: Date): number => {
       const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
       const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
       return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
     };
 
-    const getWeekStatus = (weekDates: Date[]) => {
+    const getWeekStatus = (weekDates: Date[]): 'current' | 'past' | 'future' => {
       const today = new Date();
       const weekStart = weekDates[0];
       const weekEnd = weekDates[6]; // Paskutinė diena yra 6-ta (sekmadienis)
@@ -56,24 +56,24 @@ const useWeekInfo = (currentWeek: Date = new Date()): WeekInfo => {
       }
     };
 
-    const weekDates = getWeekDates();
-    const weekNumber = getWeekNumber(weekDates[0]);
-    const weekStatus = getWeekStatus(weekDates);
+    const weekDates: Date[] = getWeekDates();
+    const weekNumber: number = getWeekNumber(weekDates[0]);
+    const weekStatus: 'current' | 'past' | 'future' = getWeekStatus(weekDates);
     
     // Datos intervalo tekstas su 08-19 formatu
-    const formatDate = (date: Date) => {
+    const formatDate = (date: Date): string => {
       const day = date.getDate().toString().padStart(2, '0');
       const month = (date.getMonth() + 1).toString().padStart(2, '0');
       return `${day}-${month}`;
     };
     
-    const dateRangeText = `${formatDate(weekDates[0])} - ${formatDate(weekDates[6])}`;
+    const dateRangeText: string = `${formatDate(weekDates[0])} - ${formatDate(weekDates[6])}`;
     
     // Statuso tekstas
-    const statusText = `${weekStatus === 'current' ? 'Dabar ' : ''}${weekNumber} savaitė`;
+    const statusText: string = `${weekStatus === 'current' ? 'Dabar ' : ''}${weekNumber} savaitė`;
     
     // Statuso spalva
-    const statusColor = (() => {
+    const statusColor: string = (() => {
       switch (weekStatus) {
         case 'current': return 'bg-green-100 text-green-700';
         case 'past': return 'bg-gray-100 text-gray-700';

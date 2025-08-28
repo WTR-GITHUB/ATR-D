@@ -44,6 +44,44 @@ export interface ScheduleItem {
   };
 }
 
+// CHANGE: Pridėti trūkstami tipai iš activities/types.ts
+export interface LessonDetails {
+  id: number;
+  title: string;
+  content: string;
+  subject: number;
+  subject_name: string;
+  topic: string;
+  objectives: string;
+  components: string;
+  skills: number[];
+  skills_names: string[];
+  virtues: number[];
+  virtues_names: string[];
+  levels: number[];
+  levels_names: string[];
+  focus: string;
+  slenkstinis: string;
+  bazinis: string;
+  pagrindinis: string;
+  aukstesnysis: string;
+  competency_atcheves: number[];
+  competency_atcheves_names: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IMUPlan {
+  id: number;
+  name: string;
+  description: string;
+  global_schedule: number;
+  lesson: number;
+  lesson_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface UseScheduleParams {
   date?: string;
   period?: number;
@@ -92,9 +130,15 @@ export const useSchedule = (params: UseScheduleParams = {}): UseScheduleReturn =
         // Jei nėra datos, grąžiname tuščią sąrašą
         setScheduleItems([]);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Klaida gaunant tvarkaraščio duomenis:', err);
-      setError(err.response?.data?.detail || 'Nepavyko gauti tvarkaraščio duomenų');
+      
+      // CHANGE: Type-safe error handling for schedule data fetching
+      const errorMessage = err && typeof err === 'object' && 'response' in err 
+        ? (err as any).response?.data?.detail || 'Nepavyko gauti tvarkaraščio duomenų'
+        : 'Nepavyko gauti tvarkaraščio duomenų';
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

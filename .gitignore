@@ -61,6 +61,11 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
+# CHANGE: Specifiniai Django static failų ignorus (ne visi static/ aplankai)
+# Ignoruoti tik Django collectstatic rezultatus, bet ne backend/static ir backend/staticfiles
+# backend/staticfiles/     # Django collectstatic rezultatai
+# backend/static/          # Django development static failai
+
 # Flask stuff:
 instance/
 .webassets-cache
@@ -363,8 +368,8 @@ logs/
 media/
 uploads/
 
-# Static files (if needed)
-static/
-staticfiles/ 
+# CHANGE: Pašalinti globalius static/ ir staticfiles/ ignorus
+# static/          # Pašalintas - ignoruoja backend/static
+# staticfiles/     # Pašalintas - ignoruoja backend/staticfiles
 
 ADITIONAL/

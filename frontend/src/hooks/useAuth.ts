@@ -73,7 +73,7 @@ export const useAuth = create<AuthStore>()(
               isAuthenticated: true,
               isLoading: false,
             });
-          } catch (userError: any) {
+          } catch (userError: unknown) {
             // CHANGE: Improved error handling for user data fetching
             // If fetching user data fails, use basic info from login
             const user = {
@@ -94,9 +94,14 @@ export const useAuth = create<AuthStore>()(
               isLoading: false,
             });
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
+          // CHANGE: Type-safe error handling for login errors
+          const errorMessage = error && typeof error === 'object' && 'response' in error 
+            ? (error as any).response?.data?.detail || 'Login failed'
+            : 'Login failed';
+          
           set({
-            error: error.response?.data?.detail || 'Login failed',
+            error: errorMessage,
             isLoading: false,
           });
           throw error;

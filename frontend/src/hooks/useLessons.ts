@@ -41,16 +41,22 @@ export const useLessons = (): UseLessonsReturn => {
       const response = await api.get('/plans/sequences/mentor_lessons/');
       
       // Konvertuojame duomenis į reikiamą formatą
-      const formattedLessons = response.data.map((lesson: any) => ({
+      const formattedLessons = response.data.map((lesson: { id: number; title: string; subject_name: string; topic: string }) => ({
         ...lesson,
         subject_id: lesson.subject_id || lesson.id, // Prisitaikome prie API struktūros
         time: lesson.time || '08:00-08:45' // Default laikas jei nėra
       }));
       
       setLessons(formattedLessons);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Klaida gaunant pamokų duomenis:', err);
-      setError(err.response?.data?.detail || 'Nepavyko gauti pamokų duomenų');
+      
+      // CHANGE: Type-safe error handling for lessons fetching
+      const errorMessage = err && typeof err === 'object' && 'response' in err 
+        ? (err as any).response?.data?.detail || 'Nepavyko gauti pamokų duomenų'
+        : 'Nepavyko gauti pamokų duomenų';
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

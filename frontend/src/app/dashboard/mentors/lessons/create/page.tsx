@@ -12,7 +12,6 @@ import DynamicList from '@/components/ui/DynamicList';
 import { ArrowLeft, Save, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import { lessonsAPI, subjectsAPI, virtuesAPI, levelsAPI, skillsAPI, competenciesAPI, competencyAtcheveAPI } from '@/lib/api';
-import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 export default function CreateLessonPage() {
@@ -82,7 +81,7 @@ export default function CreateLessonPage() {
     const loadDropdownData = async () => {
       try {
         const [subjectsRes, virtuesRes, levelsRes, skillsRes, competenciesRes, competencyAtchevesRes] = await Promise.all([
-          api.get('/crm/mentor-subjects/my_subjects/'),
+          subjectsAPI.getAll(),
           virtuesAPI.getAll(),
           levelsAPI.getAll(),
           skillsAPI.getAll(),
@@ -220,10 +219,15 @@ export default function CreateLessonPage() {
       
       // Redirect to lessons list
       router.push('/dashboard/mentors/lessons');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating lesson:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
+      
+      // CHANGE: Type-safe error handling for lesson creation
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as any;
+        console.error('Error response:', axiosError.response?.data);
+        console.error('Error status:', axiosError.response?.status);
+      }
       // TODO: Add proper error handling
     } finally {
       setIsLoading(false);
@@ -269,7 +273,7 @@ export default function CreateLessonPage() {
                 required
               >
                 <option value="">Pasirinkite dalyką *</option>
-                {subjects.map((subject: any) => (
+                {subjects.map((subject: { id: number; name: string }) => (
                   <option key={subject.id} value={subject.id}>
                     {subject.name}
                   </option>
@@ -567,7 +571,7 @@ export default function CreateLessonPage() {
                   required
                 >
                   <option value="">Pasirinkite dalyką</option>
-                  {subjects.map((subject: any) => (
+                  {subjects.map((subject: { id: number; name: string }) => (
                     <option key={subject.id} value={subject.id}>
                       {subject.name}
                     </option>
@@ -731,7 +735,7 @@ export default function CreateLessonPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Pasirinkite dalyką...</option>
-                  {subjects.map((subject: any) => (
+                  {subjects.map((subject: { id: number; name: string }) => (
                     <option key={subject.id} value={subject.id}>
                       {subject.name}
                     </option>
@@ -752,11 +756,11 @@ export default function CreateLessonPage() {
                   required
                 >
                   <option value="">Pasirinkite kompetenciją</option>
-                  {competencies.map((competency: any) => (
-                    <option key={competency.id} value={competency.id}>
-                      {competency.name}
-                    </option>
-                  ))}
+                                  {competencies.map((competency: { id: number; name: string }) => (
+                  <option key={competency.id} value={competency.id}>
+                    {competency.name}
+                  </option>
+                ))}
                 </select>
               </div>
 

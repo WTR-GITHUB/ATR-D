@@ -30,7 +30,7 @@ const StudentStats: React.FC<StudentStatsProps> = ({
   activityStartTime = null
 }) => {
   // CHANGE: Apskaičiuojame aktyvų lankomumą (dalyvavo + paliko)
-  const activeAttendance = attendanceStats.present + attendanceStats.left; // CHANGE: Pakeista 'late' į 'left'
+  const activeAttendance = attendanceStats.present_count + attendanceStats.left_count; // CHANGE: Pakeista 'late' į 'left'
   
   // Nustatome "Dalyvavo" statuso spalvą pagal veiklos būseną
   const getParticipatedColor = () => {

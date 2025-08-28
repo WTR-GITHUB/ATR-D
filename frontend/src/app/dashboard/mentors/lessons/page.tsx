@@ -43,7 +43,7 @@ export default function MentorLessonsPage() {
         const response = await lessonsAPI.getAll();
         setLessons(response.data);
         setError(null);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching lessons:', err);
         setError('Nepavyko užkrauti pamokų sąrašo');
       } finally {

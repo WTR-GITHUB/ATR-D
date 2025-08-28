@@ -6,7 +6,8 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
-import { ScheduleItem } from '@/app/dashboard/mentors/activities/types';
+// CHANGE: Pataisytas import'as - ScheduleItem importuojamas iš useSchedule hook'o
+import { ScheduleItem } from '@/hooks/useSchedule';
 
 interface UseWeeklyScheduleParams {
   weekStartDate: string; // YYYY-MM-DD formato pirmadienio data

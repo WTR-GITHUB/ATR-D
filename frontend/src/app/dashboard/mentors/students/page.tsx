@@ -33,7 +33,7 @@ export default function MentorStudentsPage() {
         const response = await studentSubjectLevelsAPI.getAll();
         setStudents(response.data);
         setError(null);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error fetching students:', err);
         setError('Nepavyko užkrauti studentų sąrašo');
       } finally {

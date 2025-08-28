@@ -49,7 +49,7 @@ export default function MentorPlansPage() {
         setError(null);
         const response = await api.get('/plans/sequences/');
         setPlans(response.data);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Klaida gaunant ugdymo planus:', error);
         setError('Įvyko klaida gaunant ugdymo planus');
       } finally {
@@ -86,7 +86,7 @@ export default function MentorPlansPage() {
       try {
         await api.delete(`/plans/sequences/${planId}/`);
         setPlans(prev => prev.filter(plan => plan.id !== planId));
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Klaida trinant planą:', error);
         alert('Įvyko klaida trinant planą');
       }

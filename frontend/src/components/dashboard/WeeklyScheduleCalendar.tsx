@@ -14,8 +14,8 @@ import useWeeklySchedule from '@/hooks/useWeeklySchedule';
 import useSubjects from '@/hooks/useSubjects';
 import usePeriods from '@/hooks/usePeriods';
 import useWeekInfo from '@/hooks/useWeekInfo';
-// Pašalintas useLessonDetails - naudojamas activities puslapyje
-import { ScheduleItem } from '@/app/dashboard/mentors/activities/types';
+// CHANGE: Pataisytas import'as - ScheduleItem importuojamas iš useSchedule hook'o
+import { ScheduleItem } from '@/hooks/useSchedule';
 
 interface WeeklyScheduleCalendarProps {
   className?: string;

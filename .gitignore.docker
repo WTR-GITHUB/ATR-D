@@ -1,0 +1,61 @@
+# .gitignore.docker
+
+# Docker environment files
+.env.docker
+.env.docker.local
+.env.docker.production
+.env.docker.staging
+
+# Docker data directories
+data/
+volumes/
+backups/
+
+# Docker logs
+logs/
+*.log
+
+# Docker temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Docker build context
+.dockerignore
+
+# Docker Compose override files
+docker-compose.override.yml
+docker-compose.*.yml
+!docker-compose.yml
+
+# Docker volumes (if using bind mounts)
+postgres_data/
+redis_data/
+static_data/
+media_data/
+
+# SSL certificates
+ssl/
+*.pem
+*.key
+*.crt
+
+# Backup files
+backup_*
+*.backup
+*.bak
+
+# Maintenance reports
+maintenance_report_*
+
+# Pre-restore backups
+pre_restore_*/
+
+# Restored configuration files
+*.restored
+docker.restored/
+
+# Docker network and container files
+.docker/
+docker-compose.override.yml

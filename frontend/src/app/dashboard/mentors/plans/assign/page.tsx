@@ -321,8 +321,13 @@ export default function AssignPlanPage() {
           allResults.push(response.data);
           setCompletedStudents(i + 1);
 
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Failed for student:', error);
+          
+          // CHANGE: Type-safe error handling for student processing
+          const errorMessage = error && typeof error === 'object' && 'response' in error 
+            ? (error as any).response?.data?.error || (error as any).message || 'Nežinoma klaida'
+            : 'Nežinoma klaida';
           
           const errorResult: StudentResult = {
             student_id: student.id,
@@ -332,7 +337,7 @@ export default function AssignPlanPage() {
             updated: 0,
             skipped: 0,
             skipped_details: [],
-            error: error.response?.data?.error || error.message || 'Nežinoma klaida'
+            error: errorMessage
           };
           
           allResults.push(errorResult);
@@ -354,9 +359,15 @@ export default function AssignPlanPage() {
         setShowResultsModal(true);
       }, 1000);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Generation process failed:', error);
-      alert('Generavimo procesas nepavyko: ' + (error.message || 'Nežinoma klaida'));
+      
+      // CHANGE: Type-safe error handling for generation process
+      const errorMessage = error && typeof error === 'object' && 'message' in error 
+        ? (error as any).message || 'Nežinoma klaida'
+        : 'Nežinoma klaida';
+      
+      alert('Generavimo procesas nepavyko: ' + errorMessage);
       setShowProgressModal(false);
     } finally {
       setIsGenerating(false);

@@ -85,7 +85,7 @@ export default function GradeSelector({
     };
 
     fetchAchievementLevels();
-  }, []);
+  }, []); // CHANGE: fetchAchievementLevels yra apibrėžta useEffect viduje, todėl dependencies nereikia
 
   // CHANGE: Automatiškai nustatome state'us pagal esamą vertinimą su safe access
   useEffect(() => {
@@ -197,16 +197,21 @@ export default function GradeSelector({
       // Informuojame parent komponentą apie atnaujintą/sukurtą vertinimą
       onGradeChange(response.data);
       setError(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ GradeSelector: Klaida išsaugant vertinimą:', error);
       
-      // CHANGE: Detalesnis klaidos pranešimas
-      if (error.response?.status === 400) {
-        const errorData = error.response.data;
-        console.error('❌ GradeSelector: 400 klaidos detalės:', errorData);
-        setError(`Vertinimas jau egzistuoja arba neteisingi duomenys: ${JSON.stringify(errorData)}`);
+      // CHANGE: Type-safe error handling with axios error type checking
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as any;
+        if (axiosError.response?.status === 400) {
+          const errorData = axiosError.response.data;
+          console.error('❌ GradeSelector: 400 klaidos detalės:', errorData);
+          setError(`Vertinimas jau egzistuoja arba neteisingi duomenys: ${JSON.stringify(errorData)}`);
+        } else {
+          setError(axiosError.response?.data?.error || 'Nepavyko išsaugoti vertinimo');
+        }
       } else {
-        setError(error.response?.data?.error || 'Nepavyko išsaugoti vertinimo');
+        setError('Nepavyko išsaugoti vertinimo');
       }
     } finally {
       setIsSaving(false);
