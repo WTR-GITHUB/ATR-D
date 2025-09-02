@@ -50,8 +50,8 @@ services:
   # Django Backend
   backend:
     build:
-      context: ./backend
-      dockerfile: ../docker/backend/Dockerfile
+      context: .
+      dockerfile: ./docker/backend/Dockerfile
     container_name: a-dienynas-backend
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -87,8 +87,8 @@ services:
   # Next.js Frontend
   frontend:
     build:
-      context: ./frontend
-      dockerfile: ../docker/frontend/Dockerfile
+      context: .
+      dockerfile: ./docker/frontend/Dockerfile
     container_name: a-dienynas-frontend
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}

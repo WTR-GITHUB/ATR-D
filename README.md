@@ -43,10 +43,11 @@ docker compose up -d
 ```
 
 ### **4. Access System**
-- **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:8000
-- **Nginx Proxy:** http://localhost
-- **Admin Access:** admin/admin123
+- **Frontend:** http://192.168.88.167 (current server)
+- **Backend API:** http://192.168.88.167/api
+- **Local Access:** http://localhost (for development)
+- **Future Server:** http://192.168.192.168 (configured)
+- **Admin Access:** admin@example.com / admin123
 
 ## 🐳 **Docker Architecture**
 
@@ -96,6 +97,66 @@ A-DIENYNAS/
 └── README.md                        # This file
 ```
 
+## 🌐 **Server IP Configuration**
+
+### **IP Address Management**
+Sistema sukonfigūruota dirbti su keliais serverio IP adresais:
+
+#### **Current Configuration**
+- **Active Server IP:** 192.168.88.167
+- **Future Server IP:** 192.168.192.168 (pre-configured)
+- **Local Development:** localhost, 127.0.0.1
+
+### **Automatic IP Switching**
+Naudokite automatizuotą script'ą serverio IP keitimui:
+
+```bash
+# Switch to current server IP
+./scripts/switch-server-ip.sh current
+
+# Switch to future server IP  
+./scripts/switch-server-ip.sh future
+
+# Switch to custom IP
+./scripts/switch-server-ip.sh 192.168.1.100
+
+# Show current configuration
+grep -E "(NEXT_PUBLIC_API_URL|ALLOWED_HOSTS)" .env
+```
+
+#### **Manual Configuration Files**
+Jei reikia keisti rankiniu būdu:
+
+**1. Nginx Configuration**
+```bash
+# Edit server_name in nginx config
+nano docker/nginx/sites-enabled/a-dienynas.conf
+# server_name localhost 192.168.88.167 192.168.192.168;
+```
+
+**2. Environment Variables**
+```bash
+# Edit .env file
+nano .env
+# Update these lines:
+# ALLOWED_HOSTS=localhost,127.0.0.1,192.168.88.167,192.168.192.168
+# CORS_ALLOWED_ORIGINS=http://localhost:3000,http://192.168.88.167:3000,http://192.168.192.168:3000
+# NEXT_PUBLIC_API_URL=http://192.168.88.167/api
+```
+
+**3. Restart Services**
+```bash
+# Apply configuration changes
+docker compose down
+docker compose up -d
+```
+
+### **Network Security Configuration**
+- **Firewall Rules:** Allow ports 80/443 for configured IPs
+- **CORS Policy:** Configured for both current and future IPs
+- **Django ALLOWED_HOSTS:** Includes all configured server IPs
+- **SSL Support:** Ready for HTTPS configuration
+
 ## 🔧 **Configuration**
 
 ### **Environment Variables**
@@ -107,11 +168,16 @@ Edit `env.docker` file to configure:
 - SSL certificates (production)
 
 ### **Port Configuration**
-- **80/443:** Nginx (HTTP/HTTPS)
-- **3000:** Frontend (Next.js)
-- **8000:** Backend (Django)
-- **5432:** PostgreSQL
-- **6379:** Redis
+- **80/443:** Nginx (HTTP/HTTPS) - External access
+- **3000:** Frontend (Next.js) - Internal Docker network
+- **8000:** Backend (Django + Gunicorn) - Internal Docker network
+- **5432:** PostgreSQL - Internal Docker network
+- **6379:** Redis - Internal Docker network
+
+### **Network Access**
+- **Current Server IP:** 192.168.88.167
+- **Future Server IP:** 192.168.192.168 (pre-configured)
+- **Local Development:** localhost, 127.0.0.1
 
 ## 💾 **Backup Strategy**
 

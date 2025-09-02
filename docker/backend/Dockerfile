@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     curl \
     redis-tools \
+    netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements file
@@ -24,16 +25,17 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend code
-COPY . .
+COPY ./backend /app
 
 # Create necessary directories
 RUN mkdir -p /app/static /app/media /app/logs
 
-# Set permissions
-RUN chmod +x /app/entrypoint.sh
-
 # Expose port
 EXPOSE 8000
 
-# Set entrypoint
+# Copy entrypoint script
+COPY ./backend/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Start command
 ENTRYPOINT ["/app/entrypoint.sh"]

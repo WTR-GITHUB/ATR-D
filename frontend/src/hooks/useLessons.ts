@@ -41,7 +41,7 @@ export const useLessons = (): UseLessonsReturn => {
       const response = await api.get('/plans/sequences/mentor_lessons/');
       
       // Konvertuojame duomenis į reikiamą formatą
-      const formattedLessons = response.data.map((lesson: { id: number; title: string; subject_name: string; topic: string }) => ({
+      const formattedLessons = response.data.map((lesson: { id: number; title: string; subject_name: string; topic: string; subject_id?: number; time?: string }) => ({
         ...lesson,
         subject_id: lesson.subject_id || lesson.id, // Prisitaikome prie API struktūros
         time: lesson.time || '08:00-08:45' // Default laikas jei nėra

@@ -57,25 +57,25 @@ const StudentStats: React.FC<StudentStatsProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Iš viso mokinių */}
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{attendanceStats.total}</div>
+            <div className="text-2xl font-bold text-blue-600">{attendanceStats.total_students}</div>
             <div className="text-sm text-gray-600">Iš viso</div>
           </div>
           
           {/* Reikia dėmesio */}
           <div className="text-center">
-            <div className="text-2xl font-bold text-red-600">{performanceStats.needsAttention}</div>
+            <div className="text-2xl font-bold text-red-600">0</div>
             <div className="text-sm text-gray-600">Reikia dėmesio</div>
           </div>
           
           {/* Aukšti rezultatai */}
           <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">{performanceStats.highPerformers}</div>
+            <div className="text-2xl font-bold text-green-600">0</div>
             <div className="text-sm text-gray-600">Aukšti rezultatai</div>
           </div>
           
           {/* Grįžtamasis ryšys */}
           <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">{performanceStats.totalFeedback}</div>
+            <div className="text-2xl font-bold text-purple-600">0</div>
             <div className="text-sm text-gray-600">Grįžtamasis ryšys</div>
           </div>
         </div>
@@ -87,7 +87,7 @@ const StudentStats: React.FC<StudentStatsProps> = ({
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {/* Dalyvavo - aktyvus kai veikla vyksta */}
-          <div className="text-center">
+          <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
             <div className={`text-2xl font-bold ${getParticipatedColor()}`}>
               {activeAttendance}
             </div>
@@ -100,43 +100,31 @@ const StudentStats: React.FC<StudentStatsProps> = ({
             </div>
           </div>
           
-          {/* Paliko statistikos kortelė */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-yellow-800">Paliko</p> {/* CHANGE: Pakeista 'Vėlavo' į 'Paliko' */}
-                <div className="text-2xl font-bold text-yellow-600">{attendanceStats.left}</div> {/* CHANGE: Pakeista 'late' į 'left' */}
-              </div>
-              <div className="text-yellow-600">
-                <Clock className="h-8 w-8" />
-              </div>
-            </div>
-            <div className="mt-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-yellow-600">Procentas</span>
-                <span className="text-yellow-800 font-medium">
-                  {attendanceStats.total > 0 ? Math.round((attendanceStats.left / attendanceStats.total) * 100) : 0}% {/* CHANGE: Pakeista 'late' į 'left' */}
-                </span>
-              </div>
-              <div className="mt-1 w-full bg-yellow-200 rounded-full h-2">
-                <div 
-                  className="bg-yellow-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(attendanceStats.left / attendanceStats.total) * 100}%` }} {/* CHANGE: Pakeista 'late' į 'left' */}
-                ></div>
-              </div>
+          {/* Paliko */}
+          <div className="text-center p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="text-2xl font-bold text-yellow-600">{attendanceStats.left_count}</div>
+            <div className="text-sm text-yellow-800">Paliko</div>
+            <div className="flex justify-center mt-1">
+              <Clock size={16} className="text-yellow-600" />
             </div>
           </div>
           
           {/* Nedalyvavo */}
-          <div className="text-center">
-            <div className="text-2xl font-bold text-red-600">{attendanceStats.absent}</div>
-            <div className="text-sm text-gray-600">Nedalyvavo</div>
+          <div className="text-center p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="text-2xl font-bold text-red-600">{attendanceStats.absent_count}</div>
+            <div className="text-sm text-red-800">Nedalyvavo</div>
+            <div className="flex justify-center mt-1">
+              <XCircle size={16} className="text-red-600" />
+            </div>
           </div>
           
           {/* Pateisinta */}
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{attendanceStats.excused}</div>
-            <div className="text-sm text-gray-600">Pateisinta</div>
+          <div className="text-center p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="text-2xl font-bold text-blue-600">{attendanceStats.excused_count}</div>
+            <div className="text-sm text-blue-800">Pateisinta</div>
+            <div className="flex justify-center mt-1">
+              <CheckCircle size={16} className="text-blue-600" />
+            </div>
           </div>
         </div>
 
@@ -144,21 +132,21 @@ const StudentStats: React.FC<StudentStatsProps> = ({
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-gray-600">
             <span>Lankomumo paskirstymas</span>
-            <span>{activeAttendance} iš {attendanceStats.total}</span>
+            <span>{activeAttendance} iš {attendanceStats.total_students}</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div className="flex h-2 rounded-full overflow-hidden">
               <div 
                 className="bg-green-500" 
-                style={{ width: `${(attendanceStats.present / attendanceStats.total) * 100}%` }}
+                style={{ width: `${(attendanceStats.present_count / attendanceStats.total_students) * 100}%` }}
               />
               <div 
                 className="bg-yellow-500" 
-                style={{ width: `${(attendanceStats.left / attendanceStats.total) * 100}%` }} {/* CHANGE: Pakeista 'late' į 'left' */}
+                style={{ width: `${(attendanceStats.left_count / attendanceStats.total_students) * 100}%` }}
               />
               <div 
                 className="bg-blue-500" 
-                style={{ width: `${(attendanceStats.excused / attendanceStats.total) * 100}%` }}
+                style={{ width: `${(attendanceStats.excused_count / attendanceStats.total_students) * 100}%` }}
               />
             </div>
           </div>
@@ -173,7 +161,7 @@ const StudentStats: React.FC<StudentStatsProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <div className="text-3xl font-bold text-blue-600">
-                {performanceStats.averageAttendance}%
+                {attendanceStats.attendance_percentage}%
               </div>
               <div className="text-sm text-gray-600">Vidutinis klasės rodiklis</div>
             </div>
@@ -189,7 +177,7 @@ const StudentStats: React.FC<StudentStatsProps> = ({
           <div className="flex items-center justify-between">
             <div>
               <div className="text-3xl font-bold text-purple-600">
-                {performanceStats.totalFeedback}
+                0
               </div>
               <div className="text-sm text-gray-600">Gautas grįžtamasis ryšys</div>
             </div>

@@ -13,13 +13,13 @@ WORKDIR /app
 RUN apk add --no-cache curl
 
 # Copy package files
-COPY package*.json ./
+COPY frontend/package*.json ./
 
 # Install ALL dependencies (including devDependencies for build)
 RUN npm ci
 
 # Copy frontend code
-COPY . .
+COPY frontend/ .
 
 # Create production build (TypeScript is now available) - Skip ESLint
 RUN npm run build -- --no-lint
