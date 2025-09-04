@@ -50,6 +50,7 @@ export const useAuth = create<AuthStore>()(
           if (typeof window !== 'undefined') {
             localStorage.clear();
             sessionStorage.clear();
+            console.log('🧹 CLEARED ALL STORAGE BEFORE LOGIN');
           }
           
           const response = await authAPI.login(credentials);
@@ -65,6 +66,14 @@ export const useAuth = create<AuthStore>()(
           try {
             const userResponse = await authAPI.me();
             const user = userResponse.data;
+            
+            // CHANGE: Pridėti console.log rolių informacijai patikrinti useAuth hook'e
+            console.log('🔍 RAW API RESPONSE IN useAuth:', userResponse);
+            console.log('🔍 USER DATA IN useAuth:', user);
+            console.log('👤 USER ROLES IN useAuth:', user.roles);
+            console.log('🎯 ROLES TYPE IN useAuth:', typeof user.roles);
+            console.log('📊 ROLES LENGTH IN useAuth:', user.roles?.length);
+            console.log('🔢 ROLES ARRAY IN useAuth:', Array.isArray(user.roles));
             
             set({
               user,

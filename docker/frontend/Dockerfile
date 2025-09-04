@@ -21,18 +21,12 @@ RUN npm ci
 # Copy frontend code
 COPY frontend/ .
 
-# Create production build (TypeScript is now available) - Skip ESLint
-RUN npm run build -- --no-lint
-
-# Remove devDependencies and install only production dependencies
-RUN npm prune --production && npm cache clean --force
-
 # Create logs directory
 RUN mkdir -p /app/logs
 
 # Expose port
 EXPOSE 3000
 
-# Start production server
-CMD ["npm", "start"]
+# Start development server (volume mounts will override build artifacts)
+CMD ["npm", "run", "dev"]
 

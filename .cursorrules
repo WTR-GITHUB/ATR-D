@@ -16,7 +16,7 @@ The system implements JWT authentication, modern responsive user interface, real
 
 #### Backend (Django)
 
-Technical implementation is based on modular Django application architecture, where `backend/core/settings.py` specifies **six local applications**:
+Technical implementation is based on modular Django application architecture, where `backend/core/settings.py` specifies **seven local applications**:
 
 - `users` - user management
 - `crm` - customer relationship management
@@ -24,17 +24,20 @@ Technical implementation is based on modular Django application architecture, wh
 - `curriculum` - learning programs
 - `grades` - grades
 - `plans` - educational plans
+- `violation` - violations/penalties management
 
 #### API Structure
 
 `backend/core/urls.py` shows API endpoint structure where each application has its own URL namespace:
 
 ```
+/api/users/
 /api/crm/
 /api/schedule/
 /api/curriculum/
 /api/grades/
 /api/plans/
+/api/violations/
 ```
 
 #### Authentication
@@ -42,8 +45,10 @@ Technical implementation is based on modular Django application architecture, wh
 Authentication implemented through Django Simple JWT with:
 - Bearer token mechanism
 - 60-minute access token validity
-- SQLite database in development environment
+- PostgreSQL database in production, SQLite in development
+- Email-based authentication (not username)
 - Configured CORS support for frontend-backend communication
+- Role-based permissions: student, parent, curator, mentor, manager
 
 #### Frontend (Next.js)
 
@@ -111,7 +116,17 @@ Frontend technology solution is based on **Next.js 15.4.5** with App Router arch
 
 UI layer is implemented through **Tailwind CSS 4** with PostCSS processing, and state management is performed by **Zustand 5.0.7** library. HTTP communication with backend is executed through **Axios 1.11.0** with automatic API proxying configuration (`/api/:path*` → `http://localhost:8000/api/:path*`). 
 
-For form management, **React Hook Form 7.61.1** is used, and for UI components - **Radix UI primitives**, **Lucide React** for icons, and **clsx/tailwind-merge** utility libraries. Development environment has **Turbopack bundler** enabled through `next dev --turbopack` command, and code quality is ensured by **ESLint 9** with Next.js specific rules.
+For form management, **React Hook Form 7.61.1** is used, and for UI components - **Radix UI primitives**, **Lucide React** for icons, **Recharts** for data visualization, and **clsx/tailwind-merge** utility libraries. Development environment has **Turbopack bundler** enabled through `next dev --turbopack` command, and code quality is ensured by **ESLint 9** with Next.js specific rules.
+
+### Docker Infrastructure
+
+System runs in **Docker containerized environment** with:
+- **Production mode**: Gunicorn WSGI server for Django backend
+- **Development mode**: Django dev server with DEBUG=True
+- **Multi-container setup**: PostgreSQL, Redis, Django backend, Next.js frontend, Nginx reverse proxy
+- **Network isolation**: Docker network (172.20.0.0/16)
+- **Volume persistence**: Database, Redis, static files, media files
+- **Environment-based deployment**: `DEBUG=False` for production, `DEBUG=True` for development
 
 ## ERROR FIXING PROCESS
 
@@ -172,7 +187,34 @@ Format as **3 concise paragraphs** describing:
 
 ## OUR .ENV VARIABLES
 
-*Environment variables documentation to be added as needed*
+### Docker Environment Configuration
+
+Key environment files:
+- `env.docker` - Docker environment variables for production deployment
+- `.env` - Local environment overrides and development configuration
+
+Critical variables:
+```bash
+# Database Configuration  
+DATABASE_HOST=postgres                    # Docker service name
+DATABASE_PORT=5432                       # PostgreSQL port
+DATABASE_NAME=dienynas_db               # Database name
+DATABASE_USER=dienynas_user             # Database user
+DATABASE_PASSWORD=secure_password       # Database password
+
+# Django Configuration
+SECRET_KEY=your-secret-key-here         # Django secret key
+DEBUG=False                             # Production: False, Development: True
+ALLOWED_HOSTS=localhost,192.168.88.166  # Allowed hostnames
+
+# JWT Authentication
+JWT_ACCESS_TOKEN_LIFETIME=60            # Access token lifetime in minutes
+JWT_REFRESH_TOKEN_LIFETIME=1440         # Refresh token lifetime in minutes
+
+# CORS Configuration  
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://192.168.88.166:3000
+CORS_ALLOW_ALL_ORIGINS=False           # Set True only for development
+```
 
 # CURRENT FILE STRUCTURE
 ├── ADITIONAL
@@ -433,6 +475,79 @@ tree -L 4 -a -I 'node_modules|.git|pycache|.DS_Store|pytest_cache|.vscode'
 
 *Git workflow documentation to be added as needed*
 
+## DEVELOPMENT COMMANDS
+
+### Docker Operations
+```bash
+# Full system deployment
+docker compose up -d                        # Start all services
+docker compose down                         # Stop all services
+docker compose build --no-cache             # Rebuild all images
+docker compose logs -f                      # View logs
+
+# Production vs Development
+DEBUG=False docker compose up -d            # Production with Gunicorn
+DEBUG=True docker compose up -d             # Development with Django dev server
+
+# Backend management
+docker compose exec backend python manage.py migrate
+docker compose exec backend python manage.py createsuperuser
+docker compose exec backend python manage.py collectstatic --noinput
+
+# Frontend development
+docker compose exec frontend npm run build  # Production build
+docker compose exec frontend npm install    # Install new packages
+
+# Container management
+docker compose restart backend              # Restart backend service
+docker compose restart frontend             # Restart frontend service
+docker compose exec backend bash            # Shell into backend container
+docker compose exec postgres psql -U dienynas_user -d dienynas_db  # Database access
+```
+
+### Production Configuration
+
+**Gunicorn WSGI Server:**
+- Configuration: `backend/gunicorn.conf.py`
+- Workers: `CPU cores * 2 + 1`
+- Startup script: `backend/entrypoint.sh`
+- Log files: `/app/logs/gunicorn-access.log`, `/app/logs/gunicorn-error.log`
+- Process management: Automatic worker restart, preload application
+
+**Nginx Reverse Proxy:**
+- Configuration: `docker/nginx/sites-enabled/a-dienynas.conf`
+- Routes: `/api/*` → Backend, `/` → Frontend, `/admin/` → Django Admin
+- Static files: Served directly by Nginx for performance
+```
+
+### Authentication Setup
+
+**Superuser creation:**
+```bash
+# Must use email-based authentication (not username)
+docker compose exec backend python manage.py shell -c "
+from django.contrib.auth import get_user_model
+User = get_user_model()
+user = User.objects.create_superuser(
+    email='admin@admin.com',
+    password='admin123',
+    first_name='Admin',
+    last_name='User'
+)
+print('Superuser created')
+"
+```
+
+**Login credentials:** `admin@admin.com / admin123`
+
+### Common Issues & Solutions
+
+1. **Port conflicts (8000/3000):** Kill processes with `kill $(lsof -t -i:8000)`
+2. **API 404 errors:** Check URL routing order in `violation/urls.py`
+3. **Authentication 401:** Ensure superuser created with email, not username
+4. **Frontend cache issues:** Use `docker compose restart frontend`
+5. **Database connection:** Check `DATABASE_HOST=postgres` in `.env`
+
 ## IMPORTANT
 
 **Key principles for working with A-DIENYNAS:**
@@ -447,6 +562,8 @@ tree -L 4 -a -I 'node_modules|.git|pycache|.DS_Store|pytest_cache|.vscode'
 8. **Use modular architecture** - maintain separation between Django apps
 9. **Handle errors gracefully** - provide meaningful feedback to users
 10. **Prioritize performance** - educational systems need to be responsive
+11. **Use Docker for all development** - ensures consistent environment
+12. **Check URL routing conflicts** - DRF router can override custom paths
 
 ### MANDATORY FILE CREATION/EDITING RULES
 

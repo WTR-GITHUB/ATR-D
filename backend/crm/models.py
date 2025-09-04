@@ -143,7 +143,7 @@ class MentorSubject(models.Model):
     class Meta:
         verbose_name = _('mentor subject')
         verbose_name_plural = _('mentor subjects')
-        unique_together = ('mentor', 'subject')
+        # CHANGE: Pašalintas unique_together apribojimas, kad tą patį dalyką galėtų mokyti keli mentoriai
 
     def __str__(self):
         return f"{self.mentor} - {self.subject}"

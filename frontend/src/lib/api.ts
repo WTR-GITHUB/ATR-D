@@ -1,8 +1,18 @@
 // frontend/src/lib/api.ts
 import axios from 'axios';
 
-// API base configuration
+// API base configuration optimized for hybrid development
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+// CHANGE: Helper for token refresh - use internal API route in hybrid mode
+const getTokenRefreshUrl = () => {
+  // In hybrid development mode, use Next.js internal proxy for token refresh
+  // This avoids CORS and proxy issues
+  if (typeof window !== 'undefined' && window.location.hostname === '192.168.88.166') {
+    return '/api/users/token/refresh/'; // Use Next.js rewrite proxy
+  }
+  return `${API_BASE_URL}/users/token/refresh/`; // Direct backend call
+};
 
 // Create axios instance
 const api = axios.create({
@@ -38,9 +48,11 @@ api.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem('refresh_token');
         if (refreshToken) {
-          // CHANGE: Fixed token refresh URL to match backend endpoint structure
-          // Backend has /api/users/token/refresh/, not /api/token/refresh/
-          const response = await axios.post(`${API_BASE_URL}/users/token/refresh/`, {
+          // CHANGE: Use smart token refresh URL for hybrid development mode
+          const refreshUrl = getTokenRefreshUrl();
+          console.log(`🔄 Token refresh URL: ${refreshUrl}`);
+          
+          const response = await axios.post(refreshUrl, {
             refresh: refreshToken,
           });
           
@@ -265,6 +277,59 @@ export const gradesAPI = {
   delete: (id: number) => api.delete(`/grades/grades/${id}/`),
 };
 
+// Violation API - pažeidimų/skolų valdymas
+export const violationAPI = {
+  // Violation Categories
+  categories: {
+    getAll: () => api.get('/violations/categories/'),
+    getById: (id: number) => api.get(`/violations/categories/${id}/`),
+    create: (categoryData: any) => api.post('/violations/categories/', categoryData),
+    update: (id: number, categoryData: any) => api.put(`/violations/categories/${id}/`, categoryData),
+    delete: (id: number) => api.delete(`/violations/categories/${id}/`),
+  },
+  
+  // Violation Types
+  types: {
+    getAll: () => api.get('/violations/types/'),
+    getById: (id: number) => api.get(`/violations/types/${id}/`),
+    create: (typeData: any) => api.post('/violations/types/', typeData),
+    update: (id: number, typeData: any) => api.put(`/violations/types/${id}/`, typeData),
+    delete: (id: number) => api.delete(`/violations/types/${id}/`),
+  },
+  
+  // Violation Ranges
+  ranges: {
+    getAll: () => api.get('/violations/ranges/'),
+    getById: (id: number) => api.get(`/violations/ranges/${id}/`),
+    create: (rangeData: any) => api.post('/violations/ranges/', rangeData),
+    update: (id: number, rangeData: any) => api.put(`/violations/ranges/${id}/`, rangeData),
+    delete: (id: number) => api.delete(`/violations/ranges/${id}/`),
+  },
+  
+  // Violations (main CRUD)
+  violations: {
+    getAll: (params?: any) => api.get('/violations/', { params }),
+    getById: (id: number) => api.get(`/violations/${id}/`),
+    create: (violationData: any) => api.post('/violations/', violationData),
+    update: (id: number, violationData: any) => api.put(`/violations/${id}/`, violationData),
+    delete: (id: number) => api.delete(`/violations/${id}/`),
+    
+    // Bulk actions
+    bulkAction: (actionData: any) => api.post('/violations/bulk_action/', actionData),
+    
+    // Individual actions
+    markCompleted: (id: number) => api.post(`/violations/${id}/mark_completed/`),
+    markPenaltyPaid: (id: number) => api.post(`/violations/${id}/mark_penalty_paid/`),
+    recalculatePenalty: (id: number) => api.post(`/violations/${id}/recalculate_penalty/`),
+  },
+  
+  // Statistics
+  stats: {
+    getGeneral: (params?: any) => api.get('/violations/stats/', { params }),
+    getCategory: (params?: any) => api.get('/violations/category-stats/', { params }),
+  },
+};
+
 // Legacy API endpoints for backward compatibility (deprecated)
 export const studentParentsAPI = crmAPI.studentParents;
 export const studentCuratorsAPI = crmAPI.studentCurators;
@@ -279,5 +344,12 @@ export const competencyAtcheveAPI = curriculumAPI.competencyAtcheves;
 export const virtuesAPI = curriculumAPI.virtues;
 export const objectivesAPI = curriculumAPI.objectives;
 export const componentsAPI = curriculumAPI.components;
+
+// Violation legacy API endpoints for backward compatibility
+export const violationCategoriesAPI = violationAPI.categories;
+export const violationTypesAPI = violationAPI.types;
+export const violationRangesAPI = violationAPI.ranges;
+export const violationsAPI = violationAPI.violations;
+export const violationStatsAPI = violationAPI.stats;
 
 export default api; 

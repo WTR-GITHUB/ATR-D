@@ -44,6 +44,17 @@ class MentorSubjectAdmin(admin.ModelAdmin):
     list_display = ('mentor', 'subject')
     list_filter = ('subject', 'mentor__roles')
     search_fields = ('mentor__email', 'mentor__first_name', 'subject__name')
+    
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """
+        Filtruoja mentor lauką, kad rodytų tik vartotojus su 'mentor' role
+        """
+        if db_field.name == "mentor":
+            # CHANGE: Filtruojame tik vartotojus su 'mentor' role
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            kwargs["queryset"] = User.objects.filter(roles__contains='mentor')
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
 
 

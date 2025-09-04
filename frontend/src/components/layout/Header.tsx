@@ -85,6 +85,14 @@ const Header: React.FC = () => {
           <nav className="hidden md:flex space-x-8">
             {isAuthenticated && user && (
               <>
+                {/* Bendras Skolos meniu - prieinamas visoms rolėms */}
+                <Link
+                  href="/violations"
+                  className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                >
+                  Skolos
+                </Link>
+                
                 {/* Mentorius meniu */}
                 {hasRole(user.roles, 'mentor') && (
                   <>

@@ -348,4 +348,189 @@ export interface ValidationError {
 
 export interface FormErrors {
   [key: string]: string;
+}
+
+// Violation types
+export interface ViolationCategory {
+  id: number;
+  name: string;
+  description: string;
+  color_type: ViolationColorType;
+  color_type_display: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ViolationColorType = 
+  | 'DEFAULT' 
+  | 'RED' 
+  | 'BLUE' 
+  | 'YELLOW' 
+  | 'ORANGE' 
+  | 'PURPLE' 
+  | 'GREEN' 
+  | 'DARK_GREEN' 
+  | 'AMBER' 
+  | 'DARK_RED';
+
+export interface ViolationType {
+  id: number;
+  name: string;
+  category: number;
+  category_name: string;
+  category_color_type: ViolationColorType;
+  default_amount?: number;
+  description: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ViolationRange {
+  id: number;
+  name: string;
+  min_violations: number;
+  max_violations?: number;
+  penalty_amount: number;
+  range_display: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Violation {
+  id: number;
+  student: number;
+  student_name: string;
+  student_email: string;
+  category: string;
+  violation_type: string;
+  description: string;
+  amount: number;
+  currency: string;
+  status: ViolationStatus;
+  status_display: string;
+  penalty_status: PenaltyStatus;
+  penalty_status_display: string;
+  created_at: string;
+  task_completed_at?: string;
+  penalty_paid_at?: string;
+  updated_at: string;
+  violation_count: number;
+  penalty_amount: number;
+  created_by?: number;
+  created_by_name?: string;
+  notes: string;
+  is_fully_paid: boolean;
+  is_overdue: boolean;
+}
+
+export type ViolationStatus = 'pending' | 'completed';
+export type PenaltyStatus = 'unpaid' | 'paid';
+
+export interface ViolationCreateData {
+  student: number;
+  category: string;
+  violation_type: string;
+  description: string;
+  amount: number;
+  currency: string;
+  notes?: string;
+}
+
+export interface ViolationUpdateData {
+  category?: string;
+  violation_type?: string;
+  description?: string;
+  amount?: number;
+  currency?: string;
+  status?: ViolationStatus;
+  penalty_status?: PenaltyStatus;
+  notes?: string;
+}
+
+export interface ViolationBulkAction {
+  action: 'mark_completed' | 'mark_penalty_paid' | 'recalculate_penalties' | 'delete';
+  violation_ids: number[];
+}
+
+export interface ViolationStats {
+  total_violations: number;
+  completed_violations: number;
+  pending_violations: number;
+  total_penalty_amount: number;
+  paid_penalty_amount: number;
+  unpaid_penalty_amount: number;
+  completion_rate: number;
+  penalty_payment_rate: number;
+  category_stats: Record<string, CategoryStats>;
+  monthly_stats: Record<string, MonthlyStats>;
+}
+
+export interface CategoryStats {
+  total: number;
+  completed: number;
+  pending: number;
+  color_type: ViolationColorType;
+  penalty_amount: number;
+}
+
+export interface MonthlyStats {
+  total: number;
+  completed: number;
+  penalty_amount: number;
+}
+
+export interface ViolationCategoryStats {
+  category_name: string;
+  color_type: ViolationColorType;
+  total_count: number;
+  completed_count: number;
+  pending_count: number;
+  completion_rate: number;
+  total_amount: number;
+  penalty_amount: number;
+}
+
+// Violation form types
+export interface ViolationFormData {
+  students: number[];
+  category: string;
+  violation_type: string;
+  description: string;
+  amount: number;
+  currency: string;
+  notes?: string;
+}
+
+// Violation filter types
+export interface ViolationFilters {
+  status?: ViolationStatus;
+  penalty_status?: PenaltyStatus;
+  category?: string;
+  student?: number;
+  created_by?: number;
+  date_from?: string;
+  date_to?: string;
+  search?: string;
+}
+
+// Violation table types
+export interface ViolationTableColumn {
+  key: keyof Violation;
+  label: string;
+  sortable?: boolean;
+  render?: (value: any, row: Violation) => React.ReactNode;
+  width?: string;
+  align?: 'left' | 'center' | 'right';
+}
+
+// Violation color mapping
+export interface ViolationColorMap {
+  [key: string]: {
+    bg: string;
+    border: string;
+    color: string;
+  };
 } 

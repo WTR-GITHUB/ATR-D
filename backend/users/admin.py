@@ -2,7 +2,44 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django import forms
+from django.db import models
 from .models import User
+
+class RolesFilter(admin.SimpleListFilter):
+    """
+    Custom filter klasė roles filtravimui - filtruoja vartotojus pagal jų roles
+    """
+    title = 'Rolės'
+    parameter_name = 'roles'
+    
+    def lookups(self, request, model_admin):
+        """
+        Grąžina galimus filtravimo variantus
+        """
+        # CHANGE: Gauname visas unikalias roles iš duomenų bazės
+        roles = set()
+        for user in User.objects.all():
+            if user.roles:
+                for role in user.roles:
+                    roles.add(role)
+        
+        # Rūšiuojame roles pagal User.Role.choices tvarką
+        role_choices = dict(User.Role.choices)
+        sorted_roles = []
+        for role_value, role_display in role_choices.items():
+            if role_value in roles:
+                sorted_roles.append((role_value, role_display))
+        
+        return sorted_roles
+    
+    def queryset(self, request, queryset):
+        """
+        Filtruoja queryset pagal pasirinktą rolę
+        """
+        if self.value():
+            # CHANGE: Naudojame contains filtravimą, kuris veikia su JSONField
+            return queryset.filter(roles__contains=[self.value()])
+        return queryset
 
 class UserAdminForm(forms.ModelForm):
     """
@@ -65,7 +102,7 @@ class CustomUserAdmin(UserAdmin):
     form = UserAdminForm
     add_form = UserCreationForm
     list_display = ['email', 'first_name', 'last_name', 'get_roles_display', 'is_active', 'date_joined']
-    list_filter = ['is_active', 'date_joined']
+    list_filter = ['is_active', 'date_joined', RolesFilter]
     search_fields = ['email', 'first_name', 'last_name']
     ordering = ['email']
     

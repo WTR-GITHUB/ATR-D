@@ -102,3 +102,11 @@ public
 
 # Local development
 local_settings.py
+create_student.py
+create_users.py
+examples/*
+ateities_pertvarkos.md
+DEV.md
+DOCKER_CONTROL.md
+POSTGRESS_COMANDS.md
+USER_CREATION_GUIDE.md

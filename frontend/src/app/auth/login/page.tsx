@@ -28,10 +28,21 @@ export default function LoginPage() {
       await login(formData);
       // Nukreipimas pagal aukščiausią rolę
       const user = await authAPI.me();
+      
+      // CHANGE: Pridėti console.log rolių informacijai patikrinti
+      console.log('🔍 USER DATA AFTER LOGIN:', user.data);
+      console.log('👤 USER ROLES:', user.data.roles);
+      console.log('🎯 ROLES TYPE:', typeof user.data.roles);
+      console.log('📊 ROLES LENGTH:', user.data.roles?.length);
+      console.log('🔢 ROLES ARRAY:', Array.isArray(user.data.roles));
+      
       const dashboardUrl = getDashboardUrlByRoles(user.data.roles);
+      console.log('🚀 DASHBOARD URL:', dashboardUrl);
+      
       router.push(dashboardUrl);
     } catch (error) {
       // Error is handled by useAuth hook
+      console.error('❌ LOGIN ERROR:', error);
     }
   };
 

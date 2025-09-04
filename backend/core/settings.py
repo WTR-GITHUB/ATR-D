@@ -20,7 +20,21 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load environment variables from .env file
-load_dotenv()
+# CHANGE: Optimized for hybrid development mode
+# Try multiple .env file locations for flexibility
+env_paths = [
+    os.path.join(os.path.dirname(__file__), '../../.env'),  # Docker mode
+    os.path.join(BASE_DIR.parent, '.env'),  # Hybrid mode (parent of backend/)
+    os.path.join(BASE_DIR, '.env'),  # Alternative location
+]
+
+for env_path in env_paths:
+    if os.path.exists(env_path):
+        load_dotenv(env_path)
+        print(f"🔧 Loaded environment from: {env_path}")
+        break
+else:
+    print("⚠️ No .env file found in expected locations")
 
 
 # Quick-start development settings - unsuitable for production
@@ -30,12 +44,45 @@ load_dotenv()
 SECRET_KEY = os.getenv('SECRET_KEY')  # Perkelta į .env failą
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'  # Perkelta į .env failą
+# CHANGE: Optimized DEBUG setting for hybrid development
+DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')  # Perkelta į .env failą
+# Hybrid development mode detection
+HYBRID_DEV_MODE = os.getenv('HYBRID_DEV_MODE', 'True').lower() == 'true'
+if HYBRID_DEV_MODE:
+    print(f"🔄 Running in HYBRID DEVELOPMENT mode (DEBUG={DEBUG})")
+else:
+    print(f"🐳 Running in DOCKER mode (DEBUG={DEBUG})")
 
-CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True').lower() == 'true'  # Perkelta į .env failą
-CORS_ALLOW_CREDENTIALS = os.getenv('CORS_ALLOW_CREDENTIALS', 'True').lower() == 'true'  # Perkelta į .env failą
+# CHANGE: Optimized ALLOWED_HOSTS for hybrid development
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+
+# Add localhost variations for hybrid development
+if HYBRID_DEV_MODE:
+    local_hosts = ['localhost', '127.0.0.1', '0.0.0.0', '192.168.88.166', '192.168.192.168']
+    for host in local_hosts:
+        if host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(host)
+    print(f"🌐 ALLOWED_HOSTS: {ALLOWED_HOSTS}")
+
+# CHANGE: Optimized CORS for hybrid development
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True').lower() == 'true'
+CORS_ALLOW_CREDENTIALS = os.getenv('CORS_ALLOW_CREDENTIALS', 'True').lower() == 'true'
+
+# Additional CORS settings for hybrid development
+if HYBRID_DEV_MODE:
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000", 
+        "http://192.168.88.166:3000",
+        "http://192.168.88.166",
+        "http://192.168.192.168:3000",
+        "http://192.168.192.168",
+    ]
+    if not CORS_ALLOW_ALL_ORIGINS:
+        print(f"🔗 CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
+    else:
+        print("🔗 CORS: Allowing all origins (development mode)")
 
 # Application definition
 
@@ -54,6 +101,7 @@ INSTALLED_APPS = [
     'curriculum',
     'grades',
     'plans',
+    'violation',
     
     
     # Third party apps
@@ -100,13 +148,28 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# Database configuration optimized for hybrid development
 DATABASES = {
     'default': {
-        'ENGINE': os.getenv('DATABASE_ENGINE', 'django.db.backends.sqlite3'),  # Perkelta į .env failą
-        'NAME': BASE_DIR / os.getenv('DATABASE_NAME', 'db.sqlite3'),  # Perkelta į .env failą
+        'ENGINE': os.getenv('DATABASE_ENGINE', 'django.db.backends.postgresql'),
+        'NAME': os.getenv('DATABASE_NAME', 'a_dienynas'),
+        'USER': os.getenv('POSTGRES_USER', 'a_dienynas_user'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+        'HOST': os.getenv('DATABASE_HOST', 'localhost'),  # Works for both Docker and hybrid mode
+        'PORT': os.getenv('DATABASE_PORT', '5432'),
+        'OPTIONS': {
+            'connect_timeout': 20,  # Helpful for Docker connections
+        } if not DEBUG else {},
     }
 }
 
+# Development database fallback (SQLite for pure local development)
+if DEBUG and not os.getenv('POSTGRES_PASSWORD'):
+    print("⚠️ No PostgreSQL password found, falling back to SQLite")
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -270,6 +333,11 @@ LOGGING = {
             'propagate': False,
         },
         'users': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'violation': {
             'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': False,
