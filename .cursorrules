@@ -59,6 +59,29 @@ Frontend implemented with:
 - **Zustand** state management
 - **Axios** HTTP client for backend communication
 - Automatic API proxying: `/api/:path*` → `http://localhost:8000/api/:path*`
+- **Modular Navigation System** with role-based components
+
+#### Navigation System Architecture
+
+The frontend implements a modular navigation system located in `frontend/src/components/layout/Navigation/`:
+
+**Core Components:**
+- `BaseNavigation.tsx` - Main navigation wrapper with role-based rendering
+- `MobileNavigation.tsx` - Mobile-responsive navigation menu
+- `index.ts` - Centralized exports for all navigation components
+
+**Role-Specific Navigation:**
+- `roles/ManagerNavigation.tsx` - System manager navigation (Darbastalis + Skolos)
+- `roles/CuratorNavigation.tsx` - Curator navigation (Darbastalis + Skolos)
+- `roles/MentorNavigation.tsx` - Mentor navigation (Darbastalis + Veiklos + Pamokos + Ugdymo planai + Skolos)
+- `roles/StudentNavigation.tsx` - Student navigation (Darbastalis + Skolos)
+- `roles/ParentNavigation.tsx` - Parent navigation (Darbastalis + Skolos)
+
+**Navigation Features:**
+- Role-based menu rendering based on current URL path
+- Responsive design with separate mobile/desktop layouts
+- Consistent styling across all role components
+- Centralized link management per role
 
 #### Static Assets Organization
 
@@ -320,127 +343,147 @@ CORS_ALLOW_ALL_ORIGINS=False           # Set True only for development
 │   ├── MCP.md
 │   └── SERVICES.md
 ├── frontend
-│   ├── eslint.config.mjs
-│   ├── next.config.ts
-│   ├── next-env.d.ts
-│   ├── OPTIMIZATION.md
-│   ├── package.json
-│   ├── package-lock.json
-│   ├── postcss.config.mjs
-│   ├── public
-│   │   ├── dataTables.js
-│   │   ├── file.svg
-│   │   ├── globe.svg
-│   │   ├── jquery-3.7.1.js
-│   │   ├── next.svg
-│   │   ├── vercel.svg
-│   │   └── window.svg
-│   ├── README.md
-│   ├── src
-├── app
-│   ├── auth
-│   │   └── login
-│   │       └── page.tsx
-│   ├── dashboard
-│   │   ├── curators
-│   │   │   └── page.tsx
-│   │   ├── managers
-│   │   │   ├── layout.tsx
-│   │   │   └── page.tsx
-│   │   ├── mentors
-│   │   │   ├── activities
-│   │   │   │   ├── components
-│   │   │   │   │   ├── AttendanceMarker.tsx
-│   │   │   │   │   ├── index.ts
-│   │   │   │   │   ├── LessonDetailsPanel.tsx
-│   │   │   │   │   ├── LessonInfoCard.tsx
-│   │   │   │   │   ├── StudentRow.tsx
-│   │   │   │   │   ├── StudentsList.tsx
-│   │   │   │   │   └── StudentStats.tsx
-│   │   │   │   ├── page.tsx
-│   │   │   │   ├── README.md
-│   │   │   │   └── types.ts
-│   │   │   ├── lessons
-│   │   │   │   ├── create
-│   │   │   │   │   └── page.tsx
-│   │   │   │   ├── edit
-│   │   │   │   │   └── [id]
-│   │   │   │   │       └── page.tsx
-│   │   │   │   └── page.tsx
-│   │   │   ├── page.tsx
-│   │   │   ├── plans
-│   │   │   │   ├── assign
-│   │   │   │   │   └── page.tsx
-│   │   │   │   ├── create
-│   │   │   │   │   └── page.tsx
-│   │   │   │   ├── edit
-│   │   │   │   │   └── [id]
-│   │   │   │   │       └── page.tsx
-│   │   │   │   └── page.tsx
-│   │   │   ├── schedule
-│   │   │   │   └── page.tsx
-│   │   │   └── students
-│   │   │       └── page.tsx
-│   │   ├── page.tsx
-│   │   ├── parents
-│   │   │   └── page.tsx
-│   │   └── students
-│   │       └── page.tsx
-│   ├── favicon.ico
-│   ├── globals.css
-│   ├── layout.tsx
-│   └── page.tsx
-├── components
-│   ├── auth
-│   │   └── ClientAuthGuard.tsx
-│   ├── dashboard
-│   │   ├── ScheduleCard.tsx
-│   │   ├── TableCell.tsx
-│   │   ├── WeeklyScheduleCalendar.tsx
-│   │   └── WeeklySchedule.tsx
-│   ├── DataTable
-│   │   ├── FilterRow.tsx
-│   │   ├── index.ts
-│   │   ├── LocalDataTable.tsx
-│   │   └── ReactDataTable.tsx
-│   ├── forms
-│   ├── layout
-│   │   └── Header.tsx
-│   └── ui
-│       ├── Button.tsx
-│       ├── Card.tsx
-│       ├── DualListTransfer.tsx
-│       ├── DynamicList.tsx
-│       ├── GenerationResultsModal.tsx
-│       ├── Input.tsx
-│       ├── LessonDualListTransfer.tsx
-│       ├── LoadingSpinner.tsx
-│       ├── MultiSelect.tsx
-│       ├── ProgressModal.tsx
-│       ├── Select.tsx
-│       └── Textarea.tsx
-├── hooks
-│   ├── useAuth.ts
-│   ├── useCurriculum.ts
-│   ├── useGrades.ts
-│   ├── useLessonDetails.ts
-│   ├── useLessons.ts
-│   ├── useLevels.ts
-│   ├── usePeriods.ts
-│   ├── useSchedule.ts
-│   ├── useSelectedLesson.ts
-│   ├── useSubjects.ts
-│   ├── useWeekInfo.ts
-│   └── useWeeklySchedule.ts
-├── lib
-│   ├── api.ts
-│   ├── roleUtils.ts
-│   ├── types.ts
-│   └── utils.ts
-├── styles
-│   └── datatables.css
-└── types
-    └── jquery.d.ts
+│   ├── eslint.config.mjs
+│   ├── next.config.ts
+│   ├── next-env.d.ts
+│   ├── OPTIMIZATION.md
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── postcss.config.mjs
+│   ├── public
+│   │   ├── dataTables.js
+│   │   ├── file.svg
+│   │   ├── globe.svg
+│   │   ├── jquery-3.7.1.js
+│   │   ├── next.svg
+│   │   ├── vercel.svg
+│   │   └── window.svg
+│   ├── README.md
+│   └── src
+│       ├── app
+│       │   ├── auth
+│       │   │   └── login
+│       │   │       └── page.tsx
+│       │   ├── curators
+│       │   │   └── page.tsx
+│       │   ├── managers
+│       │   │   ├── layout.tsx
+│       │   │   └── page.tsx
+│       │   ├── mentors
+│       │   │   ├── activities
+│       │   │   │   ├── components
+│       │   │   │   │   ├── AttendanceMarker.tsx
+│       │   │   │   │   ├── GradeSelector.tsx
+│       │   │   │   │   ├── index.ts
+│       │   │   │   │   ├── LessonDetailsPanel.tsx
+│       │   │   │   │   ├── LessonInfoCard.tsx
+│       │   │   │   │   ├── StudentRow.tsx
+│       │   │   │   │   ├── StudentsList.tsx
+│       │   │   │   │   └── StudentStats.tsx
+│       │   │   │   ├── page.tsx
+│       │   │   │   ├── README.md
+│       │   │   │   └── types.ts
+│       │   │   ├── dashboard
+│       │   │   │   └── page.tsx
+│       │   │   ├── lessons
+│       │   │   │   ├── create
+│       │   │   │   │   └── page.tsx
+│       │   │   │   ├── edit
+│       │   │   │   │   └── [id]
+│       │   │   │   │       └── page.tsx
+│       │   │   │   └── page.tsx
+│       │   │   ├── page.tsx
+│       │   │   ├── plans
+│       │   │   │   ├── assign
+│       │   │   │   │   └── page.tsx
+│       │   │   │   ├── create
+│       │   │   │   │   └── page.tsx
+│       │   │   │   ├── edit
+│       │   │   │   │   └── [id]
+│       │   │   │   │       └── page.tsx
+│       │   │   │   ├── imuplan-assigned
+│       │   │   │   │   └── page.tsx
+│       │   │   │   └── page.tsx
+│       │   │   ├── schedule
+│       │   │   │   └── page.tsx
+│       │   │   └── students
+│       │   │       └── page.tsx
+│       │   ├── parents
+│       │   │   └── page.tsx
+│       │   ├── settings
+│       │   │   └── page.tsx
+│       │   ├── students
+│       │   │   └── page.tsx
+│       │   ├── violations
+│       │   │   └── page.tsx
+│       │   ├── favicon.ico
+│       │   ├── globals.css
+│       │   ├── layout.tsx
+│       │   └── page.tsx
+│       ├── components
+│       │   ├── auth
+│       │   │   └── ClientAuthGuard.tsx
+│       │   ├── dashboard
+│       │   │   ├── ScheduleCard.tsx
+│       │   │   ├── TableCell.tsx
+│       │   │   ├── WeeklyScheduleCalendar.tsx
+│       │   │   └── WeeklySchedule.tsx
+│       │   ├── DataTable
+│       │   │   ├── FilterRow.tsx
+│       │   │   ├── index.ts
+│       │   │   ├── LocalDataTable.tsx
+│       │   │   └── ReactDataTable.tsx
+│       │   ├── layout
+│       │   │   ├── Header.tsx
+│       │   │   └── Navigation
+│       │   │       ├── BaseNavigation.tsx
+│       │   │       ├── MobileNavigation.tsx
+│       │   │       ├── index.ts
+│       │   │       └── roles
+│       │   │           ├── ManagerNavigation.tsx
+│       │   │           ├── CuratorNavigation.tsx
+│       │   │           ├── MentorNavigation.tsx
+│       │   │           ├── StudentNavigation.tsx
+│       │   │           └── ParentNavigation.tsx
+│       │   └── ui
+│       │       ├── Accordion.tsx
+│       │       ├── Button.tsx
+│       │       ├── Card.tsx
+│       │       ├── DualListTransfer.tsx
+│       │       ├── DynamicList.tsx
+│       │       ├── GenerationResultsModal.tsx
+│       │       ├── Input.tsx
+│       │       ├── LessonDualListTransfer.tsx
+│       │       ├── LoadingSpinner.tsx
+│       │       ├── MultiSelect.tsx
+│       │       ├── ProgressModal.tsx
+│       │       ├── RoleSwitcher.tsx
+│       │       ├── Select.tsx
+│       │       ├── Textarea.tsx
+│       │       └── ViolationFormModal.tsx
+│       ├── hooks
+│       │   ├── useAuth.ts
+│       │   ├── useCurriculum.ts
+│       │   ├── useGrades.ts
+│       │   ├── useLessonDetails.ts
+│       │   ├── useLessons.ts
+│       │   ├── useLevels.ts
+│       │   ├── usePeriods.ts
+│       │   ├── useSchedule.ts
+│       │   ├── useSelectedLesson.ts
+│       │   ├── useSettings.ts
+│       │   ├── useSubjects.ts
+│       │   ├── useWeekInfo.ts
+│       │   └── useWeeklySchedule.ts
+│       ├── lib
+│       │   ├── api.ts
+│       │   ├── roleUtils.ts
+│       │   ├── types.ts
+│       │   └── utils.ts
+│       ├── styles
+│       │   └── datatables.css
+│       └── types
+│           └── jquery.d.ts
 ├── package.json
 ├── package-lock.json
 ├── PROMPTS

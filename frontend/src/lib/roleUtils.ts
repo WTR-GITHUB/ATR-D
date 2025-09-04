@@ -60,7 +60,7 @@ export function getDashboardUrl(role: UserRole): string {
     parent: 'parents',
     student: 'students',
   };
-  return `/dashboard/${roleToPath[role]}`;
+  return `/${roleToPath[role]}`;
 }
 
 /**

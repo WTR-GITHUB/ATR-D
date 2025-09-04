@@ -11,10 +11,10 @@ import useSettings from '@/hooks/useSettings';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import { User, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, UserCheck } from 'lucide-react';
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { changePassword, isLoading, error, clearError } = useSettings();
   
   // Slaptažodžio keitimo būsenos
@@ -31,6 +31,17 @@ export default function SettingsPage() {
   
   // Lokalūs pranešimai
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  
+  // Numatytosios rolės pasirinkimo būsena
+  const [selectedDefaultRole, setSelectedDefaultRole] = useState<string | null>(null);
+  const [roleMessage, setRoleMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  
+  // Inicijuoti selectedDefaultRole su dabartine vartotojo default role
+  React.useEffect(() => {
+    if (user?.default_role) {
+      setSelectedDefaultRole(user.default_role);
+    }
+  }, [user]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -72,6 +83,58 @@ export default function SettingsPage() {
     }
   };
 
+  // Rolių pavadinimų objektas
+  const getRoleDisplayName = (role: string) => {
+    const roleNames: Record<string, string> = {
+      manager: 'Administratorius',
+      curator: 'Kuratorius', 
+      mentor: 'Mentorius',
+      student: 'Studentas',
+      parent: 'Tėvai/Globėjai'
+    };
+    return roleNames[role] || role;
+  };
+
+  // Numatytosios rolės išsaugojimas
+  const handleDefaultRoleSubmit = async () => {
+    if (!selectedDefaultRole) return;
+    
+    try {
+      const response = await fetch('/api/users/settings/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ 
+          default_role: selectedDefaultRole 
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setRoleMessage({ 
+          type: 'success', 
+          text: data.message || `Numatytoji rolė "${getRoleDisplayName(selectedDefaultRole)}" sėkmingai išsaugota!` 
+        });
+        
+        setTimeout(() => setRoleMessage(null), 3000);
+      } else {
+        setRoleMessage({ 
+          type: 'error', 
+          text: data.message || 'Klaida išsaugojant numatytąją rolę' 
+        });
+      }
+    } catch (error) {
+      console.error('Error saving default role:', error);
+      setRoleMessage({ 
+        type: 'error', 
+        text: 'Klaida išsaugojant numatytąją rolę' 
+      });
+    }
+  };
+
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -83,14 +146,14 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8">
       {/* Puslapio antraštė */}
       <div className="border-b border-gray-200 pb-4">
         <h1 className="text-3xl font-bold text-gray-900">Nustatymai</h1>
         <p className="text-gray-600 mt-2">Valdykite savo paskyros nustatymus</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Vartotojo informacija */}
         <Card>
           <CardHeader>
@@ -252,13 +315,87 @@ export default function SettingsPage() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full"
+                className="w-full bg-gray-600 hover:bg-gray-700 text-white"
               >
                 {isLoading ? 'Keičiama...' : 'Keisti slaptažodį'}
               </Button>
             </form>
           </CardContent>
         </Card>
+
+        {/* Rolių pasirinkimo kortelė */}
+        {user.roles && user.roles.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <UserCheck className="w-5 h-5" />
+                <span>Numatytoji rolė prisijungimo metu</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-gray-600">
+                  {user.roles.length > 1 
+                    ? 'Pasirinkite su kuria role norite prisijungti pagal nutylėjimą:' 
+                    : 'Jūsų dabartinė rolė:'}
+                </p>
+                
+                <div className="space-y-2">
+                  {user.roles.map((role) => (
+                    <div 
+                      key={role}
+                      className={`border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 ${
+                        selectedDefaultRole === role
+                          ? 'border-gray-500 bg-gray-50'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
+                      onClick={() => {
+                        setSelectedDefaultRole(role);
+                        setRoleMessage(null);
+                      }}
+                    >
+                      <div className="flex items-center">
+                        <div className={`w-5 h-5 border-2 rounded-full mr-3 flex items-center justify-center ${
+                          selectedDefaultRole === role
+                            ? 'border-gray-500 bg-gray-500'
+                            : 'border-gray-300'
+                        }`}>
+                          {selectedDefaultRole === role && (
+                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          )}
+                        </div>
+                        <span className="text-gray-900 font-medium">
+                          {getRoleDisplayName(role)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Rolės pranešimas */}
+                {roleMessage && (
+                  <div className={`p-3 rounded-md text-sm ${
+                    roleMessage.type === 'success'
+                      ? 'bg-green-50 text-green-800 border border-green-200' 
+                      : 'bg-red-50 text-red-800 border border-red-200'
+                  }`}>
+                    {roleMessage.text}
+                  </div>
+                )}
+
+                {user.roles.length > 1 && (
+                  <Button
+                    onClick={handleDefaultRoleSubmit}
+                    disabled={!selectedDefaultRole}
+                    className="w-full bg-gray-600 hover:bg-gray-700 text-white"
+                  >
+                    Patvirtinti pasirinkimą
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

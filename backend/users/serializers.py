@@ -19,6 +19,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         # Add custom claims
         token['email'] = user.email
         token['roles'] = user.roles
+        token['default_role'] = user.get_default_role()
         token['full_name'] = f"{user.first_name} {user.last_name}"
         return token
 
@@ -28,7 +29,7 @@ class UserSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'roles', 'is_active', 'date_joined']
+        fields = ['id', 'email', 'first_name', 'last_name', 'roles', 'default_role', 'is_active', 'date_joined']
         read_only_fields = ['id', 'date_joined']
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -51,5 +52,23 @@ class ChangePasswordSerializer(serializers.Serializer):
     def save(self):
         user = self.context['request'].user
         user.set_password(self.validated_data['new_password'])
+        user.save()
+        return user
+
+class UserSettingsSerializer(serializers.Serializer):
+    """
+    Serializer for user settings (default role)
+    """
+    default_role = serializers.CharField(required=True)
+
+    def validate_default_role(self, value):
+        user = self.context['request'].user
+        if value not in user.roles:
+            raise serializers.ValidationError('Negalite pasirinkti rolės, kurios neturite.')
+        return value
+
+    def save(self):
+        user = self.context['request'].user
+        user.default_role = self.validated_data['default_role']
         user.save()
         return user 

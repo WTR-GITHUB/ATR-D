@@ -50,6 +50,8 @@ class User(AbstractUser):
     email = models.EmailField(_('email address'), unique=True)
     phone_number = models.CharField(_('phone number'), max_length=30, blank=True)
     roles = models.JSONField(_('roles'), default=list, help_text=_('Vartotojo rolės sąrašas'))
+    default_role = models.CharField(_('default role'), max_length=20, blank=True, null=True, 
+                                   help_text=_('Numatytoji rolė prisijungimo metu'))
     contract_number = models.CharField(_('contract number'), max_length=100, blank=True)
 
     objects = CustomUserManager()
@@ -82,6 +84,16 @@ class User(AbstractUser):
         Patikrina ar vartotojas turi bent vieną iš nurodytų rolių
         """
         return any(role in self.roles for role in roles)
+    
+    def get_default_role(self):
+        """
+        Grąžina numatytąją rolę arba pirma rolę iš sąrašo
+        """
+        if self.default_role and self.default_role in self.roles:
+            return self.default_role
+        elif self.roles:
+            return self.roles[0]
+        return None
 
     def clean(self):
         super().clean()

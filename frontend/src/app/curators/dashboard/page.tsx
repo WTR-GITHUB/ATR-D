@@ -94,13 +94,26 @@ export default function CuratorsDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Sveiki, {user?.first_name} {user?.last_name}!
-        </h1>
-        <p className="text-gray-600 mt-2">
-          Jūsų kuratoriaus dashboard - {new Date().toLocaleDateString('lt-LT')}
-        </p>
+      <div className="bg-gradient-to-r from-green-600 to-green-800 rounded-lg shadow p-6 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">
+              Sveiki, {user?.first_name} {user?.last_name}!
+            </h1>
+            <p className="text-green-100 mt-2 text-lg">
+              🎓 KURATORIAUS VALDYMO CENTRAS
+            </p>
+            <p className="text-green-200 text-sm mt-1">
+              {new Date().toLocaleDateString('lt-LT')}
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="bg-white/20 rounded-lg p-3">
+              <Award className="w-8 h-8 text-white" />
+            </div>
+            <p className="text-xs text-green-200 mt-1">Curator</p>
+          </div>
+        </div>
       </div>
 
       {/* Stats Grid */}

@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import User
-from .serializers import UserSerializer, CustomTokenObtainPairSerializer, ChangePasswordSerializer
+from .serializers import UserSerializer, CustomTokenObtainPairSerializer, ChangePasswordSerializer, UserSettingsSerializer
 
 # Create your views here.
 
@@ -76,3 +76,24 @@ class UserViewSet(viewsets.ModelViewSet):
             'message': 'Klaida keičiant slaptažodį',
             'errors': serializer.errors
         }, status=400)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def user_settings(request):
+    """
+    Vartotojo nustatymų endpoint'as - leidžia išsaugoti numatytąją rolę
+    """
+    serializer = UserSettingsSerializer(data=request.data, context={'request': request})
+    
+    if serializer.is_valid():
+        user = serializer.save()
+        return Response({
+            'success': True,
+            'message': 'Nustatymai sėkmingai išsaugoti!',
+            'default_role': user.default_role
+        })
+    return Response({
+        'success': False,
+        'message': 'Klaida išsaugojant nustatymus',
+        'errors': serializer.errors
+    }, status=400)

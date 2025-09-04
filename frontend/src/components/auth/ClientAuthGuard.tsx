@@ -39,20 +39,20 @@ export default function ClientAuthGuard({
       
       // Jei esame login puslapyje ir vartotojas prisijungęs, nukreipti į dashboard
       if (currentPath === '/auth/login') {
-        redirectToDashboard(user.roles, router);
+        redirectToDashboard(user.roles, router, user.default_role);
         return;
       }
 
       // Jei esame pagrindiniame puslapyje ir vartotojas prisijungęs, nukreipti į dashboard
       if (currentPath === '/') {
-        redirectToDashboard(user.roles, router);
+        redirectToDashboard(user.roles, router, user.default_role);
         return;
       }
 
       // Patikrinti ar vartotojas turi reikiamą rolę
       if (allowedRoles.length > 0 && !(user.roles || []).some(role => allowedRoles.includes(role))) {
         // Jei vartotojas neturi reikiamos rolės, nukreipti į jo dashboard
-        redirectToDashboard(user.roles || [], router);
+        redirectToDashboard(user.roles || [], router, user.default_role);
         return;
       }
     }
@@ -71,21 +71,44 @@ export default function ClientAuthGuard({
 }
 
 // Pagalbinė funkcija nukreipti į dashboard pagal roles
-// CHANGE: Pakeista iš window.location.href į Next.js router.push ir 'admin' į 'manager'
-function redirectToDashboard(roles: string[] | null | undefined, router: any) {
+// CHANGE: Naudojama numatytoji rolė arba pirma rolė iš user.roles sąrašo
+function redirectToDashboard(roles: string[] | null | undefined, router: any, defaultRole?: string) {
   const userRoles = roles || [];
-  // Prioritizuoti roles: manager > curator > mentor > parent > student
-  if (userRoles.includes('manager')) {
-    router.push('/dashboard/managers');
-  } else if (userRoles.includes('curator')) {
-    router.push('/dashboard/curators');
-  } else if (userRoles.includes('mentor')) {
-    router.push('/dashboard/mentors');
-  } else if (userRoles.includes('parent')) {
-    router.push('/dashboard/parents');
-  } else if (userRoles.includes('student')) {
-    router.push('/dashboard/students');
+  
+  if (userRoles.length > 0) {
+    // PRIORITY: Use default_role if it exists AND is valid, otherwise use first role
+    let roleToUse;
+    if (defaultRole && userRoles.includes(defaultRole)) {
+      roleToUse = defaultRole;
+      console.log('✅ AUTHGUARD Using DEFAULT ROLE:', roleToUse);
+    } else {
+      roleToUse = userRoles[0];
+      console.log('⚠️ AUTHGUARD Using FIRST ROLE (no valid default):', roleToUse);
+    }
+    console.log('🚀 AUTHGUARD FINAL ROLE TO USE:', roleToUse);
+    
+    switch (roleToUse) {
+      case 'manager':
+        router.push('/managers');
+        break;
+      case 'curator':
+        router.push('/curators');
+        break;
+      case 'mentor':
+        router.push('/mentors');
+        break;
+      case 'parent':
+        router.push('/parents');
+        break;
+      case 'student':
+        router.push('/students');
+        break;
+      default:
+        // Fallback to homepage if unknown role
+        router.push('/');
+    }
   } else {
-    router.push('/dashboard');
+    // No roles - redirect to homepage
+    router.push('/');
   }
 } 

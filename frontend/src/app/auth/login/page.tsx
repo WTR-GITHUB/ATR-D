@@ -32,11 +32,26 @@ export default function LoginPage() {
       // CHANGE: Pridėti console.log rolių informacijai patikrinti
       console.log('🔍 USER DATA AFTER LOGIN:', user.data);
       console.log('👤 USER ROLES:', user.data.roles);
-      console.log('🎯 ROLES TYPE:', typeof user.data.roles);
-      console.log('📊 ROLES LENGTH:', user.data.roles?.length);
-      console.log('🔢 ROLES ARRAY:', Array.isArray(user.data.roles));
+      console.log('🎯 DEFAULT ROLE:', user.data.default_role);
       
-      const dashboardUrl = getDashboardUrlByRoles(user.data.roles);
+      // PRIORITY: Use default_role if it exists AND is valid, otherwise use first role
+      let roleToUse;
+      if (user.data.default_role && user.data.roles.includes(user.data.default_role)) {
+        roleToUse = user.data.default_role;
+        console.log('✅ Using DEFAULT ROLE:', roleToUse);
+      } else {
+        roleToUse = user.data.roles[0];
+        console.log('⚠️ Using FIRST ROLE (no valid default):', roleToUse);
+      }
+      const roleToPath = {
+        manager: 'managers',
+        curator: 'curators', 
+        mentor: 'mentors',
+        parent: 'parents',
+        student: 'students'
+      };
+      const dashboardUrl = `/${roleToPath[roleToUse] || roleToUse}`;
+      console.log('🚀 ROLE TO USE:', roleToUse);
       console.log('🚀 DASHBOARD URL:', dashboardUrl);
       
       router.push(dashboardUrl);

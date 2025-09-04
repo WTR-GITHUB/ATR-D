@@ -52,6 +52,12 @@ class UserAdminForm(forms.ModelForm):
         help_text='Pasirinkite vartotojo roles'
     )
     
+    default_role = forms.ChoiceField(
+        choices=[('', 'Automatinis pasirinkimas')] + list(User.Role.choices),
+        required=False,
+        help_text='Numatytoji rolė prisijungimo metu'
+    )
+    
     class Meta:
         model = User
         fields = '__all__'
@@ -59,8 +65,29 @@ class UserAdminForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance and self.instance.pk and self.instance.roles:
-            self.fields['roles'].initial = self.instance.roles
+        if self.instance and self.instance.pk:
+            if self.instance.roles:
+                self.fields['roles'].initial = self.instance.roles
+            if self.instance.default_role:
+                self.fields['default_role'].initial = self.instance.default_role
+    
+    class Media:
+        js = ('admin/js/user_admin.js',)
+    
+    def clean(self):
+        """
+        Formos validacija - patikrina ar default_role yra tarp pasirinktų rolių
+        """
+        cleaned_data = super().clean()
+        roles = cleaned_data.get('roles', [])
+        default_role = cleaned_data.get('default_role')
+        
+        if default_role and default_role not in roles:
+            raise forms.ValidationError({
+                'default_role': 'Numatytoji rolė turi būti viena iš pasirinktų rolių.'
+            })
+        
+        return cleaned_data
 
 class UserCreationForm(forms.ModelForm):
     """
@@ -75,9 +102,33 @@ class UserCreationForm(forms.ModelForm):
         help_text='Pasirinkite vartotojo roles'
     )
     
+    default_role = forms.ChoiceField(
+        choices=[('', 'Automatinis pasirinkimas')] + list(User.Role.choices),
+        required=False,
+        help_text='Numatytoji rolė prisijungimo metu'
+    )
+    
     class Meta:
         model = User
-        fields = ('email', 'first_name', 'last_name', 'roles')
+        fields = ('email', 'first_name', 'last_name', 'roles', 'default_role')
+    
+    class Media:
+        js = ('admin/js/user_admin.js',)
+    
+    def clean(self):
+        """
+        Formos validacija - patikrina ar default_role yra tarp pasirinktų rolių
+        """
+        cleaned_data = super().clean()
+        roles = cleaned_data.get('roles', [])
+        default_role = cleaned_data.get('default_role')
+        
+        if default_role and default_role not in roles:
+            raise forms.ValidationError({
+                'default_role': 'Numatytoji rolė turi būti viena iš pasirinktų rolių.'
+            })
+        
+        return cleaned_data
     
     def clean_password2(self):
         password1 = self.cleaned_data.get("password1")
@@ -109,14 +160,14 @@ class CustomUserAdmin(UserAdmin):
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
         ('Asmeninė informacija', {'fields': ('first_name', 'last_name', 'birth_date', 'phone_number')}),
-        ('Rolės ir teisės', {'fields': ('roles', 'contract_number', 'is_active', 'is_staff', 'is_superuser')}),
+        ('Rolės ir teisės', {'fields': ('roles', 'default_role', 'contract_number', 'is_active', 'is_staff', 'is_superuser')}),
         ('Svarbūs datos', {'fields': ('last_login', 'date_joined')}),
     )
     
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'first_name', 'last_name', 'roles', 'password1', 'password2'),
+            'fields': ('email', 'first_name', 'last_name', 'roles', 'default_role', 'password1', 'password2'),
         }),
     )
 
@@ -129,8 +180,15 @@ class CustomUserAdmin(UserAdmin):
 
     def save_model(self, request, obj, form, change):
         """
-        Išsaugo modelį su rolių valdymu
+        Išsaugo modelį su rolių valdymu ir validacijom
         """
         if 'roles' in form.cleaned_data:
             obj.roles = form.cleaned_data['roles']
+        if 'default_role' in form.cleaned_data:
+            default_role = form.cleaned_data['default_role']
+            # Validacija: default_role turi būti viena iš pasirinktų rolių
+            if default_role and default_role not in obj.roles:
+                obj.default_role = None
+            else:
+                obj.default_role = default_role if default_role else None
         super().save_model(request, obj, form, change)

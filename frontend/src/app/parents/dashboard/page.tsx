@@ -83,13 +83,26 @@ export default function ParentsDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Sveiki, {user?.first_name} {user?.last_name}!
-        </h1>
-        <p className="text-gray-600 mt-2">
-          Jūsų tėvo dashboard - {new Date().toLocaleDateString('lt-LT')}
-        </p>
+      <div className="bg-gradient-to-r from-rose-600 to-rose-800 rounded-lg shadow p-6 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">
+              Sveiki, {user?.first_name} {user?.last_name}!
+            </h1>
+            <p className="text-rose-100 mt-2 text-lg">
+              👨‍👩‍👧‍👦 TĖVŲ VALDYMO CENTRAS
+            </p>
+            <p className="text-rose-200 text-sm mt-1">
+              {new Date().toLocaleDateString('lt-LT')}
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="bg-white/20 rounded-lg p-3">
+              <Users className="w-8 h-8 text-white" />
+            </div>
+            <p className="text-xs text-rose-200 mt-1">Parent</p>
+          </div>
+        </div>
       </div>
 
       {/* Stats Grid */}

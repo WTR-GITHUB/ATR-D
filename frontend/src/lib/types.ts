@@ -11,6 +11,7 @@ export interface User {
   first_name: string;
   last_name: string;
   roles: UserRole[]; // Pakeista iš role į roles
+  default_role?: UserRole; // Numatytoji rolė prisijungimo metu
   birth_date?: string;
   phone_number?: string;
   contract_number?: string;
