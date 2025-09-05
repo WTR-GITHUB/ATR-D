@@ -428,6 +428,43 @@ class IMUPlanViewSet(viewsets.ModelViewSet):
     ordering_fields = ['created_at', 'global_schedule__date']
     ordering = ['-created_at']
     
+    def get_queryset(self):
+        """
+        Filtruojame IMU planus pagal dabartinę rolę
+        CHANGE: Pridėtas X-Current-Role header palaikymas
+        """
+        # CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
+        current_role = self.request.headers.get('X-Current-Role')
+        if not current_role:
+            current_role = getattr(self.request.user, 'default_role', None)
+        
+        queryset = super().get_queryset()
+        
+        # Role-based filtravimas
+        if current_role == 'student':
+            # Studentas mato tik savo IMU planus
+            queryset = queryset.filter(student=self.request.user)
+        elif current_role == 'parent':
+            # Tėvas mato savo vaikų IMU planus
+            from crm.models import StudentParent
+            children = StudentParent.objects.filter(parent=self.request.user).values_list('student', flat=True)
+            queryset = queryset.filter(student__in=children)
+        elif current_role == 'mentor':
+            # Mentorius mato savo dėstomų dalykų IMU planus
+            from crm.models import MentorSubject
+            mentor_subjects = MentorSubject.objects.filter(mentor=self.request.user).values_list('subject', flat=True)
+            queryset = queryset.filter(global_schedule__subject__in=mentor_subjects)
+        elif current_role == 'curator':
+            # Kuratorius mato savo kuruojamų studentų IMU planus
+            from crm.models import StudentCurator
+            curated_students = StudentCurator.objects.filter(curator=self.request.user).values_list('student', flat=True)
+            queryset = queryset.filter(student__in=curated_students)
+        elif current_role != 'manager':
+            # Jei ne manager ir ne kita žinoma rolė, grąžinti tuščią queryset
+            queryset = queryset.none()
+            
+        return queryset
+    
     def get_serializer_class(self):
         """Pasirenka serializerį pagal veiksmą"""
         if self.action == 'create':

@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { ReactDataTable } from '@/components/DataTable';
 import { violationAPI } from '@/lib/api';
 import TodoCompletionModal from '@/components/ui/TodoCompletionModal';
+import ViolationFormModal from '@/components/ui/ViolationFormModal';
 import { 
   ArrowLeft, 
   AlertTriangle, 
@@ -37,6 +38,10 @@ export default function MentorViolationsManagementPage() {
   // Todo modal state
   const [isTodoModalOpen, setIsTodoModalOpen] = useState(false);
   const [selectedViolationForTodos, setSelectedViolationForTodos] = useState<Violation | null>(null);
+  
+  // CHANGE: Edit modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedViolationForEdit, setSelectedViolationForEdit] = useState<Violation | null>(null);
   
   // Categories state
   const [categories, setCategories] = useState<any[]>([]);
@@ -231,8 +236,12 @@ export default function MentorViolationsManagementPage() {
 
   // Event handlers
   const handleEdit = (id: number) => {
-    console.log('Edit violation:', id);
-    // TODO: Implement edit functionality
+    // CHANGE: Find violation by ID and open edit modal
+    const violation = violations.find(v => v.id === id);
+    if (violation) {
+      setSelectedViolationForEdit(violation);
+      setIsEditModalOpen(true);
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -256,6 +265,25 @@ export default function MentorViolationsManagementPage() {
   const handleCloseTodoModal = () => {
     setIsTodoModalOpen(false);
     setSelectedViolationForTodos(null);
+  };
+
+  // CHANGE: Edit modal handlers
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedViolationForEdit(null);
+  };
+
+  const handleEditSuccess = () => {
+    // Refresh violations list
+    const fetchViolations = async () => {
+      try {
+        const response = await violationAPI.violations.getAll();
+        setViolations(response.data);
+      } catch (err) {
+        console.error('Error fetching violations:', err);
+      }
+    };
+    fetchViolations();
   };
 
   const handleUpdateTodos = async (violationId: number, updatedTodos: any[], allCompleted: boolean, penaltyStatus: string) => {
@@ -442,6 +470,18 @@ export default function MentorViolationsManagementPage() {
           onClose={handleCloseTodoModal}
           violation={selectedViolationForTodos}
           onUpdate={handleUpdateTodos}
+        />
+      )}
+
+      {/* CHANGE: Edit Violation Modal */}
+      {isEditModalOpen && selectedViolationForEdit && (
+        <ViolationFormModal
+          isOpen={isEditModalOpen}
+          onClose={handleCloseEditModal}
+          onSuccess={handleEditSuccess}
+          editMode={true}
+          initialData={selectedViolationForEdit}
+          violationId={selectedViolationForEdit.id}
         />
       )}
     </div>

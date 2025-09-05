@@ -57,7 +57,6 @@ api.interceptors.response.use(
         if (refreshToken) {
           // CHANGE: Use smart token refresh URL for hybrid development mode
           const refreshUrl = getTokenRefreshUrl();
-          console.log(`🔄 Token refresh URL: ${refreshUrl}`);
           
           const response = await axios.post(refreshUrl, {
             refresh: refreshToken,
@@ -358,5 +357,8 @@ export const violationTypesAPI = violationAPI.types;
 export const violationRangesAPI = violationAPI.ranges;
 export const violationsAPI = violationAPI.violations;
 export const violationStatsAPI = violationAPI.stats;
+
+// Export api instance for direct use
+export { api };
 
 export default api; 

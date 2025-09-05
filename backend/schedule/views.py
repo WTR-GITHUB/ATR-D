@@ -44,18 +44,25 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """
         Filtruojame tvarkaraštį pagal vartotojo roles
+        CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
         """
         user = self.request.user
+        
+        # CHANGE: Paimame dabartinę rolę iš header
+        current_role = self.request.headers.get('X-Current-Role')
+        if not current_role:
+            current_role = getattr(user, 'default_role', None)
         
         print(f"🔍 GET_QUERYSET DEBUG:")
         print(f"   👤 Vartotojas: {user.email}")
         print(f"   🎭 Rolės: {user.roles}")
+        print(f"   🔄 Dabartinė rolė: {current_role}")
         
-        if user.has_role('admin'):
+        if current_role == 'admin':
             queryset = GlobalSchedule.objects.all()
             print(f"   🔑 ADMIN: Grąžinami visi įrašai ({queryset.count()})")
             return queryset
-        elif user.has_role('mentor'):
+        elif current_role == 'mentor':
             # Mentoriai mato tik tuos dalykus, kurie jiems priskirti
             mentor_subjects = user.mentor_subjects.values_list('subject', flat=True)
             print(f"   🎓 MENTOR: Priskirti dalykai: {list(mentor_subjects)}")
@@ -81,7 +88,7 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
                 print(f"      📝 ID: {schedule.id}, Dalykas: {schedule.subject.name}, Mentorius: {schedule.user.email}, Data: {schedule.date}")
             
             return queryset
-        elif user.has_role('student'):
+        elif current_role == 'student':
             # Studentai mato tvarkaraštį pagal savo dalykus ir lygius
             queryset = GlobalSchedule.objects.filter(
                 subject__in=user.subject_levels.values_list('subject', flat=True),
@@ -99,13 +106,18 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
         
+        # CHANGE: Naudojame X-Current-Role header teisių patikrinimui
+        current_role = self.request.headers.get('X-Current-Role')
+        if not current_role:
+            current_role = getattr(user, 'default_role', None)
+        
         # Tikriname, ar vartotojas gali kurti tvarkaraštį
-        if not user.has_role('mentor') and not user.has_role('admin'):
+        if current_role not in ['mentor', 'admin']:
             from rest_framework import serializers
             raise serializers.ValidationError('Tik mentoriai ir administratoriai gali kurti tvarkaraštį')
         
         # Jei mentorius, tikriname, ar dalykas jam priskirtas
-        if user.has_role('mentor'):
+        if current_role == 'mentor':
             subject = serializer.validated_data.get('subject')
             if subject and not user.mentor_subjects.filter(subject=subject).exists():
                 from rest_framework import serializers
@@ -264,7 +276,12 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
         
-        if not user.has_role('mentor'):
+        # CHANGE: Naudojame X-Current-Role header teisių patikrinimui
+        current_role = request.headers.get('X-Current-Role')
+        if not current_role:
+            current_role = getattr(user, 'default_role', None)
+        
+        if current_role != 'mentor':
             return Response(
                 {'error': 'Tik mentoriai gali gauti priskirtus dalykus'},
                 status=status.HTTP_403_FORBIDDEN

@@ -64,7 +64,6 @@ export default function RoleSwitcher({ currentRole, onRoleChange }: RoleSwitcher
   }, []);
 
   const handleRoleSelect = (role: string) => {
-    console.log('🔄 Role switching to:', role);
     
     // CHANGE: Išsaugoti dabartinę rolę auth store
     setCurrentRole(role);

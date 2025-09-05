@@ -122,7 +122,6 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosError = err as any;
         if (axiosError.response?.status === 404) {
-          console.warn('Pamoka su ID', globalScheduleId, 'neegzistuoja. Išvaloma...');
           setState(prev => ({
             ...prev,
             isLoading: false,
@@ -195,7 +194,6 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
       fetchLessonData(savedId);
     } else if (savedId && !currentUserId) {
       // CHANGE: Jei yra išsaugotas ID, bet nėra vartotojo - išvalyti
-      console.warn('Rastas išsaugotas pamokos ID, bet vartotojas neprisijungęs. Išvaloma...');
       clearSelection();
     }
   }, [loadFromStorage, fetchLessonData, getCurrentUserId, clearSelection]);

@@ -12,16 +12,19 @@
 
 import React, { useState } from 'react';
 import { CheckCircle, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Calendar, Play, Square, Clock } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import LessonDetailsPanel from './components/LessonDetailsPanel';
 import WeeklyScheduleCalendar from '@/components/dashboard/WeeklyScheduleCalendar';
 import useWeekInfo from '@/hooks/useWeekInfo';
 import useSelectedLesson from '@/hooks/useSelectedLesson';
+import api from '@/lib/api';
 
 // Pamokų duomenys gaunami per API hooks
 
 // Pagrindinis Veiklos puslapis
 // Skirtas mentoriams vykdyti pamokas ir peržiūrėti pamokų detales
 const VeiklosPage = () => {
+  const { user } = useAuth();
   const [isScheduleExpanded, setIsScheduleExpanded] = useState(false);
   
   // Inicializuojame weekInfo iš karto su dabartine savaite
@@ -30,6 +33,7 @@ const VeiklosPage = () => {
   
   // Kombinuojame initial info su dinamiškai atnaujinamu
   const displayWeekInfo = weekInfo || initialWeekInfo;
+
 
   // Pasirinktos pamokos valdymas
   const {
@@ -56,37 +60,24 @@ const VeiklosPage = () => {
     if (!globalScheduleId) return;
     
     try {
-      // CHANGE: Pridėtas JWT autentifikacijos header'is
-      const accessToken = localStorage.getItem('access_token');
-      if (!accessToken) {
-        console.error('Nėra autentifikacijos token\'o');
+      if (!api || typeof api.post !== 'function') {
+        console.error('API client is not available');
         return;
       }
 
-      const response = await fetch(`/api/schedule/schedules/${globalScheduleId}/start_activity/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-      });
+      const response = await api.post(`/schedule/schedules/${globalScheduleId}/start_activity/`);
       
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Veikla pradėta:', result);
-        
-        // CHANGE: Nustatome veiklos pradžios laiką iš backend'o atsakymo
-        if (result.started_at) {
-          setActivityStartTime(new Date(result.started_at));
-        }
-        setIsActivityActive(true);
-        setIsActivityCompleted(false); // CHANGE: Nustatome, kad veikla nebaigta
-        
-        // CHANGE: Atnaujinti mokinių duomenis, kad matytų naują lankomumo statusą
-        refreshLessonData();
-      } else {
-        console.error('Klaida pradedant veiklą:', response.statusText);
+      const result = response.data;
+      
+      // CHANGE: Nustatome veiklos pradžios laiką iš backend'o atsakymo
+      if (result.started_at) {
+        setActivityStartTime(new Date(result.started_at));
       }
+      setIsActivityActive(true);
+      setIsActivityCompleted(false); // CHANGE: Nustatome, kad veikla nebaigta
+      
+      // CHANGE: Atnaujinti mokinių duomenis, kad matytų naują lankomumo statusą
+      refreshLessonData();
     } catch (error) {
       console.error('Klaida pradedant veiklą:', error);
     }
@@ -97,37 +88,24 @@ const VeiklosPage = () => {
     if (!globalScheduleId) return;
     
     try {
-      // CHANGE: Pridėtas JWT autentifikacijos header'is
-      const accessToken = localStorage.getItem('access_token');
-      if (!accessToken) {
-        console.error('Nėra autentifikacijos token\'o');
+      if (!api || typeof api.post !== 'function') {
+        console.error('API client is not available');
         return;
       }
 
-      const response = await fetch(`/api/schedule/schedules/${globalScheduleId}/end_activity/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-      });
+      const response = await api.post(`/schedule/schedules/${globalScheduleId}/end_activity/`);
       
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Veikla baigta:', result);
-        
-        // CHANGE: Nustatome veiklos pabaigos laiką iš backend'o atsakymo
-        if (result.completed_at) {
-          setActivityEndTime(new Date(result.completed_at));
-        }
-        setIsActivityActive(false);
-        setIsActivityCompleted(true); // CHANGE: Nustatome, kad veikla užbaigta
-        
-        // CHANGE: Atnaujinti mokinių duomenis
-        refreshLessonData();
-      } else {
-        console.error('Klaida baigiant veiklą:', response.statusText);
+      const result = response.data;
+      
+      // CHANGE: Nustatome veiklos pabaigos laiką iš backend'o atsakymo
+      if (result.completed_at) {
+        setActivityEndTime(new Date(result.completed_at));
       }
+      setIsActivityActive(false);
+      setIsActivityCompleted(true); // CHANGE: Nustatome, kad veikla užbaigta
+      
+      // CHANGE: Atnaujinti mokinių duomenis
+      refreshLessonData();
     } catch (error) {
       console.error('Klaida baigiant veiklą:', error);
     }
@@ -150,41 +128,37 @@ const VeiklosPage = () => {
       if (!globalScheduleId) return;
       
       try {
-        const accessToken = localStorage.getItem('access_token');
-        if (!accessToken) return;
+        if (!api || typeof api.get !== 'function') {
+          console.error('API client is not available');
+          return;
+        }
 
-        const response = await fetch(`/api/schedule/schedules/${globalScheduleId}/`, {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
+        const response = await api.get(`/schedule/schedules/${globalScheduleId}/`);
 
-        if (response.ok) {
-          const scheduleData = await response.json();
-          
-          if (scheduleData.plan_status === 'in_progress') {
-            setIsActivityActive(true);
-            setIsActivityCompleted(false); // CHANGE: Veikla vyksta, todėl nebaigta
-            if (scheduleData.started_at) {
-              setActivityStartTime(new Date(scheduleData.started_at));
-            }
-            setActivityEndTime(null);
-          } else if (scheduleData.plan_status === 'completed') {
-            setIsActivityActive(false);
-            setIsActivityCompleted(true); // CHANGE: Veikla užbaigta
-            if (scheduleData.started_at) {
-              setActivityStartTime(new Date(scheduleData.started_at));
-            }
-            if (scheduleData.completed_at) {
-              setActivityEndTime(new Date(scheduleData.completed_at));
-            }
-          } else {
-            // 'planned' status
-            setIsActivityActive(false);
-            setIsActivityCompleted(false); // CHANGE: Veikla planuojama, todėl nebaigta
-            setActivityStartTime(null);
-            setActivityEndTime(null);
+        const scheduleData = response.data;
+        
+        if (scheduleData.plan_status === 'in_progress') {
+          setIsActivityActive(true);
+          setIsActivityCompleted(false); // CHANGE: Veikla vyksta, todėl nebaigta
+          if (scheduleData.started_at) {
+            setActivityStartTime(new Date(scheduleData.started_at));
           }
+          setActivityEndTime(null);
+        } else if (scheduleData.plan_status === 'completed') {
+          setIsActivityActive(false);
+          setIsActivityCompleted(true); // CHANGE: Veikla užbaigta
+          if (scheduleData.started_at) {
+            setActivityStartTime(new Date(scheduleData.started_at));
+          }
+          if (scheduleData.completed_at) {
+            setActivityEndTime(new Date(scheduleData.completed_at));
+          }
+        } else {
+          // 'planned' status
+          setIsActivityActive(false);
+          setIsActivityCompleted(false); // CHANGE: Veikla planuojama, todėl nebaigta
+          setActivityStartTime(null);
+          setActivityEndTime(null);
         }
       } catch (error) {
         console.error('Klaida gaunant GlobalSchedule duomenis:', error);
@@ -229,10 +203,6 @@ const VeiklosPage = () => {
                 ) : (
                   <p className="text-sm text-gray-600">Peržiūrėti visą savaitės tvarkaraštį</p>
                 )}
-                {/* DEBUG: Akordeono būsena */}
-                <p className="text-xs text-gray-400">
-                  DEBUG: Akordeonas {isScheduleExpanded ? 'IŠSKLEISTAS' : 'SUSKLEISTAS'}
-                </p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -240,7 +210,7 @@ const VeiklosPage = () => {
               {displayWeekInfo && (
                 <>
                   <button
-                    onClick={() => weekInfo?.navigateWeek ? weekInfo.navigateWeek(-1) : console.log('Navigate -1')}
+                    onClick={() => weekInfo?.navigateWeek && weekInfo.navigateWeek(-1)}
                     className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
                     title="Ankstesnė savaitė"
                   >
@@ -248,7 +218,7 @@ const VeiklosPage = () => {
                   </button>
                   
                   <button
-                    onClick={() => weekInfo?.goToToday ? weekInfo.goToToday() : console.log('Go to today')}
+                    onClick={() => weekInfo?.goToToday && weekInfo.goToToday()}
                     className="px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
                     title="Eiti į šiandienos savaitę"
                   >
@@ -256,7 +226,7 @@ const VeiklosPage = () => {
                   </button>
                   
                   <button
-                    onClick={() => weekInfo?.navigateWeek ? weekInfo.navigateWeek(1) : console.log('Navigate +1')}
+                    onClick={() => weekInfo?.navigateWeek && weekInfo.navigateWeek(1)}
                     className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
                     title="Kita savaitė"
                   >
@@ -266,9 +236,6 @@ const VeiklosPage = () => {
               )}
               <button
                 onClick={() => {
-                  console.log('🔍 AKORDEONO MYGTUKAS:');
-                  console.log('   📊 Dabartinė būsena:', isScheduleExpanded ? 'IŠSKLEISTAS' : 'SUSKLEISTAS');
-                  console.log('   🔄 Keičiame į:', !isScheduleExpanded ? 'IŠSKLEISTAS' : 'SUSKLEISTAS');
                   setIsScheduleExpanded(!isScheduleExpanded);
                 }}
                 className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
@@ -281,9 +248,6 @@ const VeiklosPage = () => {
           
           {isScheduleExpanded && (
             <div className="border-t border-gray-200">
-              {console.log('🔍 RENDERINAME WEEKLY SCHEDULE CALENDAR:')}
-              {console.log('   📊 GlobalScheduleId:', globalScheduleId)}
-              {console.log('   📊 WeekInfo:', weekInfo)}
               <WeeklyScheduleCalendar 
                 className="border-0 shadow-none" 
                 showHeader={false}

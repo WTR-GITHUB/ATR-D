@@ -13,7 +13,7 @@ import { useStudentDetails } from '@/hooks/useStudentDetails';
 import { useAuth } from '@/hooks/useAuth';
 import { StudentScheduleCalendar } from '../components';
 import { ReactDataTable } from '@/components/DataTable';
-import { violationAPI } from '@/lib/api';
+import api, { violationAPI } from '@/lib/api';
 import TodoCompletionModal from '@/components/ui/TodoCompletionModal';
 import { 
   AlertTriangle, 
@@ -109,18 +109,8 @@ export default function StudentDetailsPage() {
         setImuPlansError(null);
         
         // Call IMU Plans API endpoint for this student
-        const response = await fetch(`/api/plans/imu-plans/?student=${studentId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
+        const response = await api.get(`/plans/imu-plans/?student=${studentId}`);
+        const data = response.data;
         setImuPlans(data);
         
       } catch (err: unknown) {
@@ -190,7 +180,6 @@ export default function StudentDetailsPage() {
 
   // Event handlers for violations
   const handleEdit = (id: number) => {
-    console.log('Edit violation:', id);
     // TODO: Implement edit functionality
   };
 
@@ -210,17 +199,7 @@ export default function StudentDetailsPage() {
     if (!confirm('Ar tikrai norite ištrinti šį ugdymo planą?')) return;
     
     try {
-      const response = await fetch(`/api/plans/imu-plans/${id}/`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      await api.delete(`/plans/imu-plans/${id}/`);
 
       // Update local state by removing the deleted plan
       setImuPlans(prev => prev.filter(plan => plan.id !== id));
@@ -659,7 +638,6 @@ export default function StudentDetailsPage() {
         selectedScheduleId={selectedScheduleId || undefined}
         onWeekChange={(weekInfo) => {
           // Galime naudoti weekInfo jei reikia
-          console.log('Week changed:', weekInfo);
         }}
       />
 

@@ -37,9 +37,14 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # CHANGE: Jei vartotojas yra admin/manager, grąžinti visus vartotojus
+        # CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
+        current_role = self.request.headers.get('X-Current-Role')
+        if not current_role:
+            current_role = getattr(self.request.user, 'default_role', None)
+        
+        # Jei vartotojas yra admin/manager, grąžinti visus vartotojus
         # Jei ne, grąžinti tik savo duomenis
-        if self.request.user.has_role('manager') or self.request.user.is_staff:
+        if current_role == 'manager' or self.request.user.is_staff:
             queryset = User.objects.all()
             role = self.request.query_params.get('role', None)
             if role is not None:
@@ -107,8 +112,13 @@ def student_details(request, student_id):
     """
     from crm.models import StudentCurator
     
+    # CHANGE: Naudojame X-Current-Role header teisių patikrinimui
+    current_role = request.headers.get('X-Current-Role')
+    if not current_role:
+        current_role = getattr(request.user, 'default_role', None)
+    
     # Server-side role-based access control
-    if not (request.user.has_role('curator') or request.user.has_role('manager')):
+    if current_role not in ['curator', 'manager']:
         return Response({
             'error': 'Prieiga uždrausta. Tik kuratoriai ir valdytojai gali peržiūrėti studento duomenis.'
         }, status=403)
@@ -124,7 +134,7 @@ def student_details(request, student_id):
             }, status=404)
         
         # Curator gali matyti tik savo priskirtus studentus
-        if request.user.has_role('curator'):
+        if current_role == 'curator':
             if not StudentCurator.objects.filter(curator=request.user, student=student).exists():
                 return Response({
                     'error': 'Prieiga uždrausta. Galite peržiūrėti tik savo priskirtų studentų duomenis.'

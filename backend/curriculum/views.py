@@ -54,6 +54,12 @@ class SkillViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        # CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
+        current_role = self.request.headers.get('X-Current-Role')
+        if not current_role:
+            current_role = getattr(self.request.user, 'default_role', None)
+        
+        # Skills prieš pastasis visiems autentifikuotiems vartotojams
         queryset = Skill.objects.all()
         subject_id = self.request.query_params.get('subject_id', None)
         if subject_id is not None:
@@ -79,6 +85,12 @@ class CompetencyAtcheveViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
+        # CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
+        current_role = self.request.headers.get('X-Current-Role')
+        if not current_role:
+            current_role = getattr(self.request.user, 'default_role', None)
+        
+        # CompetencyAtcheve prieš pastasis visiems autentifikuotiems vartotojams
         queryset = CompetencyAtcheve.objects.all()
         subject_id = self.request.query_params.get('subject_id', None)
         if subject_id is not None:
@@ -103,13 +115,23 @@ class LessonViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        # CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
+        current_role = self.request.headers.get('X-Current-Role')
+        if not current_role:
+            current_role = getattr(self.request.user, 'default_role', None)
+        
         user = self.request.user
-        if user.has_role('mentor'):
+        if current_role == 'mentor':
             return Lesson.objects.filter(mentor=user)
-        elif user.has_role('student'):
+        elif current_role == 'student':
             # Studentai mato pamokas, kuriose dalyvauja
             return Lesson.objects.filter(levels__in=user.subject_levels.values_list('level', flat=True))
-        elif user.has_role('admin'):
+        elif current_role == 'curator':
+            # Kuratoriai mato visas pamokas savo studentų dalykams
+            from crm.models import StudentCurator
+            curated_students = StudentCurator.objects.filter(curator=user).values_list('student', flat=True)
+            return Lesson.objects.filter(levels__in=user.subject_levels.filter(student__in=curated_students).values_list('level', flat=True)).distinct()
+        elif current_role in ['admin', 'manager']:
             return Lesson.objects.all()
         else:
             return Lesson.objects.none()

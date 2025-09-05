@@ -16,12 +16,19 @@ import { BaseNavigation, MobileNavigation } from './Navigation';
 
 
 const Header: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, getCurrentRole: getAuthCurrentRole } = useAuth();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Get current role from URL or user's default role
   const getCurrentRole = (): string => {
+    // CHANGE: Pirmiausia patikrinti current_role iš auth store
+    const authCurrentRole = getAuthCurrentRole();
+    
+    if (authCurrentRole) {
+      return authCurrentRole;
+    }
+    
     // Extract role from current path
     if (pathname.startsWith('/managers')) return 'manager';
     if (pathname.startsWith('/curators')) return 'curator';

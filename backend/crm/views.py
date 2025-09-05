@@ -30,12 +30,17 @@ class StudentParentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # CHANGE: Jei vartotojas yra tėvas, grąžinti tik jo vaikus
+        # CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
+        current_role = self.request.headers.get('X-Current-Role')
+        if not current_role:
+            current_role = getattr(self.request.user, 'default_role', None)
+        
+        # Jei vartotojas yra tėvas, grąžinti tik jo vaikus
         # Jei vartotojas yra studentas, grąžinti tik jo tėvus
         # Jei ne vienas iš jų, grąžinti tuščią queryset
-        if self.request.user.has_role('parent'):
+        if current_role == 'parent':
             return StudentParent.objects.filter(parent=self.request.user)
-        elif self.request.user.has_role('student'):
+        elif current_role == 'student':
             return StudentParent.objects.filter(student=self.request.user)
         return StudentParent.objects.none()
 
@@ -49,12 +54,17 @@ class StudentCuratorViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # CHANGE: Jei vartotojas yra kuratorius, grąžinti tik jo studentus
+        # CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
+        current_role = self.request.headers.get('X-Current-Role')
+        if not current_role:
+            current_role = getattr(self.request.user, 'default_role', None)
+        
+        # Jei vartotojas yra kuratorius, grąžinti tik jo studentus
         # Jei vartotojas yra studentas, grąžinti tik jo kuratorius
         # Jei ne vienas iš jų, grąžinti tuščią queryset
-        if self.request.user.has_role('curator'):
+        if current_role == 'curator':
             return StudentCurator.objects.filter(curator=self.request.user)
-        elif self.request.user.has_role('student'):
+        elif current_role == 'student':
             return StudentCurator.objects.filter(student=self.request.user)
         return StudentCurator.objects.none()
 
@@ -68,20 +78,29 @@ class StudentSubjectLevelViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # CHANGE: Jei vartotojas yra studentas, grąžinti tik jo dalykus
+        # CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
+        current_role = self.request.headers.get('X-Current-Role')
+        if not current_role:
+            current_role = getattr(self.request.user, 'default_role', None)
+        
+        # Jei vartotojas yra studentas, grąžinti tik jo dalykus
         # Jei vartotojas yra mentorius arba kuratorius, grąžinti visus studentų dalykus (tam tikriems endpoint'ams)
         # Jei ne vienas iš jų, grąžinti tuščią queryset
-        if self.request.user.has_role('student'):
+        if current_role == 'student':
             return StudentSubjectLevel.objects.filter(student=self.request.user)
-        elif self.request.user.has_role('mentor') or self.request.user.has_role('curator'):
+        elif current_role in ['mentor', 'curator']:
             return StudentSubjectLevel.objects.all()
         return StudentSubjectLevel.objects.none()
 
     @action(detail=False, methods=['get'])
     def students_by_subject_level(self, request):
         """Grąžina studentus pagal dalyką ir lygį ugdymo planų priskyrimui"""
-        # CHANGE: Patikriname, ar vartotojas turi teises pasiekti šį endpoint'ą
-        if not (request.user.has_role('mentor') or request.user.has_role('curator')):
+        # CHANGE: Naudojame X-Current-Role header teisių patikrinimui
+        current_role = request.headers.get('X-Current-Role')
+        if not current_role:
+            current_role = getattr(request.user, 'default_role', None)
+        
+        if current_role not in ['mentor', 'curator']:
             return Response(
                 {'error': 'Tik mentoriai ir kuratoriai gali matyti studentų sąrašą'}, 
                 status=status.HTTP_403_FORBIDDEN
@@ -134,16 +153,26 @@ class MentorSubjectViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # CHANGE: Jei vartotojas yra mentorius, grąžinti tik jo dalykus
+        # CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
+        current_role = self.request.headers.get('X-Current-Role')
+        if not current_role:
+            current_role = getattr(self.request.user, 'default_role', None)
+        
+        # Jei vartotojas yra mentorius, grąžinti tik jo dalykus
         # Jei ne mentorius, grąžinti tuščią queryset
-        if self.request.user.has_role('mentor'):
+        if current_role == 'mentor':
             return MentorSubject.objects.filter(mentor=self.request.user)
         return MentorSubject.objects.none()
 
     @action(detail=False, methods=['get'])
     def my_subjects(self, request):
         """Grąžina prisijungusio mentoriaus dalykus su pilna informacija"""
-        if not request.user.has_role('mentor'):
+        # CHANGE: Naudojame X-Current-Role header teisių patikrinimui
+        current_role = request.headers.get('X-Current-Role')
+        if not current_role:
+            current_role = getattr(request.user, 'default_role', None)
+        
+        if current_role != 'mentor':
             return Response(
                 {'error': 'Tik mentoriai gali matyti savo dalykus'}, 
                 status=status.HTTP_403_FORBIDDEN

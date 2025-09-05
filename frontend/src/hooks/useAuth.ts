@@ -65,23 +65,11 @@ export const useAuth = create<AuthStore>()(
             // Taip pat išvalykime Zustand persist cache
             localStorage.removeItem('auth-storage');
             sessionStorage.removeItem('auth-storage');
-            console.log('🧹 AGGRESSIVELY CLEARED ALL STORAGE BEFORE LOGIN');
           }
           
           const response = await authAPI.login(credentials);
           const { access, refresh }: AuthResponse = response.data;
           
-          console.log('🔐 JWT TOKEN RECEIVED:', access);
-          // Debug: decode JWT token to see what's inside
-          if (access) {
-            try {
-              const payload = JSON.parse(atob(access.split('.')[1]));
-              console.log('🔓 JWT PAYLOAD:', payload);
-              console.log('🎯 JWT DEFAULT_ROLE:', payload.default_role);
-            } catch (e) {
-              console.log('❌ Failed to decode JWT:', e);
-            }
-          }
           
           // Store tokens in localStorage (only on client side)
           if (typeof window !== 'undefined') {
@@ -94,14 +82,6 @@ export const useAuth = create<AuthStore>()(
             const userResponse = await authAPI.me();
             const user = userResponse.data;
             
-            // CHANGE: Pridėti console.log rolių informacijai patikrinti useAuth hook'e
-            console.log('🔍 RAW API RESPONSE IN useAuth:', userResponse);
-            console.log('🔍 USER DATA IN useAuth:', user);
-            console.log('👤 USER ROLES IN useAuth:', user.roles);
-            console.log('🎯 DEFAULT ROLE IN useAuth:', user.default_role);
-            console.log('🔥 ROLES TYPE IN useAuth:', typeof user.roles);
-            console.log('📊 ROLES LENGTH IN useAuth:', user.roles?.length);
-            console.log('🔢 ROLES ARRAY IN useAuth:', Array.isArray(user.roles));
             
             // CHANGE: Nustatyti currentRole pagal default_role
             const initialRole = user.default_role || user.roles?.[0] || null;
@@ -251,8 +231,6 @@ export const useAuth = create<AuthStore>()(
             const userResponse = await authAPI.me();
             const user = userResponse.data;
             
-            console.log('🏁 INITIALIZE AUTH - USER DATA:', user);
-            console.log('🏁 INITIALIZE AUTH - DEFAULT ROLE:', user.default_role);
             
             set({
               user,

@@ -13,19 +13,25 @@ import MultiSelect from './MultiSelect';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './Select';
 import Input from './Input';
 import { Textarea } from './Textarea';
-import { ViolationFormData, ViolationCategory, User } from '@/lib/types';
+import { ViolationFormData, ViolationCategory, User, Violation } from '@/lib/types';
 import DynamicList from './DynamicList';
 
 interface ViolationFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  editMode?: boolean;        // NEW: Edit mode flag
+  initialData?: Violation;   // NEW: Initial data for editing
+  violationId?: number;      // NEW: Violation ID for editing
 }
 
 const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
+  editMode = false,
+  initialData,
+  violationId
 }) => {
   // Form state
   const [formData, setFormData] = useState<ViolationFormData>({
@@ -59,6 +65,13 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
     }
   }, [isOpen]);
 
+  // CHANGE: Separate effect to populate form after categories are loaded
+  useEffect(() => {
+    if (editMode && initialData && categories.length > 0) {
+      populateFormWithInitialData(initialData);
+    }
+  }, [editMode, initialData, categories]);
+
 
   const loadInitialData = async () => {
     try {
@@ -71,14 +84,40 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
 
       // Load categories
       const categoriesResponse = await violationAPI.categories.getAll();
+      console.log('DEBUG: categoriesResponse:', categoriesResponse);
+      console.log('DEBUG: categories data:', categoriesResponse.data);
       setCategories(categoriesResponse.data);
-
 
     } catch (error) {
       console.error('Error loading initial data:', error);
       setErrors({ general: 'Nepavyko užkrauti duomenų' });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // CHANGE: Function to populate form with initial data for editing
+  const populateFormWithInitialData = (violation: Violation) => {
+    // CHANGE: violation.category is already an ID, not a name
+    const categoryId = violation.category?.toString() || '';
+    
+    console.log('DEBUG: populateFormWithInitialData called');
+    console.log('DEBUG: violation.category:', violation.category);
+    console.log('DEBUG: categories:', categories);
+    console.log('DEBUG: using categoryId directly:', categoryId);
+    
+    setFormData({
+      students: violation.student ? [violation.student] : [],
+      category: categoryId, // Use category ID directly
+      todos: violation.todos ? violation.todos.map((todo: any) => todo.text) : [],
+      description: violation.description || '',
+      notes: violation.notes || ''
+    });
+    
+    // Set the date from violation
+    if (violation.created_at) {
+      const date = new Date(violation.created_at);
+      setSelectedDate(date.toISOString().split('T')[0]);
     }
   };
 
@@ -95,6 +134,7 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
   const validateForm = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
+    // CHANGE: Always require students selection, even in edit mode
     if (formData.students.length === 0) {
       newErrors.students = 'Turi būti pasirinktas bent vienas mokinys';
     }
@@ -127,22 +167,66 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
       setIsSubmitting(true);
       setErrors({});
 
-      // Create violations for each selected student
-      const promises = formData.students.map(studentId => {
-        return violationAPI.violations.create({
-          student: studentId,
-          category: formData.category,
+      // Find category name by ID
+      const categoryName = categories.find(cat => cat.id.toString() === formData.category)?.name || formData.category;
+      
+      console.log('DEBUG: handleSubmit - formData.category:', formData.category);
+      console.log('DEBUG: handleSubmit - found categoryName:', categoryName);
+
+      if (editMode && violationId) {
+        // CHANGE: Edit mode - update existing violation
+        // Note: In edit mode, we update the existing violation with the first selected student
+        // If multiple students are selected, we could create additional violations
+        await violationAPI.violations.update(violationId, {
+          student: formData.students[0], // Use first selected student
+          category: categoryName, // Send category name, not ID
           todos: formData.todos.map((text, index) => ({
             id: `todo_${Date.now()}_${index}`,
             text: text,
             completed: false,
             created_at: selectedDate
           })),
-          description: formData.description
+          description: formData.description,
+          notes: formData.notes
         });
-      });
+        
+        // CHANGE: If multiple students selected in edit mode, create additional violations
+        if (formData.students.length > 1) {
+          const additionalStudents = formData.students.slice(1);
+          const promises = additionalStudents.map(studentId => {
+            return violationAPI.violations.create({
+              student: studentId,
+              category: categoryName,
+              todos: formData.todos.map((text, index) => ({
+                id: `todo_${Date.now()}_${index}`,
+                text: text,
+                completed: false,
+                created_at: selectedDate
+              })),
+              description: formData.description,
+              notes: formData.notes
+            });
+          });
+          await Promise.all(promises);
+        }
+      } else {
+        // Create mode - create violations for each selected student
+        const promises = formData.students.map(studentId => {
+          return violationAPI.violations.create({
+            student: studentId,
+            category: categoryName, // Send category name, not ID
+            todos: formData.todos.map((text, index) => ({
+              id: `todo_${Date.now()}_${index}`,
+              text: text,
+              completed: false,
+              created_at: selectedDate
+            })),
+            description: formData.description
+          });
+        });
 
-      await Promise.all(promises);
+        await Promise.all(promises);
+      }
 
       // Reset form
       setFormData({
@@ -158,7 +242,7 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
       onClose();
 
     } catch (error: any) {
-      console.error('Error creating violations:', error);
+      console.error(`Error ${editMode ? 'updating' : 'creating'} violations:`, error);
       
       if (error.response?.data) {
         const apiErrors = error.response.data;
@@ -175,7 +259,7 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
         
         setErrors(newErrors);
       } else {
-        setErrors({ general: 'Nepavyko sukurti pažeidimų' });
+        setErrors({ general: `Nepavyko ${editMode ? 'atnaujinti' : 'sukurti'} pažeidimų` });
       }
     } finally {
       setIsSubmitting(false);
@@ -214,10 +298,10 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
-                Skirti skolą
+                {editMode ? 'Redaguoti skolą' : 'Skirti skolą'}
               </h2>
               <p className="text-sm text-gray-500">
-                Sukurti naują pažeidimą mokiniams
+                {editMode ? 'Redaguoti esamą pažeidimą' : 'Sukurti naują pažeidimą mokiniams'}
               </p>
             </div>
           </div>
@@ -263,15 +347,16 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
             {/* Students Selection */}
             <div>
               <MultiSelect
-                label="Mokiniai *"
+                label={editMode ? "Mokiniai *" : "Mokiniai *"}
                 options={students.map(student => ({
                   id: student.id,
                   name: `${student.first_name} ${student.last_name}`
                 }))}
                 selectedValues={formData.students.map(id => id.toString())}
                 onChange={(values) => handleInputChange('students', values.map(v => parseInt(v)))}
-                placeholder="Pasirinkite mokinius..."
+                placeholder={editMode ? "Pasirinkite mokinius..." : "Pasirinkite mokinius..."}
                 className="w-full"
+                // CHANGE: Allow editing students in edit mode
               />
               {errors.students && (
                 <p className="mt-1 text-sm text-red-600">{errors.students}</p>
@@ -348,7 +433,10 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
               disabled={isSubmitting || isLoading}
               className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
             >
-              {isSubmitting ? 'Kuriama...' : 'Sukurti pažeidimą'}
+              {isSubmitting 
+                ? (editMode ? 'Atnaujinama...' : 'Kuriama...') 
+                : (editMode ? 'Atnaujinti pažeidimą' : 'Sukurti pažeidimą')
+              }
             </button>
           </div>
         </form>

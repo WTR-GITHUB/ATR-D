@@ -71,10 +71,36 @@ class GradeViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """
-        Filtruojame vertinimus pagal parametrus
-        CHANGE: Pridėtas filtravimas
+        Filtruojame vertinimus pagal parametrus ir dabartinę rolę
+        CHANGE: Pridėtas filtravimas ir X-Current-Role header palaikymas
         """
+        # CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
+        current_role = self.request.headers.get('X-Current-Role')
+        if not current_role:
+            current_role = getattr(self.request.user, 'default_role', None)
+        
         queryset = super().get_queryset()
+        
+        # Role-based filtravimas
+        if current_role == 'student':
+            # Studentas mato tik savo vertinimus
+            queryset = queryset.filter(student=self.request.user)
+        elif current_role == 'parent':
+            # Tėvas mato savo vaikų vertinimus
+            from crm.models import StudentParent
+            children = StudentParent.objects.filter(parent=self.request.user).values_list('student', flat=True)
+            queryset = queryset.filter(student__in=children)
+        elif current_role == 'mentor':
+            # Mentorius mato tik savo sukurtų vertinimus
+            queryset = queryset.filter(mentor=self.request.user)
+        elif current_role == 'curator':
+            # Kuratorius mato savo kuruojamų studentų vertinimus
+            from crm.models import StudentCurator
+            curated_students = StudentCurator.objects.filter(curator=self.request.user).values_list('student', flat=True)
+            queryset = queryset.filter(student__in=curated_students)
+        elif current_role != 'manager':
+            # Jei ne manager ir ne kita žinoma rolė, grąžinti tuščią queryset
+            queryset = queryset.none()
         
         # Filtravimas pagal mokinį
         student_id = self.request.query_params.get('student')

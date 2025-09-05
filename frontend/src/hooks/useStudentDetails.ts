@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
+import api from '@/lib/api';
 
 interface StudentDetails {
   id: number;
@@ -49,28 +50,19 @@ export const useStudentDetails = (studentId: string) => {
         setError(null);
         setAccessDenied(false);
 
-        const response = await fetch(`/api/users/students/${studentId}/`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
+        const response = await api.get(`/users/students/${studentId}/`);
+        const data: StudentDetails = response.data;
+        setStudent(data);
 
-        if (response.status === 403) {
+      } catch (err: any) {
+        
+        // Handle 403 Forbidden error
+        if (err.response?.status === 403) {
           setAccessDenied(true);
           return;
         }
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data: StudentDetails = await response.json();
-        setStudent(data);
-
-      } catch (err) {
-        console.error('Error fetching student details:', err);
-        setError(err instanceof Error ? err.message : 'Nepavyko gauti studento duomenų');
+        
+        setError(err.response?.data?.message || err.message || 'Nepavyko gauti studento duomenų');
       } finally {
         setLoading(false);
       }
