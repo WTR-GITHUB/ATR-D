@@ -7,13 +7,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, AlertTriangle, Users, Tag, FileText, Euro, Calendar } from 'lucide-react';
+import { X, AlertTriangle, Users, Tag, FileText, Calendar } from 'lucide-react';
 import { violationAPI, usersAPI } from '@/lib/api';
 import MultiSelect from './MultiSelect';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './Select';
 import Input from './Input';
 import { Textarea } from './Textarea';
-import { ViolationFormData, ViolationCategory, ViolationType, User } from '@/lib/types';
+import { ViolationFormData, ViolationCategory, User } from '@/lib/types';
+import DynamicList from './DynamicList';
 
 interface ViolationFormModalProps {
   isOpen: boolean;
@@ -30,22 +31,26 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
   const [formData, setFormData] = useState<ViolationFormData>({
     students: [],
     category: '',
-    violation_type: '',
+    todos: [],
     description: '',
-    amount: 0,
-    currency: 'EUR',
     notes: ''
+  });
+  
+  // Date state
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
   });
 
   // Data state
   const [students, setStudents] = useState<User[]>([]);
   const [categories, setCategories] = useState<ViolationCategory[]>([]);
-  const [types, setTypes] = useState<ViolationType[]>([]);
   
   // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  
 
   // Load initial data
   useEffect(() => {
@@ -54,15 +59,6 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
     }
   }, [isOpen]);
 
-  // Load types when category changes
-  useEffect(() => {
-    if (formData.category) {
-      loadTypes(formData.category);
-    } else {
-      setTypes([]);
-      setFormData(prev => ({ ...prev, violation_type: '' }));
-    }
-  }, [formData.category]);
 
   const loadInitialData = async () => {
     try {
@@ -77,6 +73,7 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
       const categoriesResponse = await violationAPI.categories.getAll();
       setCategories(categoriesResponse.data);
 
+
     } catch (error) {
       console.error('Error loading initial data:', error);
       setErrors({ general: 'Nepavyko užkrauti duomenų' });
@@ -85,15 +82,6 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
     }
   };
 
-  const loadTypes = async (categoryId: string) => {
-    try {
-      const typesResponse = await violationAPI.types.getAll({ category: categoryId });
-      setTypes(typesResponse.data);
-    } catch (error) {
-      console.error('Error loading types:', error);
-      setTypes([]);
-    }
-  };
 
   const handleInputChange = (field: keyof ViolationFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -115,17 +103,14 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
       newErrors.category = 'Turi būti pasirinkta kategorija';
     }
 
-    if (!formData.violation_type) {
-      newErrors.violation_type = 'Turi būti pasirinktas pažeidimo tipas';
+    if (formData.todos.length === 0) {
+      newErrors.todos = 'Turi būti pridėta bent viena užduotis';
     }
 
     if (!formData.description.trim()) {
       newErrors.description = 'Aprašymas yra privalomas';
     }
 
-    if (formData.amount < 0) {
-      newErrors.amount = 'Suma negali būti neigiama';
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -143,17 +128,19 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
       setErrors({});
 
       // Create violations for each selected student
-      const promises = formData.students.map(studentId => 
-        violationAPI.violations.create({
+      const promises = formData.students.map(studentId => {
+        return violationAPI.violations.create({
           student: studentId,
           category: formData.category,
-          violation_type: formData.violation_type,
-          description: formData.description,
-          amount: formData.amount,
-          currency: formData.currency,
-          notes: formData.notes
-        })
-      );
+          todos: formData.todos.map((text, index) => ({
+            id: `todo_${Date.now()}_${index}`,
+            text: text,
+            completed: false,
+            created_at: selectedDate
+          })),
+          description: formData.description
+        });
+      });
 
       await Promise.all(promises);
 
@@ -161,12 +148,11 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
       setFormData({
         students: [],
         category: '',
-        violation_type: '',
+        todos: [],
         description: '',
-        amount: 0,
-        currency: 'EUR',
         notes: ''
       });
+      setSelectedDate(new Date().toISOString().split('T')[0]);
 
       onSuccess?.();
       onClose();
@@ -201,12 +187,11 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
       setFormData({
         students: [],
         category: '',
-        violation_type: '',
+        todos: [],
         description: '',
-        amount: 0,
-        currency: 'EUR',
         notes: ''
       });
+      setSelectedDate(new Date().toISOString().split('T')[0]);
       setErrors({});
       onClose();
     }
@@ -258,13 +243,30 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
               </div>
             )}
 
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Aprašymas *
+              </label>
+              <Textarea
+                value={formData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                placeholder="Įveskite pažeidimo aprašymą..."
+                className="w-full"
+                rows={3}
+              />
+              {errors.description && (
+                <p className="mt-1 text-sm text-red-600">{errors.description}</p>
+              )}
+            </div>
+
             {/* Students Selection */}
             <div>
               <MultiSelect
                 label="Mokiniai *"
                 options={students.map(student => ({
                   id: student.id,
-                  name: student.get_full_name || `${student.first_name} ${student.last_name}`
+                  name: `${student.first_name} ${student.last_name}`
                 }))}
                 selectedValues={formData.students.map(id => id.toString())}
                 onChange={(values) => handleInputChange('students', values.map(v => parseInt(v)))}
@@ -276,141 +278,59 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
               )}
             </div>
 
-            {/* Category and Type */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Kategorija *
-                </label>
-                <Select
-                  value={formData.category}
-                  onValueChange={(value) => handleInputChange('category', value)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Pasirinkite kategoriją..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id.toString()}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.category && (
-                  <p className="mt-1 text-sm text-red-600">{errors.category}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Pažeidimo tipas *
-                </label>
-                <Select
-                  value={formData.violation_type}
-                  onValueChange={(value) => handleInputChange('violation_type', value)}
-                  disabled={!formData.category}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Pasirinkite tipą..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {types.map((type) => (
-                      <SelectItem key={type.id} value={type.id.toString()}>
-                        {type.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.violation_type && (
-                  <p className="mt-1 text-sm text-red-600">{errors.violation_type}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Description */}
+            {/* Category */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Aprašymas *
+                Kategorija *
               </label>
-              <Textarea
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="Aprašykite pažeidimą..."
-                rows={3}
-                className="w-full"
-              />
-              {errors.description && (
-                <p className="mt-1 text-sm text-red-600">{errors.description}</p>
+              <Select
+                value={formData.category}
+                onValueChange={(value) => handleInputChange('category', value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Pasirinkite kategoriją..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id.toString()}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.category && (
+                <p className="mt-1 text-sm text-red-600">{errors.category}</p>
               )}
             </div>
 
-            {/* Amount and Currency */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Input
-                  label="Suma (€)"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.amount}
-                  onChange={(e) => handleInputChange('amount', parseFloat(e.target.value) || 0)}
-                  leftIcon={<Euro className="w-4 h-4" />}
-                  placeholder="0.00"
-                />
-                {errors.amount && (
-                  <p className="mt-1 text-sm text-red-600">{errors.amount}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Valiuta
-                </label>
-                <Select
-                  value={formData.currency}
-                  onValueChange={(value) => handleInputChange('currency', value)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="LTL">LTL</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Todos */}
+            <div>
+              <DynamicList
+                label="Užduočių sąrašas *"
+                values={formData.todos}
+                onChange={(values) => handleInputChange('todos', values)}
+                placeholder="Įveskite užduotį..."
+                className="w-full"
+              />
+              {errors.todos && (
+                <p className="mt-1 text-sm text-red-600">{errors.todos}</p>
+              )}
             </div>
 
-            {/* Notes */}
+
+            {/* Date */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Pastabos
+                Data *
               </label>
-              <Textarea
-                value={formData.notes}
-                onChange={(e) => handleInputChange('notes', e.target.value)}
-                placeholder="Papildomos pastabos..."
-                rows={2}
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
                 className="w-full"
               />
             </div>
 
-            {/* Date Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center space-x-2">
-                <Calendar className="w-5 h-5 text-blue-600" />
-                <div>
-                  <h4 className="text-sm font-medium text-blue-800">
-                    Automatinis datos nustatymas
-                  </h4>
-                  <p className="text-sm text-blue-700 mt-1">
-                    Pažeidimo data bus automatiškai nustatyta į šiandienos datą
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Modal Footer */}

@@ -6,7 +6,7 @@
 
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import ViolationCategory, ViolationType, ViolationRange, Violation
+from .models import ViolationCategory, ViolationRange, Violation
 
 User = get_user_model()
 
@@ -26,20 +26,6 @@ class ViolationCategorySerializer(serializers.ModelSerializer):
         read_only_fields = ['created_at', 'updated_at']
 
 
-class ViolationTypeSerializer(serializers.ModelSerializer):
-    """
-    Pažeidimų tipų serializeris
-    """
-    category_name = serializers.CharField(source='category.name', read_only=True)
-    category_color_type = serializers.CharField(source='category.color_type', read_only=True)
-    
-    class Meta:
-        model = ViolationType
-        fields = [
-            'id', 'name', 'category', 'category_name', 'category_color_type',
-            'default_amount', 'description', 'is_active', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['created_at', 'updated_at']
 
 
 class ViolationRangeSerializer(serializers.ModelSerializer):
@@ -95,8 +81,8 @@ class ViolationSerializer(serializers.ModelSerializer):
         model = Violation
         fields = [
             # Pagrindinė informacija
-            'id', 'student', 'student_name', 'student_email', 'category', 'violation_type',
-            'description', 'amount', 'currency',
+            'id', 'student', 'student_name', 'student_email', 'category', 'todos',
+            'description',
             
             # Statusai
             'status', 'status_display', 'penalty_status', 'penalty_status_display',
@@ -111,7 +97,7 @@ class ViolationSerializer(serializers.ModelSerializer):
             'created_by', 'created_by_name', 'notes',
             
             # Skaičiuojami laukai
-            'is_fully_paid', 'is_overdue'
+            'is_fully_paid', 'is_overdue', 'all_todos_completed'
         ]
         read_only_fields = [
             'id', 'created_at', 'updated_at', 'violation_count', 'penalty_amount',
@@ -125,8 +111,8 @@ class ViolationSerializer(serializers.ModelSerializer):
         return value
     
     def validate_student(self, value):
-        """Validuoja ar mokinys turi STUDENT rolę"""
-        if not value.roles or 'STUDENT' not in value.roles:
+        """Validuoja ar mokinys turi student rolę"""
+        if not value.roles or 'student' not in value.roles:
             raise serializers.ValidationError("Pasirinktas vartotojas nėra mokinys.")
         return value
     
@@ -146,25 +132,59 @@ class ViolationCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Violation
         fields = [
-            'student', 'category', 'violation_type', 'description', 
-            'amount', 'currency', 'notes'
+            'student', 'category', 'todos', 'description', 
+            'notes'
         ]
     
-    def validate_amount(self, value):
-        """Validuoja sumą"""
-        if value < 0:
-            raise serializers.ValidationError("Suma negali būti neigiama.")
+    def validate_student(self, value):
+        """Validuoja ar mokinys turi student rolę"""
+        if not value.roles or 'student' not in value.roles:
+            raise serializers.ValidationError("Pasirinktas vartotojas nėra mokinys.")
         return value
     
-    def validate_student(self, value):
-        """Validuoja ar mokinys turi STUDENT rolę"""
-        if not value.roles or 'STUDENT' not in value.roles:
-            raise serializers.ValidationError("Pasirinktas vartotojas nėra mokinys.")
+    def validate_todos(self, value):
+        """Validuoja todos sąrašą"""
+        if not isinstance(value, list):
+            raise serializers.ValidationError("Todos turi būti sąrašas.")
+        
+        for i, todo in enumerate(value):
+            if not isinstance(todo, dict):
+                raise serializers.ValidationError(f"Todo {i+1} turi būti objektas.")
+            
+            if 'text' not in todo:
+                raise serializers.ValidationError(f"Todo {i+1} turi turėti 'text' lauką.")
+            
+            if not isinstance(todo.get('completed', False), bool):
+                raise serializers.ValidationError(f"Todo {i+1} 'completed' turi būti boolean.")
+        
         return value
     
     def create(self, validated_data):
         """Sukuria naują pažeidimą su automatiniais skaičiavimais"""
+        # Gauti mokinio ID
+        student_id = validated_data['student'].id
+        
+        # Suskaičiuoti mokinio pažeidimų skaičių
+        violation_count = Violation.objects.filter(student_id=student_id).count()
+        next_violation_count = violation_count + 1
+        
+        # Gauti pažeidimų diapazonus
+        from .models import ViolationRange
+        violation_ranges = ViolationRange.objects.filter(is_active=True).order_by('min_violations')
+        
+        # Rasti tinkamą diapazoną
+        penalty_amount = 0
+        for range_obj in violation_ranges:
+            if (next_violation_count >= range_obj.min_violations and 
+                (range_obj.max_violations is None or next_violation_count <= range_obj.max_violations)):
+                penalty_amount = range_obj.penalty_amount
+                break
+        
+        # Pridėti automatiškai apskaičiuotus laukus
+        validated_data['violation_count'] = next_violation_count
+        validated_data['penalty_amount'] = penalty_amount
         validated_data['created_by'] = self.context['request'].user
+        
         return super().create(validated_data)
 
 
@@ -175,15 +195,9 @@ class ViolationUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Violation
         fields = [
-            'category', 'violation_type', 'description', 'amount', 
-            'currency', 'status', 'penalty_status', 'notes'
+            'category', 'todos', 'description', 
+            'status', 'penalty_status', 'notes'
         ]
-    
-    def validate_amount(self, value):
-        """Validuoja sumą"""
-        if value < 0:
-            raise serializers.ValidationError("Suma negali būti neigiama.")
-        return value
 
 
 class ViolationBulkActionSerializer(serializers.Serializer):
@@ -247,5 +261,4 @@ class ViolationCategoryStatsSerializer(serializers.Serializer):
     completed_count = serializers.IntegerField()
     pending_count = serializers.IntegerField()
     completion_rate = serializers.FloatField()
-    total_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
     penalty_amount = serializers.DecimalField(max_digits=10, decimal_places=2)

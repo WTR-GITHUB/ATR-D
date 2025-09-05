@@ -52,7 +52,7 @@ const MentorNavigation: React.FC<MentorNavigationProps> = ({ isMobile = false })
       
       {/* Skolos - bendra visoms rolėms */}
       <Link
-        href="/violations"
+        href="/mentors/violations"
         className={linkClasses}
       >
         Skolos

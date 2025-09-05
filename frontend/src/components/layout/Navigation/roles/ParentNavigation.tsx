@@ -30,7 +30,7 @@ const ParentNavigation: React.FC<ParentNavigationProps> = ({ isMobile = false })
       
       {/* Skolos - bendra visoms rolėms */}
       <Link
-        href="/violations"
+        href="/parents/violations"
         className={linkClasses}
       >
         Skolos

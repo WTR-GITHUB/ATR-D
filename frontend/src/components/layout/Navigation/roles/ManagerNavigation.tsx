@@ -30,7 +30,7 @@ const ManagerNavigation: React.FC<ManagerNavigationProps> = ({ isMobile = false 
       
       {/* Skolos - bendra visoms rolėms */}
       <Link
-        href="/violations"
+        href="/managers/violations"
         className={linkClasses}
       >
         Skolos

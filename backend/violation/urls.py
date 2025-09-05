@@ -9,7 +9,6 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     ViolationCategoryViewSet,
-    ViolationTypeViewSet,
     ViolationRangeViewSet,
     ViolationViewSet,
     violation_stats,
@@ -21,7 +20,6 @@ router = DefaultRouter()
 
 # Pagrindiniai endpoint'ai
 router.register('categories', ViolationCategoryViewSet)
-router.register('types', ViolationTypeViewSet)
 router.register('ranges', ViolationRangeViewSet)
 router.register('', ViolationViewSet, basename='violations')
 

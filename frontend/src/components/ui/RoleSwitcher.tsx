@@ -40,13 +40,13 @@ interface RoleSwitcherProps {
 }
 
 export default function RoleSwitcher({ currentRole, onRoleChange }: RoleSwitcherProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, getCurrentRole, setCurrentRole } = useAuth();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Get active role (from prop or user's default role or first role)
-  const activeRole = currentRole || user?.default_role || user?.roles?.[0] || '';
+  // Get active role (from prop or current role from auth store)
+  const activeRole = currentRole || getCurrentRole() || user?.default_role || user?.roles?.[0] || '';
   const activeRoleInfo = roleInfo[activeRole as keyof typeof roleInfo];
 
   // Close dropdown when clicking outside
@@ -65,6 +65,9 @@ export default function RoleSwitcher({ currentRole, onRoleChange }: RoleSwitcher
 
   const handleRoleSelect = (role: string) => {
     console.log('🔄 Role switching to:', role);
+    
+    // CHANGE: Išsaugoti dabartinę rolę auth store
+    setCurrentRole(role);
     
     // Call callback if provided
     if (onRoleChange) {

@@ -42,13 +42,45 @@ const ReactDataTable: React.FC<ReactDataTableProps> = ({
         const filterValue = filters[key];
         if (!filterValue) return true;
         
-        const cellValue = row[key];
+        // Rasti stulpelį pagal key
+        const column = columns.find(col => col.data === key);
+        if (!column) return true;
+        
+        // Gauti reikšmę - jei yra render funkcija, naudoti ją, kitaip originalų lauką
+        let cellValue;
+        if (column.render) {
+          try {
+            cellValue = column.render(row[key], row);
+          } catch (error) {
+            cellValue = row[key];
+          }
+        } else {
+          cellValue = row[key];
+        }
+        
         if (cellValue === null || cellValue === undefined) return false;
+        
+        // Specialus filtravimas skaičiams (mokesčio stulpelis)
+        if (key === 'penalty_amount' && column.render) {
+          const originalValue = row[key];
+          const numericValue = parseFloat(String(originalValue)) || 0;
+          const filterNumeric = parseFloat(filterValue);
+          
+          if (!isNaN(filterNumeric)) {
+            return Math.abs(numericValue - filterNumeric) < 0.01; // Tolerancija 0.01
+          }
+        }
+        
+        // Specialus filtravimas statusams - filtruoti pagal originalų lauką, ne render rezultatą
+        if ((key === 'status' || key === 'penalty_status') && column.render) {
+          const originalValue = row[key];
+          return originalValue && originalValue.toString().toLowerCase().includes(filterValue.toLowerCase());
+        }
         
         return cellValue.toString().toLowerCase().includes(filterValue.toLowerCase());
       });
     });
-  }, [data, filters]);
+  }, [data, filters, columns]);
 
   // Rūšiuoti duomenis
   const sortedData = useMemo(() => {
@@ -142,10 +174,11 @@ const ReactDataTable: React.FC<ReactDataTableProps> = ({
               ))}
               
               {/* Išvalyti mygtukas */}
-              <div className="flex-shrink-0">
+              <div className="w-[150px]">
+                <div className="h-6"></div> {/* Tuščia eilutė */}
                 <button
                   onClick={clearFilters}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors text-sm whitespace-nowrap"
+                  className="w-full px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors text-sm"
                 >
                   Išvalyti
                 </button>

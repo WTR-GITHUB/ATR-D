@@ -13,6 +13,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  currentRole: string | null; // Dabartinė aktyvi rolė
 }
 
 interface AuthActions {
@@ -25,6 +26,8 @@ interface AuthActions {
   initializeAuth: () => Promise<void>;
   refreshAuthToken: () => Promise<boolean>;
   getCurrentUserId: () => number | null;
+  setCurrentRole: (role: string) => void; // Nustatyti dabartinę rolę
+  getCurrentRole: () => string | null; // Gauti dabartinę rolę
 }
 
 type AuthStore = AuthState & AuthActions;
@@ -39,6 +42,7 @@ export const useAuth = create<AuthStore>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      currentRole: null, // Dabartinė aktyvi rolė
 
       // Actions
       login: async (credentials: LoginCredentials) => {
@@ -99,12 +103,21 @@ export const useAuth = create<AuthStore>()(
             console.log('📊 ROLES LENGTH IN useAuth:', user.roles?.length);
             console.log('🔢 ROLES ARRAY IN useAuth:', Array.isArray(user.roles));
             
+            // CHANGE: Nustatyti currentRole pagal default_role
+            const initialRole = user.default_role || user.roles?.[0] || null;
+            
+            // CHANGE: Išsaugoti currentRole į localStorage
+            if (typeof window !== 'undefined' && initialRole) {
+              localStorage.setItem('current_role', initialRole);
+            }
+            
             set({
               user,
               token: access,
               refreshToken: refresh,
               isAuthenticated: true,
               isLoading: false,
+              currentRole: initialRole, // Nustatyti dabartinę rolę
             });
           } catch (userError: unknown) {
             // CHANGE: Improved error handling for user data fetching
@@ -147,6 +160,8 @@ export const useAuth = create<AuthStore>()(
           // Tai užtikrina, kad kitas vartotojas negaus ankstesnio vartotojo duomenų
           localStorage.clear();
           sessionStorage.clear();
+          // CHANGE: Išvalyti current_role
+          localStorage.removeItem('current_role');
         }
         set({
           user: null,
@@ -154,6 +169,7 @@ export const useAuth = create<AuthStore>()(
           refreshToken: null,
           isAuthenticated: false,
           error: null,
+          currentRole: null, // Išvalyti dabartinę rolę
         });
         // Perkrauti puslapį į root po logout
         window.location.href = '/';
@@ -179,6 +195,21 @@ export const useAuth = create<AuthStore>()(
       getCurrentUserId: () => {
         const user = get().user;
         return user?.id || null;
+      },
+
+      // CHANGE: Pridėtos funkcijos dabartinės rolės valdymui
+      setCurrentRole: (role: string) => {
+        set({ currentRole: role });
+        // CHANGE: Išsaugoti currentRole į localStorage API užklausoms
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('current_role', role);
+        }
+      },
+
+      getCurrentRole: () => {
+        const { currentRole, user } = get();
+        // Grąžina dabartinę rolę arba default_role arba pirmąją rolę
+        return currentRole || user?.default_role || user?.roles?.[0] || null;
       },
 
       // CHANGE: Added new method to handle token refresh with better error handling

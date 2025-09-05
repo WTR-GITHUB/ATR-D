@@ -13,9 +13,9 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from django.contrib.auth import get_user_model
 
-from .models import ViolationCategory, ViolationType, ViolationRange, Violation
+from .models import ViolationCategory, ViolationRange, Violation
 from .serializers import (
-    ViolationCategorySerializer, ViolationTypeSerializer, ViolationRangeSerializer,
+    ViolationCategorySerializer, ViolationRangeSerializer,
     ViolationSerializer, ViolationCreateSerializer, ViolationUpdateSerializer,
     ViolationBulkActionSerializer, ViolationStatsSerializer, ViolationCategoryStatsSerializer
 )
@@ -72,50 +72,6 @@ class ViolationCategoryViewSet(viewsets.ModelViewSet):
         instance.save()
 
 
-class ViolationTypeViewSet(viewsets.ModelViewSet):
-    """
-    Pažeidimų tipų viewset - valdo tipų CRUD operacijas
-    """
-    queryset = ViolationType.objects.all()
-    serializer_class = ViolationTypeSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        """Grąžina aktyvius tipus su kategorijomis"""
-        return ViolationType.objects.filter(is_active=True).select_related('category').order_by('category__name', 'name')
-
-    def get_permissions(self):
-        """Nustato leidimus pagal veiksmą"""
-        if self.action in ['list', 'retrieve']:
-            permission_classes = [IsAuthenticated]
-        else:
-            permission_classes = [IsAuthenticated]
-        return [permission() for permission in permission_classes]
-
-    def perform_create(self, serializer):
-        """Sukuria naują tipą"""
-        if not (self.request.user.has_role('mentor') or 
-                self.request.user.has_role('curator') or 
-                self.request.user.has_role('manager')):
-            raise permissions.PermissionDenied("Neturite teisių kurti pažeidimų tipus.")
-        serializer.save()
-
-    def perform_update(self, serializer):
-        """Atnaujina tipą"""
-        if not (self.request.user.has_role('mentor') or 
-                self.request.user.has_role('curator') or 
-                self.request.user.has_role('manager')):
-            raise permissions.PermissionDenied("Neturite teisių redaguoti pažeidimų tipus.")
-        serializer.save()
-
-    def perform_destroy(self, instance):
-        """Ištrina tipą (soft delete)"""
-        if not (self.request.user.has_role('mentor') or 
-                self.request.user.has_role('curator') or 
-                self.request.user.has_role('manager')):
-            raise permissions.PermissionDenied("Neturite teisių trinti pažeidimų tipus.")
-        instance.is_active = False
-        instance.save()
 
 
 class ViolationRangeViewSet(viewsets.ModelViewSet):
@@ -175,22 +131,37 @@ class ViolationViewSet(viewsets.ModelViewSet):
         return ViolationSerializer
 
     def get_queryset(self):
-        """Grąžina pažeidimus pagal vartotojo rolę"""
+        """Grąžina pažeidimus pagal vartotojo dabartinę rolę"""
         user = self.request.user
         
-        if user.has_role('student'):
-            # Mokiniai mato tik savo pažeidimus
-            return Violation.objects.filter(student=user).order_by('-created_at')
+        # CHANGE: Pirmiausia patikrinti X-Current-Role header iš frontend
+        current_role = self.request.headers.get('X-Current-Role')
         
-        elif user.has_role('parent'):
+        # Jei nėra header, naudoti default_role
+        if not current_role:
+            current_role = user.default_role
+        
+        if current_role == 'manager':
+            # Vadovai mato visus pažeidimus
+            return Violation.objects.all().order_by('-created_at')
+        
+        elif current_role == 'curator':
+            # Kuratoriai mato visus pažeidimus
+            return Violation.objects.all().order_by('-created_at')
+        
+        elif current_role == 'mentor':
+            # Mentoriai mato tik savo sukurtus pažeidimus
+            return Violation.objects.filter(created_by=user).order_by('-created_at')
+        
+        elif current_role == 'parent':
             # Tėvai mato tik savo vaikų pažeidimus
             from crm.models import StudentParent
             child_ids = StudentParent.objects.filter(parent=user).values_list('student_id', flat=True)
             return Violation.objects.filter(student_id__in=child_ids).order_by('-created_at')
         
-        elif user.has_role('mentor') or user.has_role('curator') or user.has_role('manager'):
-            # Mentoriai, kuratoriai ir vadovai mato visus pažeidimus
-            return Violation.objects.all().order_by('-created_at')
+        elif current_role == 'student':
+            # Mokiniai mato tik savo pažeidimus
+            return Violation.objects.filter(student=user).order_by('-created_at')
         
         return Violation.objects.none()
 
@@ -436,7 +407,6 @@ def violation_category_stats(request):
         pending_count = total_count - completed_count
         
         completion_rate = (completed_count / total_count * 100) if total_count > 0 else 0
-        total_amount = category_violations.aggregate(total=Sum('amount'))['total'] or 0
         penalty_amount = category_violations.aggregate(total=Sum('penalty_amount'))['total'] or 0
 
         category_stats.append({
@@ -446,9 +416,9 @@ def violation_category_stats(request):
             'completed_count': completed_count,
             'pending_count': pending_count,
             'completion_rate': round(completion_rate, 2),
-            'total_amount': total_amount,
             'penalty_amount': penalty_amount
         })
 
     serializer = ViolationCategoryStatsSerializer(category_stats, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+

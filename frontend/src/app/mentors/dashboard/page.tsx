@@ -3,7 +3,8 @@
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Users, BookOpen, TrendingUp, Calendar, Award, MessageSquare, GraduationCap } from 'lucide-react';
+import { Users, BookOpen, TrendingUp, Calendar, Award, MessageSquare, GraduationCap, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
 
 export default function MentorDashboardPage() {
   const { user } = useAuth();
@@ -159,6 +160,15 @@ export default function MentorDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
+              <Link href="/mentors/violations" className="block">
+                <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center space-x-3">
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                    <span className="text-sm font-medium">Skolų valdymas</span>
+                  </div>
+                </button>
+              </Link>
+              
               <button className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
                 <div className="flex items-center space-x-3">
                   <BookOpen className="w-5 h-5 text-purple-600" />

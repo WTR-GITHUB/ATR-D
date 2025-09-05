@@ -28,9 +28,9 @@ const CuratorNavigation: React.FC<CuratorNavigationProps> = ({ isMobile = false 
         Darbastalis
       </Link>
       
-      {/* Skolos - bendra visoms rolėms */}
+      {/* Skolos - curator rolei */}
       <Link
-        href="/violations"
+        href="/curators/violations"
         className={linkClasses}
       >
         Skolos

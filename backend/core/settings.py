@@ -163,13 +163,6 @@ DATABASES = {
     }
 }
 
-# Development database fallback (SQLite for pure local development)
-if DEBUG and not os.getenv('POSTGRES_PASSWORD'):
-    print("⚠️ No PostgreSQL password found, falling back to SQLite")
-    DATABASES['default'] = {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

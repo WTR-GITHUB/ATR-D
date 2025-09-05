@@ -38,7 +38,14 @@ export const useCuratorStudents = () => {
 
   useEffect(() => {
     const fetchStudents = async () => {
+      console.log('🔍 useCuratorStudents: Starting fetch...', {
+        isAuthenticated,
+        hasToken: !!token,
+        tokenLength: token?.length
+      });
+
       if (!isAuthenticated || !token) {
+        console.log('❌ useCuratorStudents: Not authenticated or no token');
         setLoading(false);
         return;
       }
@@ -47,6 +54,8 @@ export const useCuratorStudents = () => {
         setLoading(true);
         setError(null);
 
+        console.log('🌐 useCuratorStudents: Making API request to /api/crm/student-curators/');
+
         const response = await fetch('/api/crm/student-curators/', {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -54,11 +63,20 @@ export const useCuratorStudents = () => {
           },
         });
 
+        console.log('📨 useCuratorStudents: Response received', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok
+        });
+
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorText = await response.text();
+          console.error('❌ useCuratorStudents: API Error Response:', errorText);
+          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
         }
 
         const data: StudentCurator[] = await response.json();
+        console.log('✅ useCuratorStudents: Data received:', data);
         
         // Ištraukiame studentus iš StudentCurator duomenų
         const studentList: Student[] = data.map(item => ({
@@ -67,10 +85,12 @@ export const useCuratorStudents = () => {
           last_name: item.student_last_name,
           email: item.student_email
         }));
+        
+        console.log('🎯 useCuratorStudents: Processed students:', studentList);
         setStudents(studentList);
 
       } catch (err) {
-        console.error('Error fetching curator students:', err);
+        console.error('💥 useCuratorStudents: Error occurred:', err);
         setError(err instanceof Error ? err.message : 'Nepavyko gauti studentų duomenų');
       } finally {
         setLoading(false);

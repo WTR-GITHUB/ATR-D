@@ -8,7 +8,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from .models import ViolationCategory, ViolationType, ViolationRange, Violation
+from .models import ViolationCategory, ViolationRange, Violation
 
 
 @admin.register(ViolationCategory)
@@ -69,26 +69,6 @@ class ViolationCategoryAdmin(admin.ModelAdmin):
     color_type_preview.short_description = 'Spalvos tipas'
 
 
-@admin.register(ViolationType)
-class ViolationTypeAdmin(admin.ModelAdmin):
-    """
-    Admin konfigūracija pažeidimų tipams
-    """
-    list_display = ['name', 'category', 'default_amount', 'is_active', 'created_at']
-    list_filter = ['category', 'is_active', 'created_at']
-    search_fields = ['name', 'description', 'category__name']
-    ordering = ['category__name', 'name']
-    readonly_fields = ['created_at', 'updated_at']
-    
-    fieldsets = (
-        ('Pagrindinė informacija', {
-            'fields': ('name', 'category', 'default_amount', 'description', 'is_active')
-        }),
-        ('Sistemos informacija', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-    )
 
 
 @admin.register(ViolationRange)
@@ -128,7 +108,7 @@ class ViolationAdmin(admin.ModelAdmin):
     Admin konfigūracija pažeidimams/skoloms
     """
     list_display = [
-        'student_name', 'category', 'violation_type', 'amount', 
+        'student_name', 'category', 'todos_preview', 
         'status_display', 'penalty_status_display', 'violation_count',
         'penalty_amount', 'created_at'
     ]
@@ -137,7 +117,7 @@ class ViolationAdmin(admin.ModelAdmin):
     ]
     search_fields = [
         'student__first_name', 'student__last_name', 'student__email',
-        'violation_type', 'description', 'category'
+        'description', 'category'
     ]
     ordering = ['-created_at']
     readonly_fields = [
@@ -148,10 +128,7 @@ class ViolationAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Pagrindinė informacija', {
-            'fields': ('student', 'category', 'violation_type', 'description')
-        }),
-        ('Finansinė informacija', {
-            'fields': ('amount', 'currency')
+            'fields': ('student', 'category', 'todos', 'description')
         }),
         ('Statusai', {
             'fields': ('status', 'penalty_status')
@@ -180,6 +157,20 @@ class ViolationAdmin(admin.ModelAdmin):
         return obj.student.get_full_name()
     student_name.short_description = 'Mokinys'
     student_name.admin_order_field = 'student__first_name'
+    
+    def todos_preview(self, obj):
+        """Rodo todos sąrašo peržiūrą"""
+        if not obj.todos:
+            return '-'
+        
+        completed = len([todo for todo in obj.todos if todo.get('completed', False)])
+        total = len(obj.todos)
+        
+        return format_html(
+            '<span style="font-size: 12px;">{}/{} užduotys</span>',
+            completed, total
+        )
+    todos_preview.short_description = 'Užduotys'
     
     def status_display(self, obj):
         """Rodo statusą su spalvų kodavimu"""

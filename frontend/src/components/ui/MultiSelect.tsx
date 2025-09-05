@@ -1,38 +1,53 @@
 // frontend/src/components/ui/MultiSelect.tsx
-'use client';
+
+// MultiSelect component for selecting multiple options with search functionality
+// Provides a dropdown interface with search input and multiple selection capabilities
+// CHANGE: Redesigned based on search-select example with improved UI and functionality
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, X } from 'lucide-react';
+import { Search, ChevronDown, X } from 'lucide-react';
 
 interface Option {
-  id: string | number;
+  id: number | string;
   name: string;
 }
 
 interface MultiSelectProps {
+  label?: string;
   options: Option[];
   selectedValues: string[];
   onChange: (values: string[]) => void;
   placeholder?: string;
-  label?: string;
   className?: string;
+  disabled?: boolean;
 }
 
 const MultiSelect: React.FC<MultiSelectProps> = ({
+  label,
   options,
   selectedValues,
   onChange,
-  placeholder = "Pasirinkite...",
-  label,
-  className = ""
+  placeholder = "Ieškoti ir pasirinkti...",
+  className = "",
+  disabled = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Filter and sort options based on search term
+  const filteredOptions = options
+    .filter(option =>
+      option.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => a.name.localeCompare(b.name, 'lt', { sensitivity: 'base' }));
+
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setSearchTerm(''); // Clear search when closing
       }
     };
 
@@ -42,21 +57,31 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     };
   }, []);
 
-  const handleOptionToggle = (value: string) => {
-    const newValues = selectedValues.includes(value)
-      ? selectedValues.filter(v => v !== value)
-      : [...selectedValues, value];
-    onChange(newValues);
+  const toggleOption = (optionId: string) => {
+    const isSelected = selectedValues.includes(optionId);
+    if (isSelected) {
+      onChange(selectedValues.filter(id => id !== optionId));
+    } else {
+      onChange([...selectedValues, optionId]);
+    }
   };
 
-  const removeSelected = (value: string) => {
-    onChange(selectedValues.filter(v => v !== value));
+  const isSelected = (optionId: string) => {
+    return selectedValues.includes(optionId);
   };
 
-  const getSelectedLabels = () => {
-    return selectedValues
-      .map(value => options.find(option => option.id.toString() === value)?.name)
-      .filter(Boolean);
+  const handleSearchClick = () => {
+    if (!disabled) {
+      setIsOpen(true);
+    }
+  };
+
+  const removeSelected = (optionId: string) => {
+    onChange(selectedValues.filter(id => id !== optionId));
+  };
+
+  const getSelectedOptions = () => {
+    return options.filter(option => selectedValues.includes(option.id.toString()));
   };
 
   return (
@@ -67,64 +92,102 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
         </label>
       )}
       
-      <div ref={dropdownRef} className="relative">
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-left focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[40px] flex items-center justify-between"
-        >
-          <div className="flex flex-wrap gap-1 flex-1">
-            {getSelectedLabels().length > 0 ? (
-              getSelectedLabels().map((label, index) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800"
-                >
-                  {label}
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeSelected(selectedValues[index]);
-                    }}
-                    className="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full text-blue-600 hover:bg-blue-200 cursor-pointer"
-                  >
-                    <X className="w-3 h-3" />
-                  </div>
-                </span>
-              ))
-            ) : (
-              <span className="text-gray-500">{placeholder}</span>
-            )}
+      <div className="relative" ref={dropdownRef}>
+        {/* Search input */}
+        <div className="relative">
+          <div 
+            className={`flex items-center border-2 rounded-md bg-white cursor-text ${
+              disabled ? 'border-gray-200 bg-gray-50 cursor-not-allowed' : 'border-blue-500'
+            }`}
+            onClick={handleSearchClick}
+          >
+            <Search size={16} className="ml-3 text-gray-400" />
+            <input
+              type="text"
+              placeholder={placeholder}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => !disabled && setIsOpen(true)}
+              disabled={disabled}
+              className={`flex-1 px-3 py-2 outline-none text-gray-700 placeholder-gray-400 ${
+                disabled ? 'cursor-not-allowed' : ''
+              }`}
+            />
+            <ChevronDown 
+              size={16} 
+              className={`mr-3 text-gray-400 transition-transform ${
+                isOpen ? 'rotate-180' : ''
+              } ${disabled ? 'cursor-not-allowed' : ''}`}
+            />
           </div>
-          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-        </button>
+        </div>
 
-        {isOpen && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
-            {options.map((option) => {
-              const isSelected = selectedValues.includes(option.id.toString());
-              return (
-                <label
-                  key={option.id}
-                  className={`flex items-center px-3 py-2 cursor-pointer hover:bg-gray-50 ${
-                    isSelected ? 'bg-blue-50' : ''
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => handleOptionToggle(option.id.toString())}
-                    className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700">{option.name}</span>
-                </label>
-              );
-            })}
+        {/* Options list */}
+        {isOpen && !disabled && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-80 overflow-hidden">
+            <div className="max-h-80 overflow-y-auto">
+              {filteredOptions.length === 0 ? (
+                <div className="p-4 text-gray-500 text-center">
+                  Nerasta rezultatų
+                </div>
+              ) : (
+                filteredOptions.map((option, index) => (
+                  <div
+                    key={option.id}
+                    onClick={() => toggleOption(option.id.toString())}
+                    className={`px-4 py-3 cursor-pointer transition-colors flex items-center justify-between ${
+                      index === 0 ? 'bg-blue-50' : ''
+                    } ${
+                      isSelected(option.id.toString()) 
+                        ? 'bg-blue-100 text-blue-700' 
+                        : 'hover:bg-gray-50 text-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-center">
+                      <span className="font-medium">{option.name}</span>
+                    </div>
+                    {isSelected(option.id.toString()) && (
+                      <div className="w-4 h-4 bg-blue-500 rounded-sm flex items-center justify-center">
+                        <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         )}
       </div>
+
+      {/* Selected items */}
+      {selectedValues.length > 0 && (
+        <div className="mt-4 p-4 bg-blue-50 rounded-md border border-blue-200">
+          <div className="text-sm font-medium text-blue-700 mb-2">
+            Pasirinkta ({selectedValues.length}):
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {getSelectedOptions().map(option => (
+              <span 
+                key={option.id}
+                className="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium"
+              >
+                {option.name}
+                <button
+                  type="button"
+                  onClick={() => removeSelected(option.id.toString())}
+                  className="ml-1 hover:bg-blue-200 rounded-full p-0.5"
+                >
+                  <X size={12} className="text-blue-600" />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default MultiSelect; 
+export default MultiSelect;

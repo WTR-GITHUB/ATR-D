@@ -22,13 +22,20 @@ const api = axios.create({
   },
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token and current role
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // CHANGE: Pridėti current role header jei yra
+    const currentRole = localStorage.getItem('current_role');
+    if (currentRole) {
+      config.headers['X-Current-Role'] = currentRole;
+    }
+    
     return config;
   },
   (error) => {

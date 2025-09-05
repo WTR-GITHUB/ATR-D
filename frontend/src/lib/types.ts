@@ -375,18 +375,6 @@ export type ViolationColorType =
   | 'AMBER' 
   | 'DARK_RED';
 
-export interface ViolationType {
-  id: number;
-  name: string;
-  category: number;
-  category_name: string;
-  category_color_type: ViolationColorType;
-  default_amount?: number;
-  description: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
 
 export interface ViolationRange {
   id: number;
@@ -406,7 +394,7 @@ export interface Violation {
   student_name: string;
   student_email: string;
   category: string;
-  violation_type: string;
+  todos: TodoItem[];
   description: string;
   amount: number;
   currency: string;
@@ -427,13 +415,20 @@ export interface Violation {
   is_overdue: boolean;
 }
 
+export interface TodoItem {
+  id: string;
+  text: string;
+  completed: boolean;
+  created_at: string;
+}
+
 export type ViolationStatus = 'pending' | 'completed';
 export type PenaltyStatus = 'unpaid' | 'paid';
 
 export interface ViolationCreateData {
   student: number;
   category: string;
-  violation_type: string;
+  todos: string[];
   description: string;
   amount: number;
   currency: string;
@@ -442,7 +437,7 @@ export interface ViolationCreateData {
 
 export interface ViolationUpdateData {
   category?: string;
-  violation_type?: string;
+  todos?: string[];
   description?: string;
   amount?: number;
   currency?: string;
@@ -498,10 +493,8 @@ export interface ViolationCategoryStats {
 export interface ViolationFormData {
   students: number[];
   category: string;
-  violation_type: string;
+  todos: string[];
   description: string;
-  amount: number;
-  currency: string;
   notes?: string;
 }
 

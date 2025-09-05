@@ -65,53 +65,6 @@ class ViolationCategory(models.Model):
         return self.name
 
 
-class ViolationType(models.Model):
-    """
-    Pažeidimo tipo modelis konkrečiam pažeidimui aprašyti
-    Pvz.: "Pavėlavimas", "Namų darbų neatlikimas", "Elgesio pažeidimas"
-    """
-    name = models.CharField(
-        max_length=50,
-        unique=True,
-        verbose_name="Tipo pavadinimas"
-    )
-    category = models.ForeignKey(
-        ViolationCategory,
-        on_delete=models.CASCADE,
-        related_name='violation_types',
-        verbose_name="Kategorija"
-    )
-    default_amount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        verbose_name="Numatytoji suma"
-    )
-    description = models.TextField(
-        blank=True,
-        verbose_name="Aprašymas"
-    )
-    is_active = models.BooleanField(
-        default=True,
-        verbose_name="Aktyvi"
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name="Sukurta"
-    )
-    updated_at = models.DateTimeField(
-        auto_now=True,
-        verbose_name="Atnaujinta"
-    )
-
-    class Meta:
-        verbose_name = "Pažeidimo tipas"
-        verbose_name_plural = "Pažeidimo tipai"
-        ordering = ['category__name', 'name']
-
-    def __str__(self):
-        return f"{self.category.name} - {self.name}"
 
 
 class ViolationRange(models.Model):
@@ -218,22 +171,14 @@ class Violation(models.Model):
         related_name='violations',
         verbose_name="Mokinys"
     )
-    violation_type = models.CharField(
-        max_length=50,
-        verbose_name="Pažeidimo tipas"
+    todos = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="Užduočių sąrašas",
+        help_text="ToDo sąrašas užduočių, kurias reikia atlikti dėl pažeidimo"
     )
     description = models.TextField(
         verbose_name="Aprašymas"
-    )
-    amount = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        verbose_name="Suma"
-    )
-    currency = models.CharField(
-        max_length=3,
-        default='EUR',
-        verbose_name="Valiuta"
     )
     
     # Statusas ir datos
@@ -312,7 +257,9 @@ class Violation(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.student.get_full_name()} - {self.category} ({self.amount} {self.currency})"
+        todos_count = len(self.todos) if self.todos else 0
+        completed_todos = len([todo for todo in self.todos if todo.get('completed', False)]) if self.todos else 0
+        return f"{self.student.get_full_name()} - {self.category} ({self.penalty_amount}€) - {completed_todos}/{todos_count} užduotys"
 
     def save(self, *args, **kwargs):
         """
@@ -366,6 +313,25 @@ class Violation(models.Model):
         """
         return (self.status == self.Status.COMPLETED and 
                 self.penalty_status == self.PenaltyStatus.PAID)
+    
+    @property
+    def all_todos_completed(self):
+        """
+        Patikrina ar visos užduotys atliktos
+        """
+        if not self.todos:
+            return True
+        return all(todo.get('completed', False) for todo in self.todos)
+    
+    def get_todos_progress(self):
+        """
+        Grąžina užduočių progresą (atliktų/total)
+        """
+        if not self.todos:
+            return 0, 0
+        completed = len([todo for todo in self.todos if todo.get('completed', False)])
+        total = len(self.todos)
+        return completed, total
 
     def mark_as_completed(self):
         """

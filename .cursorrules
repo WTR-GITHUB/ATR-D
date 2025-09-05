@@ -262,6 +262,504 @@ CORS_ALLOW_ALL_ORIGINS=False           # Set True only for development
 ```
 
 # CURRENT FILE STRUCTURE
+.
+├── ateities_pertvarkos.md
+├── ATRADIMAI
+│   ├── DORYBES-WEB-C
+│   │   └── src
+│   │       ├── appsscript.json
+│   │       ├── Code.js
+│   │       ├── CSS-index.html
+│   │       ├── email.html
+│   │       ├── index.html
+│   │       ├── JS-dropdown.html
+│   │       ├── JS-index.html
+│   │       └── loading.html
+│   ├── DORYBES-WEB-RUD
+│   │   └── src
+│   │       ├── appsscript.json
+│   │       ├── back-end.js
+│   │       ├── CSS-graph.html
+│   │       ├── CSS-index.html
+│   │       ├── JS-graph.html
+│   │       ├── JS-index.html
+│   │       ├── loading.html
+│   │       ├── utils.js
+│   │       └── virtues-table.html
+│   ├── .gitignore
+│   ├── pull_projects.sh
+│   ├── PVA-CR
+│   │   ├── appsscript.json
+│   │   └── src
+│   │       ├── appsscript.json
+│   │       ├── Code.js
+│   │       ├── CSS-index.html
+│   │       ├── index.html
+│   │       ├── JS-chart-debt.html
+│   │       ├── JS-chart-dorybes.html
+│   │       ├── JS-dropdown.html
+│   │       ├── JS-index.html
+│   │       └── loading.html
+│   ├── SKOLOS-DASHBOARD
+│   │   └── src
+│   │       ├── appsscript.json
+│   │       ├── Code.js
+│   │       ├── CSS-index.html
+│   │       ├── deptsCh.html
+│   │       ├── feeCh.html
+│   │       ├── forChar.js
+│   │       ├── index.html
+│   │       ├── js-table.html
+│   │       └── protocolCh.html
+│   ├── SKOLOS-WEB-C
+│   │   └── src
+│   │       ├── appsscript.json
+│   │       ├── Code.js
+│   │       ├── CSS-index.html
+│   │       ├── CSS-multi.html
+│   │       ├── e-admin.html
+│   │       ├── emails.js
+│   │       ├── e-protokolas.html
+│   │       ├── e-student.html
+│   │       ├── index.html
+│   │       ├── JS-index.html
+│   │       ├── JS-multi_drop.html
+│   │       └── loading.html
+│   ├── SKOLOS-WEB-RUD
+│   │   └── src
+│   │       ├── appsscript.json
+│   │       ├── back-end.js
+│   │       ├── CSS-index.html
+│   │       ├── deptsCh.html
+│   │       ├── e-student-del.html
+│   │       ├── e-student-resolved.html
+│   │       ├── e-student-update.html
+│   │       ├── feeCh.html
+│   │       ├── forChart.js
+│   │       ├── JS-dropdown.html
+│   │       ├── JS-index.html
+│   │       ├── loading.html
+│   │       ├── protocolCh.html
+│   │       ├── skolu-table.html
+│   │       └── utils.js
+│   └── STUDENT-FORM
+│       └── src
+│           ├── appsscript.json
+│           ├── Code.js
+│           └── index.html
+├── backend
+│   ├── core
+│   │   ├── asgi.py
+│   │   ├── health_views.py
+│   │   ├── __init__.py
+│   │   ├── settings.py
+│   │   ├── urls.py
+│   │   └── wsgi.py
+│   ├── create_student.py
+│   ├── create_users.py
+│   ├── crm
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── __init__.py
+│   │   ├── migrations
+│   │   │   ├── 0001_initial.py
+│   │   │   ├── 0002_initial.py
+│   │   │   ├── 0003_alter_mentorsubject_unique_together.py
+│   │   │   └── __init__.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── curriculum
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── __init__.py
+│   │   ├── management
+│   │   │   ├── commands
+│   │   │   └── __init__.py
+│   │   ├── migrations
+│   │   │   ├── 0001_initial.py
+│   │   │   ├── 0002_initial.py
+│   │   │   ├── 0003_remove_lesson_description_lesson_content.py
+│   │   │   ├── 0004_remove_old_lesson_fields.py
+│   │   │   ├── 0005_lesson_deleted_at_lesson_is_deleted.py
+│   │   │   └── __init__.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── entrypoint.sh
+│   ├── frontend
+│   │   └── src
+│   │       └── app
+│   ├── grades
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── __init__.py
+│   │   ├── management
+│   │   │   ├── commands
+│   │   │   └── __init__.py
+│   │   ├── migrations
+│   │   │   ├── 0001_initial.py
+│   │   │   ├── 0002_initial.py
+│   │   │   ├── 0003_achievementlevel_alter_grade_options_and_more.py
+│   │   │   └── __init__.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── gunicorn.conf.py
+│   ├── manage.py
+│   ├── media
+│   ├── plans
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── __init__.py
+│   │   ├── migrations
+│   │   │   ├── 0001_initial.py
+│   │   │   ├── 0002_refactor_imuplan_status_separation.py
+│   │   │   ├── 0003_migrate_status_data.py
+│   │   │   ├── 0004_remove_imuplan_completed_at_and_more.py
+│   │   │   ├── 0005_alter_imuplan_attendance_status_and_more.py
+│   │   │   ├── 0006_change_late_to_left.py
+│   │   │   ├── 0007_alter_imuplan_attendance_status.py
+│   │   │   └── __init__.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── schedule
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── __init__.py
+│   │   ├── migrations
+│   │   │   ├── 0001_initial.py
+│   │   │   ├── 0002_initial.py
+│   │   │   ├── 0003_add_period_name_field.py
+│   │   │   ├── 0004_limit_user_to_mentors.py
+│   │   │   ├── 0005_remove_limit_choices_to.py
+│   │   │   ├── 0006_make_weekday_auto_and_lesson_optional.py
+│   │   │   ├── 0007_change_period_ordering_to_starttime.py
+│   │   │   ├── 0008_remove_globalschedule_lesson.py
+│   │   │   ├── 0009_globalschedule_completed_at_and_more.py
+│   │   │   └── __init__.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── static
+│   │   ├── admin
+│   │   │   ├── css
+│   │   │   ├── img
+│   │   │   └── js
+│   │   └── rest_framework
+│   │       ├── css
+│   │       ├── docs
+│   │       ├── fonts
+│   │       ├── img
+│   │       └── js
+│   ├── staticfiles
+│   ├── templates
+│   │   └── admin
+│   │       └── auth
+│   ├── users
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── __init__.py
+│   │   ├── migrations
+│   │   │   ├── 0001_initial.py
+│   │   │   ├── 0002_user_default_role.py
+│   │   │   └── __init__.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   └── violation
+│       ├── admin.py
+│       ├── apps.py
+│       ├── __init__.py
+│       ├── migrations
+│       │   ├── 0001_initial.py
+│       │   ├── 0002_remove_violation_type_add_todos.py
+│       │   ├── 0003_remove_violation_type_model.py
+│       │   └── __init__.py
+│       ├── models.py
+│       ├── serializers.py
+│       ├── tests.py
+│       ├── urls.py
+│       └── views.py
+├── .claude
+│   └── settings.local.json
+├── CLAUDE.md
+├── create_users.py
+├── current_structure.txt
+├── .cursorignore
+├── .cursorrules
+├── DEPLOYMENT_CHECKLIST.md
+├── DEV.md
+├── docker
+│   ├── backend
+│   │   ├── Dockerfile
+│   │   └── entrypoint.sh
+│   ├── frontend
+│   │   └── Dockerfile
+│   ├── nginx
+│   │   ├── Dockerfile
+│   │   ├── nginx.conf
+│   │   ├── sites-enabled
+│   │   │   └── a-dienynas.conf
+│   │   └── ssl
+│   └── postgres
+│       └── init.sql
+├── docker-compose.yml
+├── DOCKER_CONTROL.md
+├── .env
+├── examples
+│   ├── dashbord
+│   ├── kortele
+│   ├── roles
+│   ├── roles_menu
+│   ├── search-select
+│   ├── skirti_voliation
+│   └── spalvos
+├── frontend
+│   ├── eslint.config.mjs
+│   ├── .eslintrc.json
+│   ├── .gitignore
+│   ├── next.config.ts
+│   ├── next-env.d.ts
+│   ├── OPTIMIZATION.md
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── postcss.config.mjs
+│   ├── public
+│   │   ├── dataTables.js
+│   │   ├── images
+│   │   │   ├── example-usage.md
+│   │   │   ├── icons
+│   │   │   └── README.md
+│   │   └── jquery-3.7.1.js
+│   ├── README.md
+│   ├── src
+│   │   ├── app
+│   │   │   ├── auth
+│   │   │   │   └── login
+│   │   │   │       └── page.tsx
+│   │   │   ├── curators
+│   │   │   │   ├── children
+│   │   │   │   │   ├── components
+│   │   │   │   │   │   ├── StudentCard.tsx
+│   │   │   │   │   │   └── index.ts
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── dashboard
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── violations
+│   │   │   │   │   ├── analytics
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── management
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── favicon.ico
+│   │   │   ├── globals.css
+│   │   │   ├── layout.tsx
+│   │   │   ├── managers
+│   │   │   │   ├── dashboard
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── violations
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── layout.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── mentors
+│   │   │   │   ├── activities
+│   │   │   │   │   ├── components
+│   │   │   │   │   │   ├── AttendanceMarker.tsx
+│   │   │   │   │   │   ├── GradeSelector.tsx
+│   │   │   │   │   │   ├── index.ts
+│   │   │   │   │   │   ├── LessonDetailsPanel.tsx
+│   │   │   │   │   │   ├── LessonInfoCard.tsx
+│   │   │   │   │   │   ├── StudentRow.tsx
+│   │   │   │   │   │   ├── StudentsList.tsx
+│   │   │   │   │   │   └── StudentStats.tsx
+│   │   │   │   │   ├── page.tsx
+│   │   │   │   │   ├── README.md
+│   │   │   │   │   └── types.ts
+│   │   │   │   ├── dashboard
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── lessons
+│   │   │   │   │   ├── create
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── edit
+│   │   │   │   │   │   └── [id]
+│   │   │   │   │   │       └── page.tsx
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── page.tsx
+│   │   │   │   ├── plans
+│   │   │   │   │   ├── assign
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── create
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── edit
+│   │   │   │   │   │   └── [id]
+│   │   │   │   │   │       └── page.tsx
+│   │   │   │   │   ├── imuplan-assigned
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── schedule
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── students
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── violations
+│   │   │   │       └── page.tsx
+│   │   │   ├── page.tsx
+│   │   │   ├── parents
+│   │   │   │   ├── dashboard
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── violations
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── pva
+│   │   │   │   ├── components
+│   │   │   │   └── [id]
+│   │   │   │       └── page.tsx
+│   │   │   ├── settings
+│   │   │   │   └── page.tsx
+│   │   │   ├── students
+│   │   │   │   ├── dashboard
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── violations
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   └── violations-old
+│   │   │       ├── analytics
+│   │   │       │   └── page.tsx
+│   │   │       ├── management
+│   │   │       │   └── page.tsx
+│   │   │       └── page.tsx
+│   │   ├── components
+│   │   │   ├── auth
+│   │   │   │   └── ClientAuthGuard.tsx
+│   │   │   ├── dashboard
+│   │   │   │   ├── ScheduleCard.tsx
+│   │   │   │   ├── TableCell.tsx
+│   │   │   │   ├── WeeklyScheduleCalendar.tsx
+│   │   │   │   └── WeeklySchedule.tsx
+│   │   │   ├── DataTable
+│   │   │   │   ├── FilterRow.tsx
+│   │   │   │   ├── index.ts
+│   │   │   │   ├── LocalDataTable.tsx
+│   │   │   │   └── ReactDataTable.tsx
+│   │   │   ├── layout
+│   │   │   │   ├── Header.tsx
+│   │   │   │   ├── Navigation
+│   │   │   │   │   ├── BaseNavigation.tsx
+│   │   │   │   │   ├── MobileNavigation.tsx
+│   │   │   │   │   ├── index.ts
+│   │   │   │   │   └── roles
+│   │   │   │   │       ├── CuratorNavigation.tsx
+│   │   │   │   │       ├── ManagerNavigation.tsx
+│   │   │   │   │       ├── MentorNavigation.tsx
+│   │   │   │   │       ├── ParentNavigation.tsx
+│   │   │   │   │       └── StudentNavigation.tsx
+│   │   │   │   └── Toolbar
+│   │   │   │       └── roles
+│   │   │   └── ui
+│   │   │       ├── Accordion.tsx
+│   │   │       ├── Button.tsx
+│   │   │       ├── Card.tsx
+│   │   │       ├── DualListTransfer.tsx
+│   │   │       ├── DynamicList.tsx
+│   │   │       ├── GenerationResultsModal.tsx
+│   │   │       ├── Input.tsx
+│   │   │       ├── LessonDualListTransfer.tsx
+│   │   │       ├── LoadingSpinner.tsx
+│   │   │       ├── MultiSelect.tsx
+│   │   │       ├── ProgressModal.tsx
+│   │   │       ├── RoleSwitcher.tsx
+│   │   │       ├── Select.tsx
+│   │   │       ├── Textarea.tsx
+│   │   │       ├── TodoCompletionModal.tsx
+│   │   │       └── ViolationFormModal.tsx
+│   │   ├── hooks
+│   │   │   ├── useAuth.ts
+│   │   │   ├── useCuratorStudents.ts
+│   │   │   ├── useCurriculum.ts
+│   │   │   ├── useGrades.ts
+│   │   │   ├── useLessonDetails.ts
+│   │   │   ├── useLessons.ts
+│   │   │   ├── useLevels.ts
+│   │   │   ├── usePeriods.ts
+│   │   │   ├── useSchedule.ts
+│   │   │   ├── useSelectedLesson.ts
+│   │   │   ├── useSettings.ts
+│   │   │   ├── useStudentDetails.ts
+│   │   │   ├── useStudentSchedule.ts
+│   │   │   ├── useSubjects.ts
+│   │   │   ├── useWeekInfo.ts
+│   │   │   └── useWeeklySchedule.ts
+│   │   ├── lib
+│   │   │   ├── api.ts
+│   │   │   ├── roleUtils.ts
+│   │   │   ├── types.ts
+│   │   │   └── utils.ts
+│   │   ├── styles
+│   │   │   └── datatables.css
+│   │   └── types
+│   │       └── jquery.d.ts
+│   ├── tsconfig.json
+│   └── tsconfig.tsbuildinfo
+├── .gitignore
+├── .gitignore.docker
+├── POSTGRESS_COMANDS.md
+├── PROJECT_STRUCTURE.md
+├── README.md
+├── -remote origin
+├── requirements.txt
+├── scripts
+│   ├── backup.sh
+│   ├── deploy-from-github.sh
+│   ├── deploy.sh
+│   ├── maintenance.sh
+│   ├── restore.sh
+│   ├── setup-cron.sh
+│   └── switch-server-ip.sh
+├── .serena
+│   └── project.yml
+├── USER_CREATION_GUIDE.md
+└── venv
+    ├── bin
+    │   ├── activate
+    │   ├── activate.csh
+    │   ├── activate.fish
+    │   ├── Activate.ps1
+    │   ├── django-admin
+    │   ├── dotenv
+    │   ├── gunicorn
+    │   ├── normalizer
+    │   ├── pip
+    │   ├── pip3
+    │   ├── pip3.12
+    │   ├── python -> python3
+    │   ├── python3 -> /usr/bin/python3
+    │   ├── python3.12 -> python3
+    │   └── sqlformat
+    ├── include
+    │   └── python3.12
+    ├── lib
+    │   └── python3.12
+    │       └── site-packages
+    ├── lib64 -> lib
+    └── pyvenv.cfg
+
+99 directories, 276 files
+
+# CURRENT FILE STRUCTURE
 ├── ADITIONAL
 │   ├── competencies.json
 │   ├── competency_atcheve_example.json

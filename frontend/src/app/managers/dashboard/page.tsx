@@ -6,7 +6,8 @@
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Users, BookOpen, TrendingUp, Calendar, Award, Settings, Shield } from 'lucide-react';
+import { Users, BookOpen, TrendingUp, Calendar, Award, Settings, Shield, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
 
 export default function ManagerDashboardPage() {
   const { user } = useAuth();
@@ -218,6 +219,15 @@ export default function ManagerDashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <Link href="/managers/violations" className="block">
+              <button className="text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors w-full">
+                <div className="flex items-center space-x-3">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                  <span className="text-sm font-medium">Skolų valdymas</span>
+                </div>
+              </button>
+            </Link>
+            
             <button className="text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
               <div className="flex items-center space-x-3">
                 <Users className="w-5 h-5 text-blue-600" />
