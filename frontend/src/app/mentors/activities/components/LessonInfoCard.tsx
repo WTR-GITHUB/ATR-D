@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/activities/components/LessonInfoCard.tsx
+// frontend/src/app/mentors/activities/components/LessonInfoCard.tsx
 
 // Komponentas vienos pamokos informacijai atvaizduoti
 // Rodo pamokos pavadinimą, dalykų informacija, komponentus, tikslus, gebėjimus ir mokomąją medžiagą

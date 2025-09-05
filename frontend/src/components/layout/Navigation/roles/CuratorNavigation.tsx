@@ -1,8 +1,8 @@
 // frontend/src/components/layout/Navigation/roles/CuratorNavigation.tsx
 
 // CuratorNavigation komponentas - kuratoriaus navigacijos meniu
-// Rodo Darbastalis ir Skolos nuorodas curator rolei
-// CHANGE: Sukurtas CuratorNavigation komponentas su curator rolei skirtomis nuorodomis
+// Rodo Darbastalis, Skolos ir Vaikai nuorodas curator rolei
+// CHANGE: Pridėta Vaikai nuoroda kuratoriaus navigacijai, pakeista tvarka
 
 'use client';
 
@@ -34,6 +34,14 @@ const CuratorNavigation: React.FC<CuratorNavigationProps> = ({ isMobile = false 
         className={linkClasses}
       >
         Skolos
+      </Link>
+      
+      {/* Vaikai - curator rolei */}
+      <Link
+        href="/curators/children"
+        className={linkClasses}
+      >
+        Vaikai
       </Link>
     </>
   );

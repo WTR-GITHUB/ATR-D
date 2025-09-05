@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/lessons/page.tsx
+// frontend/src/app/mentors/lessons/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -19,7 +19,7 @@ export default function MentorLessonsPage() {
 
   const handleEdit = (lessonId: number) => {
     // Navigate to edit page
-    window.location.href = `/dashboard/mentors/lessons/edit/${lessonId}`;
+    window.location.href = `/mentors/lessons/edit/${lessonId}`;
   };
 
   const handleDelete = async (lessonId: number) => {
@@ -114,7 +114,7 @@ export default function MentorLessonsPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link href="/dashboard/mentors/lessons/create" className="block">
+            <Link href="/mentors/lessons/create" className="block">
               <button className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors w-full">
                 <div className="flex items-center space-x-3">
                   <Plus className="w-5 h-5 text-blue-600" />
@@ -123,7 +123,7 @@ export default function MentorLessonsPage() {
               </button>
             </Link>
             
-            <Link href="/dashboard/mentors/schedule" className="block">
+            <Link href="/mentors/schedule" className="block">
               <button className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors w-full">
                 <div className="flex items-center space-x-3">
                   <Calendar className="w-5 h-5 text-green-600" />
@@ -132,7 +132,7 @@ export default function MentorLessonsPage() {
               </button>
             </Link>
             
-            <Link href="/dashboard/mentors/students" className="block">
+            <Link href="/mentors/students" className="block">
               <button className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors w-full">
                 <div className="flex items-center space-x-3">
                   <Users className="w-5 h-5 text-purple-600" />
@@ -157,7 +157,7 @@ export default function MentorLessonsPage() {
             Kol kas pamokų sąrašas tuščias. Sukurkite pirmąją pamoką.
           </p>
           <div className="mt-6">
-            <Link href="/dashboard/mentors/lessons/create">
+            <Link href="/mentors/lessons/create">
               <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 <Plus className="w-4 h-4 mr-2" />
                 Sukurti pamoką

@@ -749,3 +749,84 @@ class IMUPlanViewSet(viewsets.ModelViewSet):
             "attendance_status": plan.attendance_status,
             "attendance_status_display": plan.get_attendance_status_display() if plan.attendance_status else "Nepažymėta"
         })
+    
+    @action(detail=False, methods=['get'])
+    def student_schedule(self, request):
+        """
+        Grąžina studento tvarkaraštį pagal studento ID ir datą/savaitę
+        CHANGE: Sukurtas naujas endpoint studento tvarkaraščio duomenims gauti
+        """
+        from datetime import datetime, timedelta
+        
+        student_id = request.query_params.get('student_id')
+        date = request.query_params.get('date')  # YYYY-MM-DD formatas
+        week_start = request.query_params.get('week_start')  # YYYY-MM-DD formatas (pirmadienio data)
+        
+        if not student_id:
+            return Response(
+                {"error": "Būtina nurodyti student_id parametrą"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Patikriname ar studentas egzistuoja
+            student = User.objects.get(id=student_id)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "Studentas nerastas"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Nustatome filtravimo datą
+        if date:
+            try:
+                target_date = datetime.strptime(date, '%Y-%m-%d').date()
+                # Filtruojame pagal konkrečią datą
+                queryset = IMUPlan.objects.filter(
+                    student_id=student_id,
+                    global_schedule__date=target_date
+                )
+            except ValueError:
+                return Response(
+                    {"error": "Netinkamas datos formatas. Naudokite YYYY-MM-DD"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        elif week_start:
+            try:
+                start_date = datetime.strptime(week_start, '%Y-%m-%d').date()
+                end_date = start_date + timedelta(days=6)  # Savaitė = 7 dienos
+                # Filtruojame pagal savaitę
+                queryset = IMUPlan.objects.filter(
+                    student_id=student_id,
+                    global_schedule__date__range=[start_date, end_date]
+                )
+            except ValueError:
+                return Response(
+                    {"error": "Netinkamas savaitės datos formatas. Naudokite YYYY-MM-DD"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        else:
+            return Response(
+                {"error": "Būtina nurodyti date arba week_start parametrą"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Optimizuojame užklausą su select_related
+        queryset = queryset.select_related(
+            'global_schedule__subject',
+            'global_schedule__level', 
+            'global_schedule__classroom',
+            'global_schedule__period',
+            'lesson__subject'
+        ).order_by('global_schedule__date', 'global_schedule__period__starttime')
+        
+        serializer = self.get_serializer(queryset, many=True)
+        
+        return Response({
+            "student_id": student_id,
+            "student_name": f"{student.first_name} {student.last_name}".strip() or student.username,
+            "filter_type": "date" if date else "week",
+            "filter_value": date or week_start,
+            "count": queryset.count(),
+            "results": serializer.data
+        })

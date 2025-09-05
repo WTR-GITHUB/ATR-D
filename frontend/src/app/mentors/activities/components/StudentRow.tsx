@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/activities/components/StudentRow.tsx
+// frontend/src/app/mentors/activities/components/StudentRow.tsx
 
 // Universalus mokinio eilutės komponentas su accordion funkcionalumu
 // Rodo pagrindinę mokinio informaciją ir leidžia išplėsti papildomus vertinimo laukus

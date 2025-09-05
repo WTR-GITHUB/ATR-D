@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/plans/create/page.tsx
+// frontend/src/app/mentors/plans/create/page.tsx
 
 // Ugdymo plano kūrimo puslapis mentoriams
 // Leidžia mentoriams sukurti pamokų sekas su pasirinktomis pamokomis
@@ -214,7 +214,7 @@ export default function CreateLessonSequencePage() {
 
       if (response.status === 201) {
         alert('Pamokų seka sėkmingai sukurta!');
-        router.push('/dashboard/mentors/plans');
+        router.push('/mentors/plans');
       } else {
         throw new Error('Nepavyko sukurti pamokų sekos');
       }

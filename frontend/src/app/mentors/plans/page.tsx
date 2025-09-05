@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/plans/page.tsx
+// frontend/src/app/mentors/plans/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -77,7 +77,7 @@ export default function MentorPlansPage() {
 
   // Naviguoja į plano redagavimo puslapį
   const handleEditPlan = (planId: number) => {
-    window.location.href = `/dashboard/mentors/plans/edit/${planId}`;
+    window.location.href = `/mentors/plans/edit/${planId}`;
   };
 
   // Ištrina ugdymo planą
@@ -137,7 +137,7 @@ export default function MentorPlansPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button 
-              onClick={() => window.location.href = '/dashboard/mentors/plans/create'}
+              onClick={() => window.location.href = '/mentors/plans/create'}
               className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center space-x-3">
@@ -147,7 +147,7 @@ export default function MentorPlansPage() {
             </button>
             
             <button 
-              onClick={() => window.location.href = '/dashboard/mentors/plans/assign'}
+              onClick={() => window.location.href = '/mentors/plans/assign'}
               className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center space-x-3">
@@ -157,7 +157,7 @@ export default function MentorPlansPage() {
             </button>
             
             <button 
-              onClick={() => window.location.href = '/dashboard/mentors/plans/imuplan-assigned'}
+              onClick={() => window.location.href = '/mentors/plans/imuplan-assigned'}
               className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center space-x-3">
@@ -181,7 +181,7 @@ export default function MentorPlansPage() {
           </p>
           <div className="mt-6">
             <button 
-              onClick={() => window.location.href = '/dashboard/mentors/plans/create'}
+              onClick={() => window.location.href = '/mentors/plans/create'}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <Plus className="w-4 h-4 mr-2" />

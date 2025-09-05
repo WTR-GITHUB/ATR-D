@@ -32,7 +32,9 @@ Technical implementation is based on modular Django application architecture, wh
 
 ```
 /api/users/
+/api/users/students/<id>/     # Student details endpoint
 /api/crm/
+/api/crm/student-curators/    # Curator-student relationships
 /api/schedule/
 /api/curriculum/
 /api/grades/
@@ -72,7 +74,7 @@ The frontend implements a modular navigation system located in `frontend/src/com
 
 **Role-Specific Navigation:**
 - `roles/ManagerNavigation.tsx` - System manager navigation (Darbastalis + Skolos)
-- `roles/CuratorNavigation.tsx` - Curator navigation (Darbastalis + Skolos)
+- `roles/CuratorNavigation.tsx` - Curator navigation (Darbastalis + Skolos + Vaikai)
 - `roles/MentorNavigation.tsx` - Mentor navigation (Darbastalis + Veiklos + Pamokos + Ugdymo planai + Skolos)
 - `roles/StudentNavigation.tsx` - Student navigation (Darbastalis + Skolos)
 - `roles/ParentNavigation.tsx` - Parent navigation (Darbastalis + Skolos)
@@ -82,6 +84,26 @@ The frontend implements a modular navigation system located in `frontend/src/com
 - Responsive design with separate mobile/desktop layouts
 - Consistent styling across all role components
 - Centralized link management per role
+
+#### Student Details System Architecture
+
+The frontend implements a comprehensive student details system with role-based access control:
+
+**Core Components:**
+- `StudentCard.tsx` - Clickable student card component with hover effects
+- `useStudentDetails.ts` - Hook for fetching student details with security checks
+- `useCuratorStudents.ts` - Hook for fetching curator's assigned students
+
+**Student Details Page:**
+- **URL:** `/pva/[id]` - Universal student details page
+- **Access Control:** Only curator and manager roles allowed
+- **Security:** Server-side validation of curator-student relationships
+- **Features:** Responsive design, loading states, error handling
+
+**Backend API Endpoints:**
+- **URL:** `/api/users/students/<id>/` - Student details endpoint
+- **Security:** Role-based access control with curator-student relationship validation
+- **Permissions:** Curators can only see their assigned students, managers can see all
 
 #### Static Assets Organization
 
@@ -365,6 +387,13 @@ CORS_ALLOW_ALL_ORIGINS=False           # Set True only for development
 │       │   │   └── login
 │       │   │       └── page.tsx
 │       │   ├── curators
+│       │   │   ├── children
+│       │   │   │   ├── components
+│       │   │   │   │   ├── StudentCard.tsx
+│       │   │   │   │   └── index.ts
+│       │   │   │   └── page.tsx
+│       │   │   ├── dashboard
+│       │   │   │   └── page.tsx
 │       │   │   └── page.tsx
 │       │   ├── managers
 │       │   │   ├── layout.tsx
@@ -410,6 +439,9 @@ CORS_ALLOW_ALL_ORIGINS=False           # Set True only for development
 │       │   │       └── page.tsx
 │       │   ├── parents
 │       │   │   └── page.tsx
+│       │   ├── pva
+│       │   │   └── [id]
+│       │   │       └── page.tsx
 │       │   ├── settings
 │       │   │   └── page.tsx
 │       │   ├── students
@@ -464,6 +496,7 @@ CORS_ALLOW_ALL_ORIGINS=False           # Set True only for development
 │       ├── hooks
 │       │   ├── useAuth.ts
 │       │   ├── useCurriculum.ts
+│       │   ├── useCuratorStudents.ts
 │       │   ├── useGrades.ts
 │       │   ├── useLessonDetails.ts
 │       │   ├── useLessons.ts
@@ -472,6 +505,7 @@ CORS_ALLOW_ALL_ORIGINS=False           # Set True only for development
 │       │   ├── useSchedule.ts
 │       │   ├── useSelectedLesson.ts
 │       │   ├── useSettings.ts
+│       │   ├── useStudentDetails.ts
 │       │   ├── useSubjects.ts
 │       │   ├── useWeekInfo.ts
 │       │   └── useWeeklySchedule.ts

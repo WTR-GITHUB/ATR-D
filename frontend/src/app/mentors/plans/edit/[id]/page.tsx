@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/plans/edit/[id]/page.tsx
+// frontend/src/app/mentors/plans/edit/[id]/page.tsx
 
 // Ugdymo plano redagavimo puslapis mentoriams
 // Leidžia mentoriams redaguoti esamas pamokų sekas
@@ -314,7 +314,7 @@ export default function EditLessonSequencePage() {
 
       if (response.status === 200) {
         alert('Pamokų seka sėkmingai atnaujinta!');
-        router.push('/dashboard/mentors/plans');
+        router.push('/mentors/plans');
       } else {
         throw new Error('Nepavyko atnaujinti pamokų sekos');
       }

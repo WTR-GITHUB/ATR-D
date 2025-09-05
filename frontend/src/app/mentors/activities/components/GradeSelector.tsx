@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/activities/components/GradeSelector.tsx
+// frontend/src/app/mentors/activities/components/GradeSelector.tsx
 
 // Pasiekimų lygių valdymo komponentas StudentRow komponente
 // CHANGE: Pritaikytas iš EXAMPLES/grades su API integracija ir real-time išsaugojimu

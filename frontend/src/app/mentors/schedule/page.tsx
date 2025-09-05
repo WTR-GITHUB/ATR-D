@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/schedule/page.tsx
+// frontend/src/app/mentors/schedule/page.tsx
 'use client';
 
 import React from 'react';
@@ -13,7 +13,7 @@ export default function SchedulePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <Link href="/dashboard/mentors/lessons" className="text-gray-600 hover:text-gray-800">
+          <Link href="/mentors/lessons" className="text-gray-600 hover:text-gray-800">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>

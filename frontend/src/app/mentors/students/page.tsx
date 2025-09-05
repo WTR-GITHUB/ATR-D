@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/students/page.tsx
+// frontend/src/app/mentors/students/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';

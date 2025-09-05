@@ -133,17 +133,35 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
   
   // Gauname savaitės tvarkaraščio duomenis
   const mondayDate = weekDates[0].toISOString().split('T')[0];
+  console.log('🔍 WEEKLY CALENDAR DEBUG:');
+  console.log('   📅 Pirmadienio data:', mondayDate);
+  console.log('   📅 Savaitės datos:', weekDates.map(d => d.toISOString().split('T')[0]));
+  
   const { scheduleItems: allScheduleItems, isLoading, error } = useWeeklySchedule({
     weekStartDate: mondayDate,
     enabled: true
   });
+  
+  console.log('   📊 Gauti duomenys:');
+  console.log('   ⏳ Loading:', isLoading);
+  console.log('   ❌ Error:', error);
+  console.log('   📋 Schedule items:', allScheduleItems.length);
+  console.log('   📋 Visi duomenys:', allScheduleItems);
 
   // Gauti pamokos objektą pagal dieną ir laiką
   const getLessonForSlot = (date: Date, periodId: number): ScheduleItem | null => {
     const dateStr = date.toISOString().split('T')[0];
-    return allScheduleItems.find(item => 
+    const foundItem = allScheduleItems.find(item => 
       item.date === dateStr && item.period.id === periodId
-    ) || null;
+    );
+    
+    if (foundItem) {
+      console.log(`   🎯 Rasta pamoka: ${dateStr} ${periodId} - ${foundItem.subject.name}`);
+    } else {
+      console.log(`   ❌ Pamoka nerasta: ${dateStr} ${periodId}`);
+    }
+    
+    return foundItem || null;
   };
 
   // Pašalintos funkcijos - naudojamas useWeekInfo hook

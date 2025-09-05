@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/activities/components/index.ts
+// frontend/src/app/mentors/activities/components/index.ts
 
 // Komponentų export'ai activities moduliui
 // Centralizuotas komponentų importavimas

@@ -97,3 +97,48 @@ def user_settings(request):
         'message': 'Klaida išsaugojant nustatymus',
         'errors': serializer.errors
     }, status=400)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def student_details(request, student_id):
+    """
+    Studento detalių endpoint'as su role-based prieigos kontrole
+    CHANGE: Pridėtas studento detalių endpoint'as su saugumo apsauga
+    """
+    from crm.models import StudentCurator
+    
+    # Server-side role-based access control
+    if not (request.user.has_role('curator') or request.user.has_role('manager')):
+        return Response({
+            'error': 'Prieiga uždrausta. Tik kuratoriai ir valdytojai gali peržiūrėti studento duomenis.'
+        }, status=403)
+    
+    try:
+        # Gauname studentą
+        student = User.objects.get(id=student_id)
+        
+        # Patikriname ar vartotojas turi student rolę
+        if not student.has_role('student'):
+            return Response({
+                'error': 'Nurodytas vartotojas nėra studentas'
+            }, status=404)
+        
+        # Curator gali matyti tik savo priskirtus studentus
+        if request.user.has_role('curator'):
+            if not StudentCurator.objects.filter(curator=request.user, student=student).exists():
+                return Response({
+                    'error': 'Prieiga uždrausta. Galite peržiūrėti tik savo priskirtų studentų duomenis.'
+                }, status=403)
+        
+        # Grąžiname studento duomenis
+        serializer = UserSerializer(student)
+        return Response(serializer.data)
+        
+    except User.DoesNotExist:
+        return Response({
+            'error': 'Studentas nerastas'
+        }, status=404)
+    except Exception as e:
+        return Response({
+            'error': f'Klaida gaunant studento duomenis: {str(e)}'
+        }, status=500)

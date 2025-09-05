@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/activities/components/StudentStats.tsx
+// frontend/src/app/mentors/activities/components/StudentStats.tsx
 
 // Mokinių statistikos komponentas - rodo lankomumo ir veiklos rodiklius
 // Komponentas rodomas virš mokinių sąrašo, pateikia bendrą statistikos apžvalgą

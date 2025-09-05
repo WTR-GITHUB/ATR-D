@@ -47,26 +47,50 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
         
+        print(f"🔍 GET_QUERYSET DEBUG:")
+        print(f"   👤 Vartotojas: {user.email}")
+        print(f"   🎭 Rolės: {user.roles}")
+        
         if user.has_role('admin'):
-            return GlobalSchedule.objects.all()
+            queryset = GlobalSchedule.objects.all()
+            print(f"   🔑 ADMIN: Grąžinami visi įrašai ({queryset.count()})")
+            return queryset
         elif user.has_role('mentor'):
             # Mentoriai mato tik tuos dalykus, kurie jiems priskirti
             mentor_subjects = user.mentor_subjects.values_list('subject', flat=True)
-            print(f"DEBUG: Mentor {user.email} priskirti dalykai: {list(mentor_subjects)}")
+            print(f"   🎓 MENTOR: Priskirti dalykai: {list(mentor_subjects)}")
+            
+            # DEBUG: Patikriname kiekvieną sąlygą atskirai
+            all_schedules = GlobalSchedule.objects.all()
+            print(f"   📊 Iš viso GlobalSchedule įrašų: {all_schedules.count()}")
+            
+            user_schedules = GlobalSchedule.objects.filter(user=user)
+            print(f"   👤 Schedules su user={user.id}: {user_schedules.count()}")
+            
+            subject_schedules = GlobalSchedule.objects.filter(subject__in=mentor_subjects)
+            print(f"   📚 Schedules su mentor_subjects: {subject_schedules.count()}")
             
             queryset = GlobalSchedule.objects.filter(
                 user=user,
                 subject__in=mentor_subjects
             )
-            print(f"DEBUG: Filtruotas queryset count: {queryset.count()}")
+            print(f"   ✅ GALUTINIS MENTOR QUERYSET: {queryset.count()} įrašų")
+            
+            # DEBUG: Loguojame kiekvieną rezultatą
+            for schedule in queryset:
+                print(f"      📝 ID: {schedule.id}, Dalykas: {schedule.subject.name}, Mentorius: {schedule.user.email}, Data: {schedule.date}")
+            
             return queryset
         elif user.has_role('student'):
             # Studentai mato tvarkaraštį pagal savo dalykus ir lygius
-            return GlobalSchedule.objects.filter(
+            queryset = GlobalSchedule.objects.filter(
                 subject__in=user.subject_levels.values_list('subject', flat=True),
                 level__in=user.subject_levels.values_list('level', flat=True)
             )
+            print(f"   🎒 STUDENT: Grąžinami įrašai ({queryset.count()})")
+            return queryset
         else:
+            print(f"   ❌ NO ROLE: Grąžinamas tuščias queryset")
             return GlobalSchedule.objects.none()
     
     def perform_create(self, serializer):
@@ -212,11 +236,25 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         else:
             target_date = datetime.now().date()
         
+        # DEBUG: Loguojame užklausos parametrus
+        print(f"🔍 DAILY SCHEDULE DEBUG:")
+        print(f"   📅 Data: {target_date}")
+        print(f"   👤 Vartotojas: {request.user.email}")
+        print(f"   🎭 Rolės: {request.user.roles}")
+        
         # Filtruojame pagal vartotojo roles
         queryset = self.get_queryset()
+        print(f"   📊 Iš viso queryset įrašų: {queryset.count()}")
+        
         daily_schedule = queryset.filter(date=target_date).order_by('period__starttime')
+        print(f"   📋 Dienos tvarkaraštis ({target_date}): {daily_schedule.count()} įrašų")
+        
+        # DEBUG: Loguojame kiekvieną įrašą
+        for schedule in daily_schedule:
+            print(f"      📝 ID: {schedule.id}, Dalykas: {schedule.subject.name}, Mentorius: {schedule.user.email}, Laikas: {schedule.period.starttime}")
         
         serializer = self.get_serializer(daily_schedule, many=True)
+        print(f"   ✅ Grąžinami duomenys: {len(serializer.data)} įrašų")
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'], url_path='mentor-subjects')

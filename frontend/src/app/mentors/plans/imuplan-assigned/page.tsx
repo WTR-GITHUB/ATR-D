@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/plans/imuplan-assigned/page.tsx
+// frontend/src/app/mentors/plans/imuplan-assigned/page.tsx
 
 // Page for viewing assigned individual student education plans (IMU plans)
 // Displays a table with 7 columns: Data, Pamoka (time), Dalykas, Lygis, Vardas, Pavardė, Pamoka (title)
@@ -137,7 +137,7 @@ export default function IMUPlanAssignedPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => window.location.href = '/dashboard/mentors/plans'}
+          onClick={() => window.location.href = '/mentors/plans'}
           className="flex items-center space-x-2"
         >
           <ArrowLeft className="w-4 h-4" />

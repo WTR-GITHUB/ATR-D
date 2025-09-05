@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/lessons/create/page.tsx
+// frontend/src/app/mentors/lessons/create/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -218,7 +218,7 @@ export default function CreateLessonPage() {
       const response = await lessonsAPI.create(lessonData);
       
       // Redirect to lessons list
-      router.push('/dashboard/mentors/lessons');
+      router.push('/mentors/lessons');
     } catch (error: unknown) {
       console.error('Error creating lesson:', error);
       
@@ -240,7 +240,7 @@ export default function CreateLessonPage() {
       <div className="flex items-center justify-between">
         <div>
           <Link 
-            href="/dashboard/mentors/lessons"
+            href="/mentors/lessons"
             className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-2"
           >
             <ArrowLeft className="w-4 h-4 mr-1" />
@@ -520,7 +520,7 @@ export default function CreateLessonPage() {
 
             {/* Submit Buttons */}
             <div className="flex justify-end space-x-4 pt-6 border-t">
-              <Link href="/dashboard/mentors/lessons">
+              <Link href="/mentors/lessons">
                 <Button variant="outline" type="button">
                   Atšaukti
                 </Button>

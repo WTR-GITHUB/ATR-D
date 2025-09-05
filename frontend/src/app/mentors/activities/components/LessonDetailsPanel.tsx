@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/activities/components/LessonDetailsPanel.tsx
+// frontend/src/app/mentors/activities/components/LessonDetailsPanel.tsx
 
 // Komponentas išsamiai pamokos informacijai rodyti
 // Naudoja LessonInfoCard komponentą kiekvienai pamokai atvaizduoti

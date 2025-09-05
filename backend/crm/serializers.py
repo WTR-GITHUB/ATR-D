@@ -26,9 +26,19 @@ class StudentCuratorSerializer(serializers.ModelSerializer):
     """
     Mokinio-kuratoriaus santykio serializeris
     """
+    student_name = serializers.CharField(source='student.get_full_name', read_only=True)
+    student_email = serializers.CharField(source='student.email', read_only=True)
+    student_first_name = serializers.CharField(source='student.first_name', read_only=True)
+    student_last_name = serializers.CharField(source='student.last_name', read_only=True)
+    
     class Meta:
         model = StudentCurator
-        fields = '__all__'
+        fields = [
+            'id', 'student', 'curator', 'start_date', 'end_date', 
+            'created_at', 'updated_at', 'student_name', 'student_email',
+            'student_first_name', 'student_last_name'
+        ]
+        read_only_fields = ('created_at', 'updated_at')
 
 class StudentSubjectLevelSerializer(serializers.ModelSerializer):
     """

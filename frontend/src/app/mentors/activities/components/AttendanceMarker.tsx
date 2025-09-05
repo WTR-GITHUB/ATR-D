@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/activities/components/AttendanceMarker.tsx
+// frontend/src/app/mentors/activities/components/AttendanceMarker.tsx
 
 // Lankomumo žymėjimo komponentas - rodo ir leidžia keisti mokinio lankomumo būseną
 // Palaiko keturias būsenas: dalyvavo, nedalyvavo, paliko, pateisinta // CHANGE: Pakeista 'vėlavo' į 'paliko'

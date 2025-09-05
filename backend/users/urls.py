@@ -2,7 +2,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import UserViewSet, me, CustomTokenObtainPairView, user_settings
+from .views import UserViewSet, me, CustomTokenObtainPairView, user_settings, student_details
 
 # Router konfigūracija - registruoja vartotojų viewset'us
 router = DefaultRouter()
@@ -18,4 +18,7 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('me/', me, name='me'),
     path('settings/', user_settings, name='user_settings'),
+    
+    # Studento detalių endpoint'as
+    path('students/<int:student_id>/', student_details, name='student_details'),
 ] 

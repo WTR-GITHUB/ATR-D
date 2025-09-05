@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/lessons/edit/[id]/page.tsx
+// frontend/src/app/mentors/lessons/edit/[id]/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -314,7 +314,7 @@ export default function EditLessonPage() {
       const response = await lessonsAPI.update(parseInt(lessonId), lessonData);
       
       // Redirect to lessons list
-      router.push('/dashboard/mentors/lessons');
+      router.push('/mentors/lessons');
     } catch (error: any) {
       console.error('Error updating lesson:', error);
       console.error('Error response:', error.response?.data);
@@ -362,7 +362,7 @@ export default function EditLessonPage() {
       <div className="flex items-center justify-between">
         <div>
           <Link 
-            href="/dashboard/mentors/lessons"
+            href="/mentors/lessons"
             className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-2"
           >
             <ArrowLeft className="w-4 h-4 mr-1" />
@@ -641,7 +641,7 @@ export default function EditLessonPage() {
 
             {/* Submit Buttons */}
             <div className="flex justify-end space-x-4 pt-6 border-t">
-              <Link href="/dashboard/mentors/lessons">
+              <Link href="/mentors/lessons">
                 <Button variant="outline" type="button">
                   Atšaukti
                 </Button>

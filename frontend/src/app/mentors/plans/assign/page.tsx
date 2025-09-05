@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/plans/assign/page.tsx
+// frontend/src/app/mentors/plans/assign/page.tsx
 
 // Ugdymo plano priskyrimo puslapis mentoriams
 // Leidžia mentoriams priskirti sukurtus ugdymo planus studentams ar studentų grupėms
@@ -409,7 +409,7 @@ export default function AssignPlanPage() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => router.push('/dashboard/mentors/plans')}
+          onClick={() => router.push('/mentors/plans')}
           className="flex items-center space-x-2"
         >
           <ArrowLeft className="w-4 h-4" />

@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/activities/types.ts
+// frontend/src/app/mentors/activities/types.ts
 
 // Veiklos modulio tipų aprašai
 // Šis failas centralizuojami visus TypeScript tipus, naudojamus Veiklos puslapyje

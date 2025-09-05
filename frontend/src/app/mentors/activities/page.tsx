@@ -1,4 +1,4 @@
-// frontend/src/app/dashboard/mentors/activities/page.tsx
+// frontend/src/app/mentors/activities/page.tsx
 
 // Veiklos puslapis - pamokų peržiūra ir detalės
 // Šis puslapis skirtas mentoriams vykdyti pamokas ir peržiūrėti pamokų detales
@@ -229,6 +229,10 @@ const VeiklosPage = () => {
                 ) : (
                   <p className="text-sm text-gray-600">Peržiūrėti visą savaitės tvarkaraštį</p>
                 )}
+                {/* DEBUG: Akordeono būsena */}
+                <p className="text-xs text-gray-400">
+                  DEBUG: Akordeonas {isScheduleExpanded ? 'IŠSKLEISTAS' : 'SUSKLEISTAS'}
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -261,7 +265,12 @@ const VeiklosPage = () => {
                 </>
               )}
               <button
-                onClick={() => setIsScheduleExpanded(!isScheduleExpanded)}
+                onClick={() => {
+                  console.log('🔍 AKORDEONO MYGTUKAS:');
+                  console.log('   📊 Dabartinė būsena:', isScheduleExpanded ? 'IŠSKLEISTAS' : 'SUSKLEISTAS');
+                  console.log('   🔄 Keičiame į:', !isScheduleExpanded ? 'IŠSKLEISTAS' : 'SUSKLEISTAS');
+                  setIsScheduleExpanded(!isScheduleExpanded);
+                }}
                 className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
                 title={isScheduleExpanded ? "Suskleisti tvarkaraštį" : "Išskleisti tvarkaraštį"}
               >
@@ -272,6 +281,9 @@ const VeiklosPage = () => {
           
           {isScheduleExpanded && (
             <div className="border-t border-gray-200">
+              {console.log('🔍 RENDERINAME WEEKLY SCHEDULE CALENDAR:')}
+              {console.log('   📊 GlobalScheduleId:', globalScheduleId)}
+              {console.log('   📊 WeekInfo:', weekInfo)}
               <WeeklyScheduleCalendar 
                 className="border-0 shadow-none" 
                 showHeader={false}

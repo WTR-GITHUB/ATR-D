@@ -28,6 +28,10 @@ export const useWeeklySchedule = (params: UseWeeklyScheduleParams): UseWeeklySch
   const fetchWeeklySchedule = async () => {
     if (!params.enabled || !params.weekStartDate) return;
 
+    console.log('🔍 WEEKLY SCHEDULE HOOK DEBUG:');
+    console.log('   📅 Savaitės pradžia:', params.weekStartDate);
+    console.log('   ⚙️ Enabled:', params.enabled);
+
     try {
       setIsLoading(true);
       setError(null);
@@ -40,18 +44,24 @@ export const useWeeklySchedule = (params: UseWeeklyScheduleParams): UseWeeklySch
         date.setDate(date.getDate() + i);
         const dateStr = date.toISOString().split('T')[0];
         
+        console.log(`   📅 Gauname duomenis ${i + 1}/7 dienai: ${dateStr}`);
+        
         try {
           const response = await api.get(`/schedule/schedules/daily/?date=${dateStr}`);
+          console.log(`   ✅ ${dateStr}: gauta ${response.data.length} pamokų`);
+          console.log(`   📋 Duomenys:`, response.data);
           weekItems.push(...response.data);
         } catch (dayError) {
-          console.warn(`Nepavyko gauti ${dateStr} tvarkaraščio:`, dayError);
+          console.warn(`   ❌ ${dateStr}: nepavyko gauti tvarkaraščio:`, dayError);
           // Netęsiame klaidų, nes kai kurios dienos gali neturėti pamokų
         }
       }
 
+      console.log(`   📊 IŠ VISO SAVAITĖS: ${weekItems.length} pamokų`);
+      console.log('   📋 Visi duomenys:', weekItems);
       setScheduleItems(weekItems);
     } catch (err: any) {
-      console.error('Klaida gaunant savaitės tvarkaraščio duomenis:', err);
+      console.error('❌ Klaida gaunant savaitės tvarkaraščio duomenis:', err);
       setError(err.response?.data?.detail || 'Nepavyko gauti savaitės tvarkaraščio duomenų');
     } finally {
       setIsLoading(false);

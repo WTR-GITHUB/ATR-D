@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 // CHANGE: Pataisytas import'as - tipai importuojami iš activities/types.ts ir useSchedule
-import { LessonDetails, IMUPlan } from '../app/dashboard/mentors/activities/types';
+import { LessonDetails, IMUPlan } from '../app/mentors/activities/types';
 import { ScheduleItem } from '@/hooks/useSchedule';
 
 // CHANGE: Sukurtas SelectedLessonState tipas tiesiogiai hook'e
