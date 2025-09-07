@@ -13,7 +13,7 @@ import { Clock, MapPin, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import useWeeklySchedule from '@/hooks/useWeeklySchedule';
 import useSubjects from '@/hooks/useSubjects';
 import usePeriods from '@/hooks/usePeriods';
-import useWeekInfo from '@/hooks/useWeekInfo';
+import { useWeekInfoContext } from '@/contexts/WeekInfoContext';
 // CHANGE: Pataisytas import'as - ScheduleItem importuojamas iš useSchedule hook'o
 import { ScheduleItem } from '@/hooks/useSchedule';
 
@@ -115,8 +115,9 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
   const { periods } = usePeriods();
   // Pašalinta lessonDetails logika - naudojama activities puslapyje
   
-  // Savaitės informacija
-  const weekInfo = useWeekInfo(currentWeek);
+  // Savaitės informacija - use context if available
+  const contextWeekInfo = useWeekInfoContext();
+  const weekInfo = contextWeekInfo.weekInfo;
   
   const weekDates = weekInfo.weekDates;
   
@@ -125,11 +126,11 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
     if (onWeekChange) {
       onWeekChange({
         ...weekInfo,
-        navigateWeek,
-        goToToday: () => setCurrentWeek(new Date())
+        navigateWeek: contextWeekInfo.navigateWeek,
+        goToToday: contextWeekInfo.goToToday
       });
     }
-  }, [currentWeek]); // Pašalinome weekInfo iš dependencies - gali sukelti ciklą
+  }, [weekInfo, onWeekChange, contextWeekInfo.navigateWeek, contextWeekInfo.goToToday]);
   
   // Gauname savaitės tvarkaraščio duomenis
   const mondayDate = weekDates[0].toISOString().split('T')[0];

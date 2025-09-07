@@ -241,6 +241,12 @@ class IMUPlanSerializer(serializers.ModelSerializer):
     global_schedule_level = serializers.CharField(source='global_schedule.level.name', read_only=True)
     global_schedule_classroom = serializers.CharField(source='global_schedule.classroom.name', read_only=True)
     
+    # CHANGE: Pridėti global_schedule objektas su visais duomenimis
+    global_schedule = serializers.SerializerMethodField()
+    
+    # CHANGE: Pridėti lesson objektas su visais duomenimis
+    lesson = serializers.SerializerMethodField()
+    
     # REFAKTORINIMAS: Lankomumo statusas paliekamas IMUPlan
     # CHANGE: Pakeista į SerializerMethodField, kad teisingai apdorotų null reikšmes
     attendance_status_display = serializers.SerializerMethodField()
@@ -252,9 +258,54 @@ class IMUPlanSerializer(serializers.ModelSerializer):
             'lesson', 'lesson_title', 'lesson_subject',  # CHANGE: Pridėti trūkstami lesson laukai
             'attendance_status', 'attendance_status_display',
             'notes', 'created_at', 'updated_at', 
-            'global_schedule_date', 'global_schedule_time', 'global_schedule_period_name', 'global_schedule_level', 'global_schedule_classroom'
+            'global_schedule', 'global_schedule_date', 'global_schedule_time', 'global_schedule_period_name', 'global_schedule_level', 'global_schedule_classroom'
         ]
         read_only_fields = ['created_at', 'updated_at']
+    
+    def get_global_schedule(self, obj):
+        """Grąžina global_schedule objektą su visais duomenimis"""
+        if obj.global_schedule:
+            return {
+                'id': obj.global_schedule.id,
+                'date': obj.global_schedule.date,
+                'weekday': obj.global_schedule.weekday,
+                'subject': {
+                    'id': obj.global_schedule.subject.id,
+                    'name': obj.global_schedule.subject.name,
+                } if obj.global_schedule.subject else None,
+                'level': {
+                    'id': obj.global_schedule.level.id,
+                    'name': obj.global_schedule.level.name,
+                } if obj.global_schedule.level else None,
+                'period': {
+                    'id': obj.global_schedule.period.id,
+                    'name': obj.global_schedule.period.name,
+                    'starttime': obj.global_schedule.period.starttime,
+                    'endtime': obj.global_schedule.period.endtime,
+                } if obj.global_schedule.period else None,
+                'classroom': {
+                    'id': obj.global_schedule.classroom.id,
+                    'name': obj.global_schedule.classroom.name,
+                } if obj.global_schedule.classroom else None,
+                'plan_status': obj.global_schedule.plan_status,
+                'user': obj.global_schedule.user.id if obj.global_schedule.user else None,
+            }
+        return None
+    
+    def get_lesson(self, obj):
+        """Grąžina lesson objektą su visais duomenimis"""
+        if obj.lesson:
+            return {
+                'id': obj.lesson.id,
+                'title': obj.lesson.title,
+                'topic': obj.lesson.topic,
+                'subject': {
+                    'id': obj.lesson.subject.id,
+                    'name': obj.lesson.subject.name,
+                } if obj.lesson.subject else None,
+                'mentor': obj.lesson.mentor.id if obj.lesson.mentor else None,
+            }
+        return None
     
     def get_attendance_status_display(self, obj):
         """Saugiai grąžina lankomumo statuso display tekstą, apdoroja null reikšmes"""

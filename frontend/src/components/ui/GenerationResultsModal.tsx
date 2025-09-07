@@ -88,10 +88,9 @@ const GenerationResultsModal: React.FC<GenerationResultsModalProps> = ({
 
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleDateString('lt-LT', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
+      return new Date(dateString).toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit'
       });
     } catch {
       return dateString;

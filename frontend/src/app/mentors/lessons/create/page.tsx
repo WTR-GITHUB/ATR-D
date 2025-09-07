@@ -11,14 +11,14 @@ import MultiSelect from '@/components/ui/MultiSelect';
 import DynamicList from '@/components/ui/DynamicList';
 import { ArrowLeft, Save, Plus, X } from 'lucide-react';
 import Link from 'next/link';
-import { lessonsAPI, subjectsAPI, virtuesAPI, levelsAPI, skillsAPI, competenciesAPI, competencyAtcheveAPI } from '@/lib/api';
+import { lessonsAPI, subjectsAPI, virtuesAPI, levelsAPI, skillsAPI, competenciesAPI, competencyAtcheveAPI, mentorSubjectsAPI } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 export default function CreateLessonPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [subjects, setSubjects] = useState([]);
+  const [subjects, setSubjects] = useState<{ id: number; subject_name: string; name: string; description: string; mentor_subject_id: number }[]>([]);
   const [virtues, setVirtues] = useState([]);
   const [levels, setLevels] = useState([]);
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -81,7 +81,7 @@ export default function CreateLessonPage() {
     const loadDropdownData = async () => {
       try {
         const [subjectsRes, virtuesRes, levelsRes, skillsRes, competenciesRes, competencyAtchevesRes] = await Promise.all([
-          subjectsAPI.getAll(),
+          mentorSubjectsAPI.mySubjects(), // CHANGE: Use mentor's assigned subjects instead of all subjects
           virtuesAPI.getAll(),
           levelsAPI.getAll(),
           skillsAPI.getAll(),
@@ -121,7 +121,14 @@ export default function CreateLessonPage() {
 
   const handleCreateSkill = async () => {
     try {
-      const response = await skillsAPI.create(skillFormData);
+      // CHANGE: Convert subject string to number for backend
+      const dataToSend = {
+        ...skillFormData,
+        subject: skillFormData.subject ? parseInt(skillFormData.subject) : null
+      };
+      
+      
+      const response = await skillsAPI.create(dataToSend);
       
       // Refresh skills list
       const skillsRes = await skillsAPI.getAll();
@@ -137,6 +144,14 @@ export default function CreateLessonPage() {
       });
     } catch (error) {
       console.error('Error creating skill:', error);
+      
+      // DEBUG: Log detailed error information
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as any;
+        console.error('🔍 Error response data:', axiosError.response?.data);
+        console.error('🔍 Error status:', axiosError.response?.status);
+        console.error('🔍 Error headers:', axiosError.response?.headers);
+      }
     }
   };
 
@@ -190,10 +205,6 @@ export default function CreateLessonPage() {
     setIsLoading(true);
     
     try {
-      // Debug: Check if token exists
-      const token = localStorage.getItem('access_token');
-      console.log('Token exists:', !!token);
-      console.log('User:', user);
       
       // Prepare lesson data
       const lessonData = {
@@ -272,10 +283,10 @@ export default function CreateLessonPage() {
                 className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm w-64"
                 required
               >
-                <option value="">Pasirinkite dalyką *</option>
-                {subjects.map((subject: { id: number; name: string }) => (
+                  <option value="">Pasirinkite dalyką *</option>
+                {subjects.map((subject: { id: number; subject_name: string }) => (
                   <option key={subject.id} value={subject.id}>
-                    {subject.name}
+                    {subject.subject_name}
                   </option>
                 ))}
               </select>
@@ -571,9 +582,9 @@ export default function CreateLessonPage() {
                   required
                 >
                   <option value="">Pasirinkite dalyką</option>
-                  {subjects.map((subject: { id: number; name: string }) => (
+                  {subjects.map((subject: { id: number; subject_name: string }) => (
                     <option key={subject.id} value={subject.id}>
-                      {subject.name}
+                      {subject.subject_name}
                     </option>
                   ))}
                 </select>
@@ -735,9 +746,9 @@ export default function CreateLessonPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Pasirinkite dalyką...</option>
-                  {subjects.map((subject: { id: number; name: string }) => (
+                  {subjects.map((subject: { id: number; subject_name: string }) => (
                     <option key={subject.id} value={subject.id}>
-                      {subject.name}
+                      {subject.subject_name}
                     </option>
                   ))}
                 </select>

@@ -11,8 +11,8 @@ import React from 'react';
 import { 
   UserCheck, 
   UserX, 
-  Clock, 
-  FileText,
+  Footprints, 
+  MessagesSquare,
   X
 } from 'lucide-react';
 import { AttendanceStatus } from '../types';
@@ -91,10 +91,10 @@ const AttendanceMarker: React.FC<AttendanceMarkerProps> = ({
         return <UserCheck size={iconSize} />;
       case 'absent':
         return <UserX size={iconSize} />;
-      case 'left': // CHANGE: Pakeista 'late' į 'left'
-        return <Clock size={iconSize} />;
-      case 'excused':
-        return <FileText size={iconSize} />;
+      case 'left': // CHANGE: Pakeista 'late' į 'left', Clock → Footprints
+        return <Footprints size={iconSize} />;
+      case 'excused': // CHANGE: FileText → MessagesSquare
+        return <MessagesSquare size={iconSize} />;
       default:
         return null;
     }

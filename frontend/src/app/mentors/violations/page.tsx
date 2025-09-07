@@ -33,6 +33,7 @@ export default function MentorViolationsPage() {
   const [stats, setStats] = useState<ViolationStats | null>(null);
   const [categoryStats, setCategoryStats] = useState<ViolationCategoryStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -42,19 +43,24 @@ export default function MentorViolationsPage() {
     const fetchStats = async () => {
       try {
         setIsLoading(true);
+        setLoadingProgress(0);
         setError(null);
 
-        // Fetch general stats
-        const statsResponse = await violationAPI.stats.getGeneral({
-          period: selectedPeriod
-        });
+        // CHANGE: Gauname duomenis paraleliai vietoj nuosekliai
+        setLoadingProgress(25);
+        const [statsResponse, categoryResponse] = await Promise.all([
+          violationAPI.stats.getGeneral({
+            period: selectedPeriod
+          }),
+          violationAPI.stats.getCategory({
+            period: selectedPeriod
+          })
+        ]);
+        
+        setLoadingProgress(75);
         setStats(statsResponse.data);
-
-        // Fetch category stats
-        const categoryResponse = await violationAPI.stats.getCategory({
-          period: selectedPeriod
-        });
         setCategoryStats(categoryResponse.data);
+        setLoadingProgress(100);
 
       } catch (err: unknown) {
         console.error('Error fetching violation stats:', err);
@@ -132,9 +138,19 @@ export default function MentorViolationsPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center max-w-md mx-auto">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Kraunama...</p>
+          <p className="mt-4 text-gray-600">Kraunama pažeidimų statistika...</p>
+          <p className="mt-2 text-sm text-gray-500">Prašome palaukti</p>
+          
+          {/* Progress bar */}
+          <div className="mt-6 w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${loadingProgress}%` }}
+            ></div>
+          </div>
+          <p className="mt-2 text-xs text-gray-500">{loadingProgress}%</p>
         </div>
       </div>
     );

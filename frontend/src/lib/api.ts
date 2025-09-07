@@ -43,12 +43,13 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token refresh
+// Response interceptor to handle token refresh and role validation
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
+    // CHANGE: Handle 401 (Unauthorized) - token refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
@@ -69,8 +70,39 @@ api.interceptors.response.use(
           return api(originalRequest);
         }
       } catch (refreshError) {
+        // CHANGE: Clear all auth data on refresh failure
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
+        localStorage.removeItem('current_role');
+        localStorage.removeItem('auth-storage');
+        window.location.href = '/auth/login';
+      }
+    }
+
+    // CHANGE: Handle 403 (Forbidden) - role validation issue
+    if (error.response?.status === 403 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      
+      // Try to refresh user data and role
+      try {
+        const userResponse = await api.get('/users/me/');
+        const user = userResponse.data;
+        
+        // Update current role if missing or invalid
+        const currentRole = localStorage.getItem('current_role');
+        if (!currentRole || !user.roles?.includes(currentRole)) {
+          // Set to default role or first available role
+          const newRole = user.default_role || user.roles?.[0];
+          if (newRole) {
+            localStorage.setItem('current_role', newRole);
+            originalRequest.headers['X-Current-Role'] = newRole;
+          }
+        }
+        
+        return api(originalRequest);
+      } catch (userError) {
+        // If user data fetch fails, redirect to login
+        localStorage.clear();
         window.location.href = '/auth/login';
       }
     }
@@ -126,6 +158,7 @@ export const crmAPI = {
   // Mentor-Subject relationships
   mentorSubjects: {
     getAll: () => api.get('/crm/mentor-subjects/'),
+    mySubjects: () => api.get('/crm/mentor-subjects/my_subjects/'), // CHANGE: Added mySubjects method for mentor's assigned subjects
     create: (data: any) => api.post('/crm/mentor-subjects/', data),
     update: (id: number, data: any) => api.put(`/crm/mentor-subjects/${id}/`, data),
     delete: (id: number) => api.delete(`/crm/mentor-subjects/${id}/`),

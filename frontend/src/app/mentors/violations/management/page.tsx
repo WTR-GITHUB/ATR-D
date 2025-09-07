@@ -12,6 +12,8 @@ import { ReactDataTable } from '@/components/DataTable';
 import { violationAPI } from '@/lib/api';
 import TodoCompletionModal from '@/components/ui/TodoCompletionModal';
 import ViolationFormModal from '@/components/ui/ViolationFormModal';
+import StatusFilter from '@/components/ui/StatusFilter';
+import PenaltyStatusFilter from '@/components/ui/PenaltyStatusFilter';
 import { 
   ArrowLeft, 
   AlertTriangle, 
@@ -45,6 +47,10 @@ export default function MentorViolationsManagementPage() {
   
   // Categories state
   const [categories, setCategories] = useState<any[]>([]);
+  
+  // Filter states for modern switches
+  const [statusFilter, setStatusFilter] = useState(0); // -1, 0, 1
+  const [penaltyStatusFilter, setPenaltyStatusFilter] = useState(0); // -1, 0, 1
 
   // Fetch violations data
   useEffect(() => {
@@ -169,7 +175,7 @@ export default function MentorViolationsManagementPage() {
       }
     },
     {
-      title: 'Statusas',
+      title: 'Skolos statusas',
       data: 'status',
       render: (data: any) => getStatusBadge(data)
     },
@@ -191,7 +197,7 @@ export default function MentorViolationsManagementPage() {
       data: 'created_at',
       render: (data: any) => {
         if (!data) return '-';
-        return new Date(data).toLocaleDateString('lt-LT');
+        return new Date(data).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' });
       }
     },
     {
@@ -456,9 +462,48 @@ export default function MentorViolationsManagementPage() {
         {/* Data Table */}
         <div className="bg-white rounded-lg shadow">
           <ReactDataTable
-            data={violations}
+            data={violations.filter(violation => {
+              // Status filter logic
+              if (statusFilter === 1 && violation.status !== 'completed') return false;
+              if (statusFilter === -1 && violation.status !== 'pending') return false;
+              
+              // Penalty status filter logic
+              if (penaltyStatusFilter === 1 && violation.penalty_status !== 'paid') return false;
+              if (penaltyStatusFilter === -1 && violation.penalty_status !== 'unpaid') return false;
+              
+              return true;
+            })}
             columns={columns}
-            filterableColumns={['student_name', 'category', 'status', 'penalty_status', 'penalty_amount']}
+            filterableColumns={['student_name', 'category', 'penalty_amount']}
+            customFilters={{
+              status: (
+                <StatusFilter
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  label="Skolos statusas"
+                  negativeLabel="Neatlikti"
+                  positiveLabel="Atlikti"
+                />
+              ),
+              penalty_status: (
+                <PenaltyStatusFilter
+                  value={penaltyStatusFilter}
+                  onChange={setPenaltyStatusFilter}
+                />
+              )
+            }}
+            onFiltersChange={(filters, customFilters) => {
+              // Reset custom filter states when clear filters is called
+              if (Object.keys(filters).length === 0 && Object.keys(customFilters).length === 0) {
+                setStatusFilter(0);
+                setPenaltyStatusFilter(0);
+              }
+            }}
+            onClearFilters={() => {
+              // Reset switches to neutral position (0)
+              setStatusFilter(0);
+              setPenaltyStatusFilter(0);
+            }}
           />
         </div>
       </div>

@@ -86,6 +86,8 @@ class IMUPlan(models.Model):
     lesson = models.ForeignKey(
         'curriculum.Lesson', 
         on_delete=models.CASCADE, 
+        null=True,
+        blank=True,
         verbose_name=_('Pamoka')
     )
     

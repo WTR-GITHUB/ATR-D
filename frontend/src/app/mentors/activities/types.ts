@@ -136,8 +136,49 @@ export interface IMUPlan {
   id: number;
   student: number;
   student_name: string;
-  global_schedule: number;
-  lesson: number | null;
+  global_schedule: number | {
+    id: number;
+    date: string;
+    weekday: string;
+    subject: {
+      id: number;
+      name: string;
+    };
+    level: {
+      id: number;
+      name: string;
+    };
+    period: {
+      id: number;
+      name: string;
+      starttime: string;
+      endtime: string;
+    };
+    classroom: {
+      id: number;
+      name: string;
+    };
+    plan_status: string;
+    user: {
+      id: number;
+      first_name: string;
+      last_name: string;
+    };
+  };
+  lesson: number | null | {
+    id: number;
+    title: string;
+    topic: string;
+    subject: {
+      id: number;
+      name: string;
+    };
+    mentor: {
+      id: number;
+      first_name: string;
+      last_name: string;
+    };
+  };
   lesson_title: string | null;
   lesson_subject: string | null;
   

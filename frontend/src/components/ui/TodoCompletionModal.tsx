@@ -205,7 +205,7 @@ const TodoCompletionModal: React.FC<TodoCompletionModalProps> = ({
                       {index + 1}. {todo.text}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      Sukurta: {new Date(todo.created_at).toLocaleDateString('lt-LT')}
+                      Sukurta: {new Date(todo.created_at).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })}
                     </p>
                   </div>
                 </div>

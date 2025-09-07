@@ -9,3 +9,5 @@ export { default as StudentScheduleCalendar } from './StudentScheduleCalendar';
 export { default as StudentScheduleCard } from './StudentScheduleCard';
 export { default as StudentScheduleCell } from './StudentScheduleCell';
 export { default as StudentWeeklyScheduleCalendar } from './StudentWeeklyScheduleCalendar';
+export { default as AttendanceStatusIcon } from './AttendanceStatusIcon';
+export { default as AttendanceFilter } from './AttendanceFilter';

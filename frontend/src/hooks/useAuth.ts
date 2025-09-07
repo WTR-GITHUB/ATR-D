@@ -231,6 +231,17 @@ export const useAuth = create<AuthStore>()(
             const userResponse = await authAPI.me();
             const user = userResponse.data;
             
+            // CHANGE: Validate and set current role on initialization
+            const currentRole = localStorage.getItem('current_role');
+            let validRole = currentRole;
+            
+            // If no current role or role is not in user's roles, set to default
+            if (!currentRole || !user.roles?.includes(currentRole)) {
+              validRole = user.default_role || user.roles?.[0] || null;
+              if (validRole) {
+                localStorage.setItem('current_role', validRole);
+              }
+            }
             
             set({
               user,
@@ -238,6 +249,7 @@ export const useAuth = create<AuthStore>()(
               refreshToken: localStorage.getItem('refresh_token'),
               isAuthenticated: true,
               isLoading: false,
+              currentRole: validRole, // CHANGE: Set current role on init
             });
           } catch (error) {
             // CHANGE: Better error handling - try to refresh token first
@@ -246,12 +258,15 @@ export const useAuth = create<AuthStore>()(
               // Token is invalid, clear storage
               localStorage.removeItem('access_token');
               localStorage.removeItem('refresh_token');
+              localStorage.removeItem('current_role');
+              localStorage.removeItem('auth-storage');
               set({
                 user: null,
                 token: null,
                 refreshToken: null,
                 isAuthenticated: false,
                 isLoading: false,
+                currentRole: null, // CHANGE: Clear current role on logout
               });
             }
           }

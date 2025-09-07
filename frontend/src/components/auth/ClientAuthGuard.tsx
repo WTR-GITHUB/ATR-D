@@ -80,12 +80,9 @@ function redirectToDashboard(roles: string[] | null | undefined, router: any, de
     let roleToUse;
     if (defaultRole && userRoles.includes(defaultRole)) {
       roleToUse = defaultRole;
-      console.log('✅ AUTHGUARD Using DEFAULT ROLE:', roleToUse);
     } else {
       roleToUse = userRoles[0];
-      console.log('⚠️ AUTHGUARD Using FIRST ROLE (no valid default):', roleToUse);
     }
-    console.log('🚀 AUTHGUARD FINAL ROLE TO USE:', roleToUse);
     
     switch (roleToUse) {
       case 'manager':

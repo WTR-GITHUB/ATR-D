@@ -42,9 +42,9 @@ class UserViewSet(viewsets.ModelViewSet):
         if not current_role:
             current_role = getattr(self.request.user, 'default_role', None)
         
-        # Jei vartotojas yra admin/manager, grąžinti visus vartotojus
+        # Jei vartotojas yra admin/manager/mentor/curator, grąžinti visus vartotojus
         # Jei ne, grąžinti tik savo duomenis
-        if current_role == 'manager' or self.request.user.is_staff:
+        if current_role in ['manager', 'mentor', 'curator'] or self.request.user.is_staff:
             queryset = User.objects.all()
             role = self.request.query_params.get('role', None)
             if role is not None:

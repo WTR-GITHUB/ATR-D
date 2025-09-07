@@ -59,7 +59,7 @@ const LessonDetailsPanel: React.FC<LessonDetailsPanelProps> = ({
     );
   }
 
-  if (!lessonDetails && allLessonsDetails.length === 0) {
+  if (allLessonsDetails.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="text-center text-gray-500 py-8">
@@ -72,7 +72,7 @@ const LessonDetailsPanel: React.FC<LessonDetailsPanelProps> = ({
 
   // Funkcija gauti studentus konkrečiai pamokai
   const getStudentsForLesson = (lessonId: number): IMUPlan[] => {
-    return imuPlans.filter(plan => plan.lesson === lessonId);
+    return imuPlans.filter(plan => plan.lesson?.id === lessonId);
   };
 
   return (

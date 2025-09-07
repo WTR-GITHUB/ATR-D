@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='imuplan',
             name='attendance_status',
-            field=models.CharField(blank=True, choices=[('present', 'Dalyvavo'), ('absent', 'Nedalyvavo'), ('late', 'Vėlavo'), ('excused', 'Pateisinta')], default=None, help_text='Mokinio lankomumo būsena: dalyvavo, nedalyvavo, vėlavo, pateisinta', max_length=20, null=True, verbose_name='Lankomumo būsena'),
+            field=models.CharField(blank=True, choices=[('present', 'Dalyvavo'), ('absent', 'Nedalyvavo'), ('left', 'Paliko'), ('excused', 'Pateisinta')], default=None, help_text='Mokinio lankomumo būsena: dalyvavo, nedalyvavo, paliko, pateisinta', max_length=20, null=True, verbose_name='Lankomumo būsena'),
         ),
         migrations.AlterField(
             model_name='lessonsequenceitem',

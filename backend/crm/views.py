@@ -172,9 +172,11 @@ class MentorSubjectViewSet(viewsets.ModelViewSet):
         if not current_role:
             current_role = getattr(request.user, 'default_role', None)
         
-        if current_role != 'mentor':
+        # CHANGE: Pagerinta role validation - leisti manager ir curator roles
+        # Manager ir curator gali matyti visus dalykus, mentor tik savo
+        if current_role not in ['mentor', 'manager', 'curator']:
             return Response(
-                {'error': 'Tik mentoriai gali matyti savo dalykus'}, 
+                {'error': 'Tik mentoriai, valdytojai ir kuratoriai gali matyti dalykus'}, 
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -187,6 +189,7 @@ class MentorSubjectViewSet(viewsets.ModelViewSet):
             subjects_data.append({
                 'id': mentor_subject.subject.id,
                 'name': mentor_subject.subject.name,
+                'subject_name': mentor_subject.subject.name,  # CHANGE: Added subject_name field for frontend compatibility
                 'description': mentor_subject.subject.description or '',
                 'mentor_subject_id': mentor_subject.id
             })

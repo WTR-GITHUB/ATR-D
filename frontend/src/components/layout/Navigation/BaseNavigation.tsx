@@ -20,23 +20,14 @@ interface BaseNavigationProps {
 }
 
 const BaseNavigation: React.FC<BaseNavigationProps> = ({ isMobile = false }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, getCurrentRole } = useAuth();
   const pathname = usePathname();
 
   if (!isAuthenticated || !user) {
     return null;
   }
 
-  // Nustatyti aktyvią rolę pagal URL
-  const getCurrentRole = (): string => {
-    if (pathname.startsWith('/managers')) return 'manager';
-    if (pathname.startsWith('/curators')) return 'curator';
-    if (pathname.startsWith('/mentors')) return 'mentor';
-    if (pathname.startsWith('/parents')) return 'parent';
-    if (pathname.startsWith('/students')) return 'student';
-    return user.default_role || user.roles?.[0] || '';
-  };
-
+  // CHANGE: Naudoti useAuth hook'o getCurrentRole funkciją vietoj atskiros logikos
   const currentRole = getCurrentRole();
 
   // Rodyti atitinkamą navigation komponentą pagal rolę

@@ -9,7 +9,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import WeeklyScheduleCalendar from './WeeklyScheduleCalendar';
-import useWeekInfo from '@/hooks/useWeekInfo';
+import { useWeekInfoContext } from '@/contexts/WeekInfoContext';
 
 interface WeeklyScheduleProps {
   weekStart?: string; // YYYY-MM-DD format
@@ -19,12 +19,8 @@ interface WeeklyScheduleProps {
 export default function WeeklySchedule({ weekStart, targetDate }: WeeklyScheduleProps) {
   const [isScheduleExpanded, setIsScheduleExpanded] = useState(true); // Pagal nutylėjimą išskleistas
   
-  // Inicializuojame weekInfo iš karto su dabartine savaite
-  const initialWeekInfo = useWeekInfo();
-  const [weekInfo, setWeekInfo] = useState<any>(null);
-  
-  // Kombinuojame initial info su dinamiškai atnaujinamu
-  const displayWeekInfo = weekInfo || initialWeekInfo;
+  // Use WeekInfo context
+  const { weekInfo: displayWeekInfo, navigateWeek, goToToday, isLoading: weekLoading } = useWeekInfoContext();
 
   return (
     <div className="p-6">
@@ -51,24 +47,27 @@ export default function WeeklySchedule({ weekStart, targetDate }: WeeklySchedule
             {displayWeekInfo && (
               <>
                 <button
-                  onClick={() => weekInfo?.navigateWeek ? weekInfo.navigateWeek(-1) : console.log('Navigate -1')}
-                  className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                  onClick={() => navigateWeek(-1)}
+                  disabled={weekLoading}
+                  className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
                   title="Ankstesnė savaitė"
                 >
                   <ChevronLeft size={16} />
                 </button>
                 
                 <button
-                  onClick={() => weekInfo?.goToToday ? weekInfo.goToToday() : console.log('Go to today')}
-                  className="px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                  onClick={() => goToToday()}
+                  disabled={weekLoading}
+                  className="px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors disabled:opacity-50"
                   title="Eiti į šiandienos savaitę"
                 >
                   Dabar
                 </button>
                 
                 <button
-                  onClick={() => weekInfo?.navigateWeek ? weekInfo.navigateWeek(1) : console.log('Navigate +1')}
-                  className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors"
+                  onClick={() => navigateWeek(1)}
+                  disabled={weekLoading}
+                  className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
                   title="Kita savaitė"
                 >
                   <ChevronRight size={16} />
@@ -90,7 +89,6 @@ export default function WeeklySchedule({ weekStart, targetDate }: WeeklySchedule
             <WeeklyScheduleCalendar 
               className="border-0 shadow-none" 
               showHeader={false}
-              onWeekChange={setWeekInfo}
             />
           </div>
         )}

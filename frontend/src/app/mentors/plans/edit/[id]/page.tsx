@@ -18,7 +18,7 @@ import Input from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/Textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import LessonDualListTransfer from '@/components/ui/LessonDualListTransfer';
-import { ArrowLeft, Save } from 'lucide-react';
+import { Save } from 'lucide-react';
 
 interface Lesson {
   id: number;
@@ -150,10 +150,6 @@ export default function EditLessonSequencePage() {
           fetchPlan(planId)
         ]);
         
-        console.log('Gauti plano duomenys:', planData);
-        console.log('Plano items:', planData.items);
-        console.log('Plano items tipas:', typeof planData.items);
-        console.log('Plano items ilgis:', planData.items?.length);
         
         // Užpildome pamokų seką
         // Saugumo patikrinimas - items gali būti undefined jei backend'as nepateikia
@@ -167,17 +163,12 @@ export default function EditLessonSequencePage() {
           position: item.position
         }));
         
-        console.log('Apdoroti existingItems:', existingItems);
-        console.log('existingItems ilgis:', existingItems.length);
-        
         // Nustatome selectedLessons tiesiogiai iš plano duomenų
         // Backend'as jau filtruoja ištrintas pamokas
         if (existingItems && existingItems.length > 0) {
           setSelectedLessons(existingItems);
-          console.log('Nustatytas selectedLessons iš plano duomenų:', existingItems);
         } else {
           setSelectedLessons([]);
-          console.log('Nustatytas tuščias selectedLessons - plane nėra pamokų');
         }
 
         
@@ -306,15 +297,30 @@ export default function EditLessonSequencePage() {
       };
 
       // Siunčiame užklausą į backend'ą
-      console.log('Siunčiami duomenys:', sequenceData);
-      console.log('selectedLessons:', selectedLessons);
-      console.log('planId:', planId);
       
       const response = await api.put(`/plans/sequences/${planId}/`, sequenceData);
 
       if (response.status === 200) {
-        alert('Pamokų seka sėkmingai atnaujinta!');
-        router.push('/mentors/plans');
+        // Rodyti sėkmės pranešimą
+        const successMessage = document.createElement('div');
+        successMessage.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2';
+        successMessage.innerHTML = `
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+          </svg>
+          <span>Pamokų seka sėkmingai atnaujinta!</span>
+        `;
+        document.body.appendChild(successMessage);
+        
+        // Pašalinti pranešimą po 3 sekundžių
+        setTimeout(() => {
+          successMessage.remove();
+        }, 3000);
+        
+        // Nukreipti į planų sąrašą po 1 sekundės
+        setTimeout(() => {
+          router.push('/mentors/plans');
+        }, 1000);
       } else {
         throw new Error('Nepavyko atnaujinti pamokų sekos');
       }
@@ -364,16 +370,7 @@ export default function EditLessonSequencePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center space-x-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => router.back()}
-          className="flex items-center space-x-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Atgal</span>
-        </Button>
+      <div className="flex items-center">
         <h1 className="text-2xl font-bold text-gray-900">Redaguoti ugdymo planą</h1>
       </div>
 
@@ -481,8 +478,12 @@ export default function EditLessonSequencePage() {
         {/* Veiksmai */}
         <div className="flex justify-end space-x-4">
           <Button
+            type="button"
             variant="outline"
-            onClick={() => router.back()}
+            onClick={(e) => {
+              e.preventDefault();
+              router.push('/mentors/plans');
+            }}
           >
             Atšaukti
           </Button>

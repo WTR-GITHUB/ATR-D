@@ -93,7 +93,7 @@ export default function ParentsDashboardPage() {
               👨‍👩‍👧‍👦 TĖVŲ VALDYMO CENTRAS
             </p>
             <p className="text-rose-200 text-sm mt-1">
-              {new Date().toLocaleDateString('lt-LT')}
+              {new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })}
             </p>
           </div>
           <div className="text-right">

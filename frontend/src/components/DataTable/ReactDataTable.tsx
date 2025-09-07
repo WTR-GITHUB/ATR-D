@@ -18,7 +18,11 @@ interface ReactDataTableProps {
   itemsPerPage?: number;
   showFilters?: boolean;
   filterableColumns?: string[];
+  filterableColumnIndexes?: number[]; // CHANGE: Pridėti galimybę nurodyti stulpelių indeksus
   customHeader?: React.ReactNode;
+  customFilters?: { [key: string]: React.ReactNode };
+  onFiltersChange?: (filters: { [key: string]: string }, customFilters: { [key: string]: any }) => void;
+  onClearFilters?: () => void;
 }
 
 const ReactDataTable: React.FC<ReactDataTableProps> = ({ 
@@ -28,9 +32,14 @@ const ReactDataTable: React.FC<ReactDataTableProps> = ({
   itemsPerPage = 100,
   showFilters = true,
   filterableColumns,
-  customHeader
+  filterableColumnIndexes,
+  customHeader,
+  customFilters,
+  onFiltersChange,
+  onClearFilters
 }) => {
   const [filters, setFilters] = useState<{ [key: string]: string }>({});
+  const [customFilterValues, setCustomFilterValues] = useState<{ [key: string]: any }>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -46,16 +55,24 @@ const ReactDataTable: React.FC<ReactDataTableProps> = ({
         const column = columns.find(col => col.data === key);
         if (!column) return true;
         
-        // Gauti reikšmę - jei yra render funkcija, naudoti ją, kitaip originalų lauką
-        let cellValue;
-        if (column.render) {
-          try {
-            cellValue = column.render(row[key], row);
-          } catch (error) {
-            cellValue = row[key];
+        // CHANGE: Visada naudoti originalų duomenų lauką filtravimui, o ne render rezultatą
+        // Render funkcija skirta tik vaizdavimui, ne filtravimui
+        let cellValue = row[key];
+        
+        // Jei originalus laukas tuščias, bandyti gauti duomenis iš nested objektų
+        if (!cellValue && column.render) {
+          // Specialus atvejis pamokų pavadinimui
+          if (key === 'lesson_title') {
+            cellValue = row.lesson?.title || '';
           }
-        } else {
-          cellValue = row[key];
+          // Specialus atvejis dalyko pavadinimui
+          else if (key === 'subject_name') {
+            cellValue = row.lesson?.subject?.name || '';
+          }
+          // Specialus atvejis lygio pavadinimui
+          else if (key === 'level_name') {
+            cellValue = row.global_schedule?.level?.name || '';
+          }
         }
         
         if (cellValue === null || cellValue === undefined) return false;
@@ -117,6 +134,14 @@ const ReactDataTable: React.FC<ReactDataTableProps> = ({
   const clearFilters = () => {
     setFilters({});
     setCurrentPage(1);
+    // Notify parent components to reset their custom filters
+    if (onFiltersChange) {
+      onFiltersChange({}, {});
+    }
+    // Call parent's clear filters function to reset switches
+    if (onClearFilters) {
+      onClearFilters();
+    }
   };
 
   // Rūšiavimo funkcija
@@ -155,9 +180,15 @@ const ReactDataTable: React.FC<ReactDataTableProps> = ({
         {/* Filtravimo laukeliai */}
         {showFilters && (
           <div className="filter-container mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <div className="filter-row flex flex-wrap gap-4">
+            <div className="filter-row flex flex-wrap gap-4 items-center justify-center">
               {columns
-                .filter(column => !filterableColumns || filterableColumns.includes(column.data))
+                .filter((column, index) => {
+                  // CHANGE: Pirmiausia tikrinti filterableColumnIndexes, tada filterableColumns
+                  if (filterableColumnIndexes) {
+                    return filterableColumnIndexes.includes(index);
+                  }
+                  return !filterableColumns || filterableColumns.includes(column.data);
+                })
                 .map((column, index) => (
                 <div key={index} className="w-[150px]">
                   <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -173,14 +204,23 @@ const ReactDataTable: React.FC<ReactDataTableProps> = ({
                 </div>
               ))}
               
+              {/* Custom filtrai */}
+              {customFilters && Object.entries(customFilters).map(([key, filterComponent]) => (
+                <div key={key} className="w-[150px]">
+                  <div className="min-h-[42px] flex items-center justify-center">
+                    {filterComponent}
+                  </div>
+                </div>
+              ))}
+              
               {/* Išvalyti mygtukas */}
               <div className="w-[150px]">
-                <div className="h-6"></div> {/* Tuščia eilutė */}
+                <div className="h-6 mb-1"></div> {/* Tuščia eilutė label lygiavimui */}
                 <button
                   onClick={clearFilters}
-                  className="w-full px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors text-sm"
+                  className="w-full px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors text-sm font-medium"
                 >
-                  Išvalyti
+                  Išvalyti filtrus
                 </button>
               </div>
             </div>

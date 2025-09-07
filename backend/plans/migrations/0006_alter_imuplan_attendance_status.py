@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('plans', '0006_change_late_to_left'),
+        ('plans', '0005_alter_imuplan_attendance_status_and_more'),
     ]
 
     operations = [

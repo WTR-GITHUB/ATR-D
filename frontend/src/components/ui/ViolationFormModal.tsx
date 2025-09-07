@@ -84,8 +84,6 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
 
       // Load categories
       const categoriesResponse = await violationAPI.categories.getAll();
-      console.log('DEBUG: categoriesResponse:', categoriesResponse);
-      console.log('DEBUG: categories data:', categoriesResponse.data);
       setCategories(categoriesResponse.data);
 
     } catch (error) {
@@ -98,17 +96,14 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
 
   // CHANGE: Function to populate form with initial data for editing
   const populateFormWithInitialData = (violation: Violation) => {
-    // CHANGE: violation.category is already an ID, not a name
-    const categoryId = violation.category?.toString() || '';
+    // CHANGE: violation.category is a category NAME (string), need to find the ID
+    const categoryItem = categories.find(cat => cat.name === violation.category);
+    const categoryId = categoryItem ? categoryItem.id.toString() : '';
     
-    console.log('DEBUG: populateFormWithInitialData called');
-    console.log('DEBUG: violation.category:', violation.category);
-    console.log('DEBUG: categories:', categories);
-    console.log('DEBUG: using categoryId directly:', categoryId);
     
     setFormData({
       students: violation.student ? [violation.student] : [],
-      category: categoryId, // Use category ID directly
+      category: categoryId, // Use category ID found by name
       todos: violation.todos ? violation.todos.map((todo: any) => todo.text) : [],
       description: violation.description || '',
       notes: violation.notes || ''
@@ -169,9 +164,6 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
 
       // Find category name by ID
       const categoryName = categories.find(cat => cat.id.toString() === formData.category)?.name || formData.category;
-      
-      console.log('DEBUG: handleSubmit - formData.category:', formData.category);
-      console.log('DEBUG: handleSubmit - found categoryName:', categoryName);
 
       if (editMode && violationId) {
         // CHANGE: Edit mode - update existing violation

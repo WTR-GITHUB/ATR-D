@@ -20,14 +20,7 @@ const ROLE_PRIORITIES: Record<UserRole, number> = {
  * @returns aukščiausia rolė arba 'student' jei rolių nėra
  */
 export function getHighestRole(roles: UserRole[]): UserRole {
-  // CHANGE: Pridėti console.log rolės logikai patikrinti
-  console.log('🎯 getHighestRole INPUT:', roles);
-  console.log('🎯 ROLES TYPE:', typeof roles);
-  console.log('🎯 ROLES IS ARRAY:', Array.isArray(roles));
-  console.log('🎯 ROLES LENGTH:', roles?.length);
-  
   if (!roles || roles.length === 0) {
-    console.log('⚠️ NO ROLES FOUND, returning student');
     return 'student';
   }
 
@@ -35,15 +28,12 @@ export function getHighestRole(roles: UserRole[]): UserRole {
   let highestPriority = ROLE_PRIORITIES.student;
 
   for (const role of roles) {
-    console.log(`🔍 Checking role: ${role}, priority: ${ROLE_PRIORITIES[role]}`);
     if (ROLE_PRIORITIES[role] < highestPriority) {
       highestRole = role;
       highestPriority = ROLE_PRIORITIES[role];
-      console.log(`✅ New highest role: ${role} with priority: ${highestPriority}`);
     }
   }
 
-  console.log('🏆 FINAL HIGHEST ROLE:', highestRole);
   return highestRole;
 }
 

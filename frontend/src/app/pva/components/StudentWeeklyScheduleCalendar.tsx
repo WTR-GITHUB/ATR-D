@@ -10,7 +10,7 @@ import React, { useEffect } from 'react';
 import { Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import useStudentSchedule from '@/hooks/useStudentSchedule';
 import usePeriods from '@/hooks/usePeriods';
-import useWeekInfo from '@/hooks/useWeekInfo';
+import { useWeekInfoContext } from '@/contexts/WeekInfoContext';
 import StudentScheduleCell from './StudentScheduleCell';
 import { AttendanceStatus } from '@/app/mentors/activities/types';
 
@@ -46,9 +46,9 @@ const StudentWeeklyScheduleCalendar: React.FC<StudentWeeklyScheduleCalendarProps
   onNavigateWeek,
   onGoToToday
 }) => {
-  // Savaitės informacija
-  const initialWeekInfo = useWeekInfo();
-  const displayWeekInfo = parentWeekInfo || initialWeekInfo;
+  // Savaitės informacija - use context if available, fallback to parent
+  const contextWeekInfo = useWeekInfoContext();
+  const displayWeekInfo = parentWeekInfo || contextWeekInfo.weekInfo;
 
   // Periodai
   const { periods, isLoading: periodsLoading } = usePeriods();
@@ -108,7 +108,7 @@ const StudentWeeklyScheduleCalendar: React.FC<StudentWeeklyScheduleCalendarProps
   const handleAttendanceChange = async (itemId: number, status: AttendanceStatus) => {
     try {
       // TODO: Implementuoti attendance status keitimą per API
-      console.log('Attendance change:', itemId, status);
+      // Attendance change handled
     } catch (error) {
       console.error('Error updating attendance:', error);
     }

@@ -36,6 +36,11 @@ class LessonSequenceViewSet(viewsets.ModelViewSet):
     ordering_fields = ['name', 'created_at']
     ordering = ['-created_at']
     
+    def get_queryset(self):
+        """Filtruoja sekas pagal mentorių"""
+        # CHANGE: Filtruojame sekas pagal mentorių (created_by)
+        return LessonSequence.objects.filter(created_by=self.request.user).select_related('subject', 'level', 'created_by').prefetch_related('items__lesson__subject')
+    
     def get_serializer_class(self):
         """Pasirenka serializerį pagal veiksmą"""
         if self.action in ['create', 'update', 'partial_update']:
@@ -285,16 +290,19 @@ class LessonSequenceViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def _filter_global_schedules(self, data, logger):
-        """Filtruoja GlobalSchedule pagal kriterijus su logging"""
+        """Filtruoja GlobalSchedule pagal kriterijus su logging ir mentorių filtravimu"""
         start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
         end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
         
         logger.info(f"Filtering criteria: subject={data['subject_id']}, level={data['level_id']}")
         logger.info(f"Date range: {start_date} to {end_date}")
+        logger.info(f"Requesting user: {self.request.user.id} ({self.request.user.first_name} {self.request.user.last_name})")
         
+        # CHANGE: Filtruojame GlobalSchedule pagal mentorių (user_id)
         schedules = GlobalSchedule.objects.filter(
             subject_id=data['subject_id'],
             level_id=data['level_id'],
+            user_id=self.request.user.id,  # CHANGE: Pridėtas mentoriaus filtravimas
             date__gte=start_date,
             date__lte=end_date
         ).select_related(
@@ -302,9 +310,9 @@ class LessonSequenceViewSet(viewsets.ModelViewSet):
         ).order_by('date', 'period__starttime')
         
         # DETALUS LOGGING
-        logger.info(f"Found {schedules.count()} matching schedules:")
+        logger.info(f"Found {schedules.count()} matching schedules for mentor {self.request.user.id}:")
         for schedule in schedules:
-            logger.info(f"  - {schedule.date} {schedule.period} | {schedule.subject.name} | {schedule.classroom.name}")
+            logger.info(f"  - {schedule.date} {schedule.period} | {schedule.subject.name} | {schedule.classroom.name} | Mentor: {schedule.user.first_name} {schedule.user.last_name}")
         
         return list(schedules)
     
@@ -364,7 +372,20 @@ class LessonSequenceViewSet(viewsets.ModelViewSet):
             # Assign lesson or null
             if i < len(lessons):
                 current_lesson = lessons[i].lesson
-                logger.info(f"  ASSIGN: {schedule.date} -> lesson {current_lesson.title}")
+                
+                # CHANGE: Tikriname ar pamoka priklauso tam pačiam mentorui
+                if current_lesson.mentor_id != schedule.user_id:
+                    logger.warning(f"  LESSON MENTOR MISMATCH: {schedule.date} -> lesson {current_lesson.title} belongs to mentor {current_lesson.mentor_id}, but schedule belongs to mentor {schedule.user_id}")
+                    result['skipped'] += 1
+                    result['skipped_details'].append({
+                        'date': schedule.date.strftime('%Y-%m-%d'),
+                        'period_info': f"{schedule.period.name or f'{schedule.period.id} pamoka'} ({schedule.period.starttime.strftime('%H:%M')}-{schedule.period.endtime.strftime('%H:%M')})",
+                        'subject': schedule.subject.name,
+                        'reason': f"Lesson '{current_lesson.title}' belongs to different mentor - cannot assign"
+                    })
+                    continue
+                
+                logger.info(f"  ASSIGN: {schedule.date} -> lesson {current_lesson.title} (mentor match: {current_lesson.mentor_id})")
             else:
                 current_lesson = None
                 result['null_lessons'] += 1

@@ -11,7 +11,7 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
-import useWeekInfo from '@/hooks/useWeekInfo';
+import { useWeekInfoContext } from '@/contexts/WeekInfoContext';
 import { StudentWeeklyScheduleCalendar } from './index';
 
 interface StudentScheduleCalendarProps {
@@ -29,50 +29,83 @@ const StudentScheduleCalendar: React.FC<StudentScheduleCalendarProps> = ({
   className = '',
   onWeekChange
 }) => {
-  // DEBUG: Patikriname props'us
-  console.log('StudentScheduleCalendar props:', { 
-    studentId, 
-    onScheduleItemSelect, 
-    selectedScheduleId, 
-    className, 
-    onWeekChange,
-    typeofOnWeekChange: typeof onWeekChange
-  });
+  // StudentScheduleCalendar component props received
   
   const [isScheduleExpanded, setIsScheduleExpanded] = useState(false);
   
-  // Savaitės valdymas
+  // Savaitės valdymas - use context if available
+  const contextWeekInfo = useWeekInfoContext();
   const [currentWeek, setCurrentWeek] = useState(new Date());
-  const weekInfo = useWeekInfo(currentWeek);
   const [displayWeekInfo, setDisplayWeekInfo] = useState<any>(null);
   
-  // Naudojame displayWeekInfo arba weekInfo
-  const finalWeekInfo = displayWeekInfo || weekInfo;
+  // Naudojame displayWeekInfo arba context weekInfo
+  const finalWeekInfo = displayWeekInfo || contextWeekInfo.weekInfo;
   
   // Perduodame weekInfo į parent komponentą
   React.useEffect(() => {
-    console.log('useEffect called with:', { 
-      finalWeekInfo, 
-      onWeekChange, 
-      typeofOnWeekChange: typeof onWeekChange,
-      isFunction: typeof onWeekChange === 'function'
-    });
-    
     if (typeof onWeekChange === 'function' && finalWeekInfo) {
-      console.log('Calling onWeekChange with:', finalWeekInfo);
       onWeekChange(finalWeekInfo);
     }
   }, [finalWeekInfo, onWeekChange]);
+
+  // CHANGE: Atnaujiname displayWeekInfo kai currentWeek keičiasi
+  React.useEffect(() => {
+    if (contextWeekInfo.weekInfo) {
+      // Sukuriame savaitės datas (7 dienos nuo pirmadienio)
+      const startOfWeek = new Date(currentWeek);
+      startOfWeek.setDate(currentWeek.getDate() - currentWeek.getDay() + 1); // Pirmadienis
+      const weekDates = [];
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(startOfWeek);
+        date.setDate(startOfWeek.getDate() + i);
+        weekDates.push(date);
+      }
+      
+      // Sukuriame naują weekInfo su atnaujinta data
+      const newWeekInfo = {
+        ...contextWeekInfo.weekInfo,
+        currentWeek: currentWeek,
+        weekDates: weekDates,
+        // Atnaujiname kitus laukus pagal naują savaitę
+        weekNumber: Math.ceil((currentWeek.getTime() - new Date(currentWeek.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000)),
+        dateRangeText: `${currentWeek.toLocaleDateString('lt-LT')} - ${new Date(currentWeek.getTime() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString('lt-LT')}`,
+        statusText: isCurrentWeek(currentWeek) ? 'Dabar' : `${Math.ceil((currentWeek.getTime() - new Date(currentWeek.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000))} savaitė`,
+        statusColor: isCurrentWeek(currentWeek) ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+      };
+      setDisplayWeekInfo(newWeekInfo);
+    }
+  }, [currentWeek, contextWeekInfo.weekInfo]);
+
+  // Helper funkcija patikrinti ar tai dabartinė savaitė
+  const isCurrentWeek = (date: Date) => {
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Pirmadienis
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // Sekmadienis
+    
+    return date >= startOfWeek && date <= endOfWeek;
+  };
 
   // Navigacijos funkcijos
   const navigateWeek = (direction: number) => {
     const newWeek = new Date(currentWeek);
     newWeek.setDate(currentWeek.getDate() + (direction * 7));
     setCurrentWeek(newWeek);
+    
+    // CHANGE: Atnaujiname displayWeekInfo kad navigacija veiktų
+    if (contextWeekInfo.weekInfo?.navigateWeek) {
+      contextWeekInfo.weekInfo.navigateWeek(direction);
+    }
   };
 
   const goToToday = () => {
     setCurrentWeek(new Date());
+    
+    // CHANGE: Atnaujiname displayWeekInfo kad "Dabar" mygtukas veiktų
+    if (contextWeekInfo.weekInfo?.goToToday) {
+      contextWeekInfo.weekInfo.goToToday();
+    }
   };
 
   return (

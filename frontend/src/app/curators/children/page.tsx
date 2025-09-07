@@ -6,12 +6,19 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StudentCard } from './components';
 import { useCuratorStudents } from '@/hooks/useCuratorStudents';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function CuratorsChildrenPage() {
   const { students, loading, error } = useCuratorStudents();
+  const { setCurrentRole } = useAuth();
+
+  // CHANGE: Nustatyti curator rolę kai puslapis kraunasi
+  useEffect(() => {
+    setCurrentRole('curator');
+  }, [setCurrentRole]);
 
   if (loading) {
     return (

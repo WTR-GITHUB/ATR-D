@@ -85,8 +85,8 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
       // Gauti unikalių pamokų ID sąrašą iš IMU planų
       const lessonIds = [...new Set(
         imuPlans
-          .map((plan: IMUPlan) => plan.lesson)
-          .filter((lessonId: number) => lessonId !== null)
+          .map((plan: IMUPlan) => plan.lesson?.id)
+          .filter((lessonId: number) => lessonId !== null && lessonId !== undefined)
       )];
 
       // Gauti visų pamokų detales paraleliai

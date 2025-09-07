@@ -50,11 +50,6 @@ export const useStudentSchedule = (params: UseStudentScheduleParams): UseStudent
   const fetchStudentSchedule = async () => {
     if (!params.enabled || !params.weekStartDate || !params.studentId) return;
 
-    console.log('🔍 STUDENT SCHEDULE HOOK DEBUG:');
-    console.log('   👤 Student ID:', params.studentId);
-    console.log('   📅 Savaitės pradžia:', params.weekStartDate);
-    console.log('   ⚙️ Enabled:', params.enabled);
-
     try {
       setIsLoading(true);
       setError(null);
@@ -65,8 +60,6 @@ export const useStudentSchedule = (params: UseStudentScheduleParams): UseStudent
           week_start: params.weekStartDate
         }
       });
-
-      console.log('   ✅ Gauti duomenys:', response.data);
       
       setScheduleItems(response.data.results || []);
       setStudentName(response.data.student_name || '');

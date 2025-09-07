@@ -29,19 +29,12 @@ export default function LoginPage() {
       // Nukreipimas pagal aukščiausią rolę
       const user = await authAPI.me();
       
-      // CHANGE: Pridėti console.log rolių informacijai patikrinti
-      console.log('🔍 USER DATA AFTER LOGIN:', user.data);
-      console.log('👤 USER ROLES:', user.data.roles);
-      console.log('🎯 DEFAULT ROLE:', user.data.default_role);
-      
       // PRIORITY: Use default_role if it exists AND is valid, otherwise use first role
       let roleToUse;
       if (user.data.default_role && user.data.roles.includes(user.data.default_role)) {
         roleToUse = user.data.default_role;
-        console.log('✅ Using DEFAULT ROLE:', roleToUse);
       } else {
         roleToUse = user.data.roles[0];
-        console.log('⚠️ Using FIRST ROLE (no valid default):', roleToUse);
       }
       const roleToPath = {
         manager: 'managers',
@@ -51,8 +44,6 @@ export default function LoginPage() {
         student: 'students'
       };
       const dashboardUrl = `/${roleToPath[roleToUse] || roleToUse}`;
-      console.log('🚀 ROLE TO USE:', roleToUse);
-      console.log('🚀 DASHBOARD URL:', dashboardUrl);
       
       router.push(dashboardUrl);
     } catch (error) {
