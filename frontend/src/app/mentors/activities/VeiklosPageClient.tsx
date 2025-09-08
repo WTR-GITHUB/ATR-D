@@ -345,6 +345,9 @@ const VeiklosPageClient = () => {
                   imuPlans={imuPlans}
                   isLoading={lessonLoading}
                   error={lessonError}
+                  isActivityActive={isActivityActive} // CHANGE: Pridėtas veiklos aktyvumas
+                  activityStartTime={activityStartTime} // CHANGE: Pridėtas veiklos pradžios laikas
+                  planStatus={globalSchedule?.plan_status} // CHANGE: Pridėtas plano statusas
                   subjectId={globalSchedule?.subject?.id}
                   globalScheduleId={globalScheduleId}
                 />

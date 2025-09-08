@@ -7,7 +7,7 @@
 // CHANGE: Pašalintas StudentStats komponentas - statistikos nereikalingos
 // CHANGE: Integruotas vienas bendras akordeono komponentas su visais elementais viduje
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   BookOpen, 
   Target, 
@@ -16,8 +16,11 @@ import {
   Users,
   Focus
 } from 'lucide-react';
-import { LessonDetails, IMUPlan } from '../types';
+import { LessonDetails, IMUPlan, Student, AttendanceStatus } from '../types';
 import StudentRow from './StudentRow';
+import StudentsList from './StudentsList';
+import { User as UserType } from '@/lib/types';
+import api from '@/lib/api';
 import { Accordion, AccordionItem } from '@/components/ui/Accordion';
 import { useBulkAttendanceStats } from '@/hooks/useCurriculum';
 
@@ -26,6 +29,7 @@ interface LessonInfoCardProps {
   studentsForThisLesson: IMUPlan[];
   isActivityActive?: boolean; // Ar veikla aktyvi (vyksta)
   activityStartTime?: Date | null; // Veiklos pradžios laikas
+  planStatus?: 'planned' | 'in_progress' | 'completed'; // CHANGE: Pridėtas plano statusas
   subjectId?: number; // CHANGE: Pridėtas subject ID lankomumo statistikai
   globalScheduleId?: number; // CHANGE: Pridėtas globalScheduleId prop
 }
@@ -35,9 +39,76 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
   studentsForThisLesson,
   isActivityActive = false,
   activityStartTime = null,
+  planStatus = 'planned', // CHANGE: Pridėtas plano statusas
   subjectId, // CHANGE: Pridėtas subjectId parametras
   globalScheduleId // CHANGE: Pridėtas globalScheduleId parametras
 }) => {
+  // CHANGE: State valdymas mokinių pridėjimui
+  const [students, setStudents] = useState<Student[]>([]);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
+
+  // CHANGE: Atnaujinti students state kai keičiasi studentsForThisLesson
+  useEffect(() => {
+    if (studentsForThisLesson) {
+      // Konvertuoti IMUPlan į Student formatą
+      const convertedStudents: Student[] = studentsForThisLesson.map(imuPlan => ({
+        id: imuPlan.student, // student yra number, ne objektas
+        first_name: imuPlan.student_name.split(' ')[0] || '',
+        last_name: imuPlan.student_name.split(' ').slice(1).join(' ') || '',
+        email: '', // IMUPlan neturi email
+        attendance_status: imuPlan.attendance_status as AttendanceStatus,
+        activity_level: 'medium' as const,
+        task_completion: 'not_started' as const,
+        understanding: 'fair' as const,
+        notes: imuPlan.notes || '',
+        tasks_completed: 0,
+        total_tasks: 0
+      }));
+      setStudents(convertedStudents);
+    }
+  }, [studentsForThisLesson]);
+
+  // CHANGE: Mokinių pridėjimo funkcionalumas su nauju endpoint'u
+  const handleStudentsAdded = async (newStudents: UserType[]) => {
+    if (!globalScheduleId) return;
+
+    try {
+      setIsLoadingStudents(true);
+
+      // Naudoti naują endpoint'ą mokinių pridėjimui
+    const response = await api.post('/plans/imu-plans/add-students-to-lesson/', {
+      global_schedule_id: globalScheduleId,
+      student_ids: newStudents.map(student => student.id),
+      lesson_id: lesson.id  // CHANGE: Pridėtas pamokos ID iš props
+    });
+
+      console.log('Mokinių pridėjimo atsakas:', response.data);
+
+      // Atnaujinti students state su naujais mokiniais
+      const newStudentObjects: Student[] = newStudents.map(student => ({
+        id: student.id,
+        first_name: student.first_name,
+        last_name: student.last_name,
+        email: student.email,
+        attendance_status: 'present' as AttendanceStatus, // Default status
+        activity_level: 'medium' as const,
+        task_completion: 'not_started' as const,
+        understanding: 'fair' as const,
+        notes: '',
+        tasks_completed: 0,
+        total_tasks: 0
+      }));
+
+      setStudents(prev => [...prev, ...newStudentObjects]);
+
+    } catch (error) {
+      console.error('Klaida pridedant mokinius:', error);
+      // Rodyti klaidos pranešimą vartotojui
+      alert('Nepavyko pridėti mokinių. Patikrinkite, ar mokiniai dar nėra pridėti į šią pamoką.');
+    } finally {
+      setIsLoadingStudents(false);
+    }
+  };
   // Pagalbinė funkcija JSON string'o parse'inimui
   const parseJsonString = (jsonString: string): any[] => {
     if (!jsonString) return [];
@@ -301,30 +372,20 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-3">
-                    {/* Pridėti mokinio mygtukas */}
-                    <button className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
-                      <span>+ Pridėti mokinį</span>
-                    </button>
-                  </div>
+                  {/* CHANGE: Pašalintas "Pridėti mokinį" mygtukas - dabar yra StudentsList komponente */}
                 </div>
               </div>
               
-              {/* Mokinių sąrašas */}
+              {/* CHANGE: Mokinių sąrašas su StudentsList komponentu */}
               <div className="p-4">
-                <div className="space-y-2">
-                  {studentsForThisLesson.map((student) => (
-                    <StudentRow
-                      key={student.id}
-                      student={student}
-                      onAttendanceChange={(studentId, status) => handleStudentStatusChange(studentId, status as string)}
-                      isIMUPlan={true}
-                      lessonId={lesson.id} // CHANGE: Perduodame tikrą pamokos ID
-                      subjectId={subjectId} // CHANGE: Naudojame prop'ą
-                      bulkStats={bulkStats} // CHANGE: Perduodame bulk statistiką
-                    />
-                  ))}
-                </div>
+                <StudentsList
+                  students={students}
+                  onAttendanceChange={(studentId, status) => handleStudentStatusChange(studentId, status as string)}
+                  onStudentsAdded={handleStudentsAdded}
+                  showAddButton={true}
+                  isActivityActive={isActivityActive} // CHANGE: Perduodamas veiklos aktyvumas
+                  planStatus={planStatus} // CHANGE: Perduodamas plano statusas
+                />
               </div>
             </div>
           </div>

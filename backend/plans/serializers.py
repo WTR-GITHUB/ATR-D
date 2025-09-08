@@ -3,6 +3,8 @@ import logging
 from rest_framework import serializers
 from .models import LessonSequence, LessonSequenceItem, IMUPlan
 from curriculum.models import Subject, Level
+from schedule.models import GlobalSchedule
+from users.models import User
 
 # Get logger for this module
 logger = logging.getLogger(__name__)
@@ -438,5 +440,77 @@ class GenerateIMUPlanSerializer(serializers.Serializer):
             
             if start > end:
                 raise serializers.ValidationError("Pradžios data negali būti vėlesnė už pabaigos datą")
+        
+        return data
+
+
+class AddStudentsToLessonSerializer(serializers.Serializer):
+    """
+    Serializeris mokinių pridėjimui į pamoką
+    CHANGE: Sukurtas naujas serializeris mokinių pridėjimui į pamoką
+    """
+    global_schedule_id = serializers.IntegerField(
+        help_text="GlobalSchedule ID (pamokos ID)"
+    )
+    student_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text="Mokinių ID sąrašas"
+    )
+    lesson_id = serializers.IntegerField(
+        help_text="Lesson ID (pamokos ID)"
+    )
+    
+    def validate_global_schedule_id(self, value):
+        """Validuoja GlobalSchedule egzistavimą"""
+        try:
+            GlobalSchedule.objects.get(id=value)
+            return value
+        except GlobalSchedule.DoesNotExist:
+            raise serializers.ValidationError("Pamoka su tokiu ID neegzistuoja")
+
+    def validate_lesson_id(self, value):
+        """Validuoja Lesson egzistavimą"""
+        try:
+            from curriculum.models import Lesson
+            Lesson.objects.get(id=value)
+            return value
+        except Lesson.DoesNotExist:
+            raise serializers.ValidationError("Pamoka su tokiu ID neegzistuoja")
+    
+    def validate_student_ids(self, value):
+        """Validuoja mokinių ID sąrašą"""
+        if not value:
+            raise serializers.ValidationError("Mokinių sąrašas negali būti tuščias")
+        
+        # Patikrinti, ar visi mokiniai egzistuoja ir turi student rolę
+        students = User.objects.filter(id__in=value)
+        if students.count() != len(value):
+            raise serializers.ValidationError("Kai kurie mokiniai neegzistuoja")
+        
+        for student in students:
+            if not student.has_role('student'):
+                raise serializers.ValidationError(f"Mokinys {student.get_full_name()} neturi student rolės")
+        
+        return value
+    
+    def validate(self, data):
+        """Validuoja, ar mokiniai dar nėra pridėti į šią pamoką"""
+        global_schedule_id = data.get('global_schedule_id')
+        student_ids = data.get('student_ids')
+        
+        # Patikrinti, ar mokiniai dar nėra pridėti
+        existing_plans = IMUPlan.objects.filter(
+            global_schedule_id=global_schedule_id,
+            student_id__in=student_ids
+        )
+        
+        if existing_plans.exists():
+            existing_student_names = [
+                plan.student.get_full_name() 
+                for plan in existing_plans
+            ]
+            raise serializers.ValidationError(
+                f"Šie mokiniai jau pridėti į pamoką: {', '.join(existing_student_names)}"
+            )
         
         return data

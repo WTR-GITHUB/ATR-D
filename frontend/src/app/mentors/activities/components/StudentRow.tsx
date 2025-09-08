@@ -35,6 +35,10 @@ interface StudentRowProps {
   subjectId?: number;
   // CHANGE: Pridėtas bulk stats prop'as lankomumo statistikai
   bulkStats?: { [studentId: number]: any } | null;
+  // CHANGE: Pridėtas veiklos aktyvumo prop
+  isActivityActive?: boolean;
+  // CHANGE: Pridėtas plano statusas
+  planStatus?: 'planned' | 'in_progress' | 'completed';
 }
 
 // Mokinio eilutės komponentas
@@ -45,7 +49,9 @@ const StudentRow: React.FC<StudentRowProps> = ({
   isIMUPlan = false,
   lessonId,
   subjectId,
-  bulkStats
+  bulkStats,
+  isActivityActive = false, // CHANGE: Pridėtas veiklos aktyvumo parametras
+  planStatus = 'planned' // CHANGE: Pridėtas plano statusas
 }) => {
   // CHANGE: Debug console.log'ai pašalinti - bulk API veikia
   const [expanded, setExpanded] = useState(false);
@@ -56,6 +62,9 @@ const StudentRow: React.FC<StudentRowProps> = ({
   
   // CHANGE: Gaunome prisijungusio vartotojo duomenis mentorId nustatymui
   const { user } = useAuth();
+  
+  // CHANGE: Nustatyti ar eilutė disabled
+  const isDisabled = planStatus === 'planned';
   
   // CHANGE: Pašalintas individual API hook'as, naudojame tik bulk API
   
@@ -247,14 +256,23 @@ const StudentRow: React.FC<StudentRowProps> = ({
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg mb-2 bg-white shadow-sm">
+    <div className={`border border-gray-200 rounded-lg mb-2 shadow-sm transition-all ${
+      isDisabled 
+        ? 'bg-gray-100 opacity-60 cursor-not-allowed' 
+        : 'bg-white hover:bg-gray-50'
+    }`}>
       {/* Pagrindinė eilutė - tiksliai pagal paveiksliuko stilių */}
-      <div className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+      <div className={`p-4 flex items-center justify-between transition-colors ${
+        isDisabled ? 'cursor-not-allowed' : 'hover:bg-gray-50'
+      }`}>
         <div className="flex items-center space-x-4">
           {/* Išplėtimo mygtukas */}
           <button
-            onClick={() => setExpanded(!expanded)}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            onClick={() => !isDisabled && setExpanded(!expanded)}
+            disabled={isDisabled}
+            className={`text-gray-400 transition-colors ${
+              isDisabled ? 'cursor-not-allowed opacity-50' : 'hover:text-gray-600'
+            }`}
           >
             {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
           </button>
@@ -293,10 +311,11 @@ const StudentRow: React.FC<StudentRowProps> = ({
           )}
 
           {/* Lankomumo mygtukai - spalvoti pagal paveiksliuką */}
-          <div className="flex space-x-2">
+          <div className={`flex space-x-2 ${isDisabled ? 'opacity-50 pointer-events-none' : ''}`}>
             <AttendanceButtonGroup
               currentStatus={attendance}
-              onStatusChange={handleAttendanceChange}
+              onStatusChange={isDisabled ? () => {} : handleAttendanceChange}
+              isActivityActive={isActivityActive && !isDisabled} // CHANGE: Perduodamas veiklos aktyvumas ir disabled
             />
           </div>
         </div>

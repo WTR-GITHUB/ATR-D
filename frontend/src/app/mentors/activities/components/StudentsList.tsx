@@ -4,19 +4,25 @@
 // Atsako už mokinių sąrašo rodymą ir papildomo mokinio pridėjimą
 // Integruoja StudentRow komponentus ir valdoma bendrus sąrašo veiksmus
 // CHANGE: Pašalinti paieškos lauką, filtrų mygtuką, "Iš viso" statistiką ir visą filtrų sekciją
+// CHANGE: Pridėtas StudentSelectionModal funkcionalumas mokinių pridėjimui
 
 'use client';
 
 import React, { useState } from 'react';
 import { Plus, User } from 'lucide-react';
 import StudentRow from './StudentRow';
+import StudentSelectionModal from '@/components/ui/StudentSelectionModal';
 import { Student, AttendanceStatus } from '../types';
+import { User as UserType } from '@/lib/types';
 
 interface StudentsListProps {
   students: Student[];
   onAttendanceChange: (studentId: number, status: AttendanceStatus) => void;
   onAddStudent?: () => void;
+  onStudentsAdded?: (students: UserType[]) => void; // CHANGE: Pridėtas callback mokinių pridėjimui
   showAddButton?: boolean;
+  isActivityActive?: boolean; // CHANGE: Pridėtas veiklos aktyvumo prop
+  planStatus?: 'planned' | 'in_progress' | 'completed'; // CHANGE: Pridėtas plano statusas
 }
 
 // Mokinių sąrašo komponentas
@@ -25,8 +31,13 @@ const StudentsList: React.FC<StudentsListProps> = ({
   students,
   onAttendanceChange,
   onAddStudent,
-  showAddButton = true
+  onStudentsAdded,
+  showAddButton = true,
+  isActivityActive = false, // CHANGE: Pridėtas veiklos aktyvumo parametras
+  planStatus = 'planned' // CHANGE: Pridėtas plano statusas
 }) => {
+  // CHANGE: Modal state valdymas
+  const [isModalOpen, setIsModalOpen] = useState(false);
   // Statistikų skaičiavimas
   const getAttendanceStats = () => {
     const present = students.filter(s => s.attendance_status === 'present').length;
@@ -39,6 +50,24 @@ const StudentsList: React.FC<StudentsListProps> = ({
 
   // CHANGE: Gauname statistikas
   const stats = getAttendanceStats();
+
+  // CHANGE: Modal handlers
+  const handleAddStudent = () => {
+    if (onAddStudent) {
+      onAddStudent();
+    } else {
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleStudentsSelected = (selectedStudents: UserType[]) => {
+    onStudentsAdded?.(selectedStudents);
+    setIsModalOpen(false);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -59,9 +88,9 @@ const StudentsList: React.FC<StudentsListProps> = ({
 
           <div className="flex items-center space-x-3">
             {/* Pridėti mokinio mygtukas */}
-            {showAddButton && onAddStudent && (
+            {showAddButton && (
               <button
-                onClick={onAddStudent}
+                onClick={handleAddStudent}
                 className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
               >
                 <Plus size={16} />
@@ -81,6 +110,8 @@ const StudentsList: React.FC<StudentsListProps> = ({
                 key={student.id}
                 student={student}
                 onAttendanceChange={onAttendanceChange}
+                isActivityActive={isActivityActive} // CHANGE: Perduodamas veiklos aktyvumas
+                planStatus={planStatus} // CHANGE: Perduodamas plano statusas
               />
             ))}
           </div>
@@ -91,6 +122,22 @@ const StudentsList: React.FC<StudentsListProps> = ({
           </div>
         )}
       </div>
+
+      {/* CHANGE: StudentSelectionModal */}
+      <StudentSelectionModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onStudentsSelected={handleStudentsSelected}
+        existingStudents={students.map(s => ({
+          id: s.id,
+          first_name: s.first_name,
+          last_name: s.last_name,
+          email: s.email || '',
+          roles: ['student'] as const,
+          is_active: true,
+          date_joined: new Date().toISOString()
+        }))}
+      />
     </div>
   );
 };

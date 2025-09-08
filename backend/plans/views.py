@@ -16,7 +16,8 @@ from .serializers import (
     LessonSequenceSerializer, LessonSequenceCreateSerializer,
     LessonSequenceItemSerializer, IMUPlanSerializer, 
     IMUPlanCreateSerializer, IMUPlanBulkCreateSerializer,
-    SubjectSerializer, LevelSerializer, GenerateIMUPlanSerializer
+    SubjectSerializer, LevelSerializer, GenerateIMUPlanSerializer,
+    AddStudentsToLessonSerializer
 )
 from users.models import User
 from schedule.models import GlobalSchedule
@@ -453,6 +454,7 @@ class IMUPlanViewSet(viewsets.ModelViewSet):
         """
         Filtruojame IMU planus pagal dabartinę rolę
         CHANGE: Pridėtas X-Current-Role header palaikymas
+        CHANGE: Pridėtas student_id filtravimas iš query parametrų
         """
         # CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
         current_role = self.request.headers.get('X-Current-Role')
@@ -460,6 +462,16 @@ class IMUPlanViewSet(viewsets.ModelViewSet):
             current_role = getattr(self.request.user, 'default_role', None)
         
         queryset = super().get_queryset()
+        
+        # CHANGE: Filtruojame pagal student_id jei pateiktas
+        student_id = self.request.query_params.get('student_id')
+        if student_id:
+            try:
+                student_id = int(student_id)
+                queryset = queryset.filter(student_id=student_id)
+            except (ValueError, TypeError):
+                # Jei student_id neteisingas, grąžinti tuščią queryset
+                return queryset.none()
         
         # Role-based filtravimas
         if current_role == 'student':
@@ -888,3 +900,68 @@ class IMUPlanViewSet(viewsets.ModelViewSet):
             "count": queryset.count(),
             "results": serializer.data
         })
+
+    @action(detail=False, methods=['post'], url_path='add-students-to-lesson')
+    def add_students_to_lesson(self, request):
+        """
+        Mokinių pridėjimas į pamoką
+        CHANGE: Sukurtas naujas endpoint'as mokinių pridėjimui į pamoką
+        """
+        serializer = AddStudentsToLessonSerializer(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            global_schedule_id = serializer.validated_data['global_schedule_id']
+            student_ids = serializer.validated_data['student_ids']
+            lesson_id = serializer.validated_data['lesson_id']
+            
+            # Gauti GlobalSchedule objektą
+            global_schedule = GlobalSchedule.objects.get(id=global_schedule_id)
+            
+            # Gauti mokinių objektus
+            students = User.objects.filter(id__in=student_ids)
+            
+            # Gauti pamoką pagal lesson_id
+            from curriculum.models import Lesson
+            lesson = Lesson.objects.get(id=lesson_id)
+            
+            # Sukurti IMUPlan įrašus
+            created_plans = []
+            with transaction.atomic():
+                for student in students:
+                    imu_plan = IMUPlan.objects.create(
+                        student=student,
+                        global_schedule=global_schedule,
+                        lesson=lesson,  # CHANGE: Pridėta pamoka pagal lesson_id
+                        attendance_status=None,  # Nustatys vėliau
+                        notes=""
+                    )
+                    created_plans.append(imu_plan)
+            
+            # Grąžinti sukurtų planų informaciją
+            result_data = {
+                "message": f"Sėkmingai pridėta {len(created_plans)} mokinių į pamoką",
+                "global_schedule_id": global_schedule_id,
+                "created_plans": [
+                    {
+                        "id": plan.id,
+                        "student_id": plan.student.id,
+                        "student_name": plan.student.get_full_name(),
+                        "attendance_status": plan.attendance_status
+                    }
+                    for plan in created_plans
+                ]
+            }
+            
+            return Response(result_data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Klaida pridedant mokinius į pamoką: {str(e)}")
+            return Response(
+                {"error": f"Klaida pridedant mokinius: {str(e)}"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

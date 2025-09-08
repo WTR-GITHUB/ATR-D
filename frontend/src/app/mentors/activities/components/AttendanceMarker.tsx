@@ -133,12 +133,14 @@ const AttendanceMarker: React.FC<AttendanceMarkerProps> = ({
 interface AttendanceButtonGroupProps {
   currentStatus: AttendanceStatus | null;
   onStatusChange: (status: AttendanceStatus) => void;
+  isActivityActive?: boolean; // CHANGE: Pridėtas veiklos aktyvumo prop
   size?: 'sm' | 'md' | 'lg';
 }
 
 export const AttendanceButtonGroup: React.FC<AttendanceButtonGroupProps> = ({
   currentStatus,
   onStatusChange,
+  isActivityActive = false, // CHANGE: Pridėtas veiklos aktyvumo parametras
   size = 'md'
 }) => {
   const statuses: AttendanceStatus[] = ['present', 'left', 'absent', 'excused']; // CHANGE: Pakeista 'late' į 'left'
@@ -173,7 +175,7 @@ export const AttendanceButtonGroup: React.FC<AttendanceButtonGroupProps> = ({
         <AttendanceMarker
           key={status}
           status={status}
-          active={currentStatus === status}
+          active={currentStatus === status && isActivityActive} // CHANGE: Aktyvus tik kai veikla aktyvi
           onClick={onStatusChange}
           size={size}
         />
