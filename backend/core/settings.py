@@ -59,7 +59,7 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
 # Add localhost variations for hybrid development
 if HYBRID_DEV_MODE:
-    local_hosts = ['localhost', '127.0.0.1', '0.0.0.0', '192.168.88.166', '192.168.192.168']
+    local_hosts = ['localhost', '127.0.0.1', '0.0.0.0', '192.168.88.167', '192.168.192.168', 'a-dienynas-backend', 'a-dienynas-frontend', 'a-dienynas-nginx']
     for host in local_hosts:
         if host not in ALLOWED_HOSTS:
             ALLOWED_HOSTS.append(host)
@@ -74,8 +74,8 @@ if HYBRID_DEV_MODE:
     CORS_ALLOWED_ORIGINS = [
         "http://localhost:3000",
         "http://127.0.0.1:3000", 
-        "http://192.168.88.166:3000",
-        "http://192.168.88.166",
+        "http://192.168.88.167:3000",
+        "http://192.168.88.167",
         "http://192.168.192.168:3000",
         "http://192.168.192.168",
     ]

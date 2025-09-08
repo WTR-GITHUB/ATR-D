@@ -8,7 +8,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/a
 const getTokenRefreshUrl = () => {
   // In hybrid development mode, use Next.js internal proxy for token refresh
   // This avoids CORS and proxy issues
-  if (typeof window !== 'undefined' && window.location.hostname === '192.168.88.166') {
+  if (typeof window !== 'undefined' && window.location.hostname === '192.168.88.167') {
     return '/api/users/token/refresh/'; // Use Next.js rewrite proxy
   }
   return `${API_BASE_URL}/users/token/refresh/`; // Direct backend call

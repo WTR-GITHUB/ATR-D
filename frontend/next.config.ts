@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   // CHANGE: Optimized for hybrid development mode with Nginx proxy
   // Allow cross-origin requests from local network during development
   allowedDevOrigins: [
-    '192.168.88.166', // Current server IP (corrected)
+    '192.168.88.167', // Current server IP (corrected)
     '192.168.192.168', // Future server IP
     'localhost',
     '127.0.0.1'
