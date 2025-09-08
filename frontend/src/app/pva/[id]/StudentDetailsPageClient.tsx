@@ -64,6 +64,9 @@ const StudentDetailsPageClient = () => {
   const [imuPlansError, setImuPlansError] = useState<string | null>(null);
   const [isDeletingPlan, setIsDeletingPlan] = useState<number | null>(null);
   
+  // Schedule refresh key - keičiasi kai ištrinamas IMU Plan
+  const [scheduleRefreshKey, setScheduleRefreshKey] = useState(0);
+  
   // Attendance filter state
   const [attendanceFilter, setAttendanceFilter] = useState<string | null>(null);
 
@@ -148,6 +151,9 @@ const StudentDetailsPageClient = () => {
       setIsDeletingPlan(planId);
       await api.delete(`/plans/imu-plans/${planId}/`);
       setImuPlans(prev => prev.filter(plan => plan.id !== planId));
+      
+      // Atnaujinti tvarkaraštį - pakeisti key, kad komponentas atsinaujintų
+      setScheduleRefreshKey(prev => prev + 1);
     } catch (err) {
       console.error('Error deleting IMU plan:', err);
       alert('Nepavyko ištrinti ugdymo plano');
@@ -268,6 +274,7 @@ const StudentDetailsPageClient = () => {
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Tvarkaraštis</h2>
           <StudentScheduleCalendar
+            key={scheduleRefreshKey}
             studentId={parseInt(studentId)}
             onScheduleItemSelect={handleScheduleItemSelect}
             selectedScheduleId={selectedScheduleId || undefined}
@@ -351,23 +358,104 @@ const StudentDetailsPageClient = () => {
             </div>
           ) : (
             <ReactDataTable
-              data={imuPlans}
-              filterableColumnIndexes={[0, 1, 2, 5]} // Pamoka, Dalykas, Lygis, Klasė
+              data={imuPlans.filter(plan => {
+                // Apply attendance filter
+                if (attendanceFilter === null) return true; // Show all data when no filter selected
+                
+                // Special case for Clock icon - filter records with null/undefined attendance_status
+                if (attendanceFilter === 'pending') {
+                  return !plan.attendance_status || plan.attendance_status === null || plan.attendance_status === undefined;
+                }
+                
+                return plan.attendance_status === attendanceFilter;
+              })}
+              filterableColumnIndexes={[0, 1, 2, 5]} // Pamoka, Dalykas, Lygis, Klasė (be Lankomumas)
+              customFilters={{
+                attendance: (
+                  <div className="w-full">
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                      Lankomumas
+                    </label>
+                    <div className="flex gap-1">
+                      {/* Pending */}
+                      <button
+                        onClick={() => setAttendanceFilter('pending')}
+                        className={`p-2 rounded transition-colors ${
+                          attendanceFilter === 'pending' 
+                            ? 'bg-gray-600 text-white' 
+                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                        }`}
+                        title="Nepatvirtintas"
+                      >
+                        <Clock size={16} />
+                      </button>
+                      {/* Present */}
+                      <button
+                        onClick={() => setAttendanceFilter('present')}
+                        className={`p-2 rounded transition-colors ${
+                          attendanceFilter === 'present' 
+                            ? 'bg-green-600 text-white' 
+                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                        }`}
+                        title="Dalyvauja"
+                      >
+                        <UserCheck size={16} />
+                      </button>
+                      {/* Absent */}
+                      <button
+                        onClick={() => setAttendanceFilter('absent')}
+                        className={`p-2 rounded transition-colors ${
+                          attendanceFilter === 'absent' 
+                            ? 'bg-pink-600 text-white' 
+                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                        }`}
+                        title="Nedalyvauja"
+                      >
+                        <UserX size={16} />
+                      </button>
+                      {/* Left */}
+                      <button
+                        onClick={() => setAttendanceFilter('left')}
+                        className={`p-2 rounded transition-colors ${
+                          attendanceFilter === 'left' 
+                            ? 'bg-yellow-600 text-white' 
+                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                        }`}
+                        title="Išėjo"
+                      >
+                        <Footprints size={16} />
+                      </button>
+                      {/* Excused */}
+                      <button
+                        onClick={() => setAttendanceFilter('excused')}
+                        className={`p-2 rounded transition-colors ${
+                          attendanceFilter === 'excused' 
+                            ? 'bg-blue-600 text-white' 
+                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                        }`}
+                        title="Pateisintas"
+                      >
+                        <MessagesSquare size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )
+              }}
               columns={[
                 {
                   title: 'Pamoka',
-                  data: 'lesson',
-                  render: (data: any) => data?.title || 'Nepriskirta pamoka'
+                  data: 'lesson_title',
+                  render: (data: any, row: any) => row.lesson?.title || 'Nepriskirta pamoka'
                 },
                 {
                   title: 'Dalykas',
-                  data: 'global_schedule',
-                  render: (data: any) => data?.subject?.name || 'Nepriskirtas dalykas'
+                  data: 'subject_name',
+                  render: (data: any, row: any) => row.global_schedule?.subject?.name || 'Nepriskirtas dalykas'
                 },
                 {
                   title: 'Lygis',
-                  data: 'global_schedule',
-                  render: (data: any) => data?.level?.name || 'Nepriskirtas lygis'
+                  data: 'level_name',
+                  render: (data: any, row: any) => row.global_schedule?.level?.name || 'Nepriskirtas lygis'
                 },
                 {
                   title: 'Data',
@@ -387,8 +475,8 @@ const StudentDetailsPageClient = () => {
                 },
                 {
                   title: 'Klasė',
-                  data: 'global_schedule',
-                  render: (data: any) => data?.classroom?.name || '-'
+                  data: 'classroom_name',
+                  render: (data: any, row: any) => row.global_schedule?.classroom?.name || '-'
                 },
                 {
                   title: 'Lankomumas',
@@ -459,7 +547,16 @@ const StudentDetailsPageClient = () => {
                   }
                 }
               ]}
-              filterableColumns={['lesson', 'global_schedule']}
+              filterableColumns={['lesson_title', 'subject_name', 'level_name', 'classroom_name']}
+              onFiltersChange={(filters, customFilters) => {
+                // Handle custom attendance filter
+                if (customFilters.attendance !== undefined) {
+                  setAttendanceFilter(customFilters.attendance);
+                }
+              }}
+              onClearFilters={() => {
+                setAttendanceFilter(null);
+              }}
             />
           )}
         </div>

@@ -59,20 +59,18 @@ const ReactDataTable: React.FC<ReactDataTableProps> = ({
         // Render funkcija skirta tik vaizdavimui, ne filtravimui
         let cellValue = row[key];
         
-        // Jei originalus laukas tuščias, bandyti gauti duomenis iš nested objektų
-        if (!cellValue && column.render) {
-          // Specialus atvejis pamokų pavadinimui
-          if (key === 'lesson_title') {
-            cellValue = row.lesson?.title || '';
-          }
-          // Specialus atvejis dalyko pavadinimui
-          else if (key === 'subject_name') {
-            cellValue = row.lesson?.subject?.name || '';
-          }
-          // Specialus atvejis lygio pavadinimui
-          else if (key === 'level_name') {
-            cellValue = row.global_schedule?.level?.name || '';
-          }
+        // Specialus filtravimas nested objektams
+        if (key === 'lesson_title') {
+          cellValue = row.lesson?.title || '';
+        }
+        else if (key === 'subject_name') {
+          cellValue = row.global_schedule?.subject?.name || '';
+        }
+        else if (key === 'level_name') {
+          cellValue = row.global_schedule?.level?.name || '';
+        }
+        else if (key === 'classroom_name') {
+          cellValue = row.global_schedule?.classroom?.name || '';
         }
         
         if (cellValue === null || cellValue === undefined) return false;
@@ -206,7 +204,7 @@ const ReactDataTable: React.FC<ReactDataTableProps> = ({
               
               {/* Custom filtrai */}
               {customFilters && Object.entries(customFilters).map(([key, filterComponent]) => (
-                <div key={key} className="w-[150px]">
+                <div key={key} className="w-[175px]">
                   <div className="min-h-[42px] flex items-center justify-center">
                     {filterComponent}
                   </div>
