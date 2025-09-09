@@ -112,7 +112,7 @@ DOCKER_CONTROL.md
 POSTGRESS_COMANDS.md
 USER_CREATION_GUIDE.md
 .serena/*
-ATRADIMAI/*
+ATRADIMAI/
 CLAUDE.md
 -remote origin
 dienynas_db_backup_20250908_203700.sql
@@ -127,3 +127,4 @@ DEV.md
 PROJECT_STRUCTURE.md
 roliu_paaiškinimas.txt
 USER_CREATION_GUIDE.md
+env.docker
