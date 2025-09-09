@@ -93,18 +93,18 @@ const StudentScheduleCalendar: React.FC<StudentScheduleCalendarProps> = ({
     newWeek.setDate(currentWeek.getDate() + (direction * 7));
     setCurrentWeek(newWeek);
     
-    // CHANGE: Atnaujiname displayWeekInfo kad navigacija veiktų
-    if (contextWeekInfo.weekInfo?.navigateWeek) {
-      contextWeekInfo.weekInfo.navigateWeek(direction);
+    // CHANGE: Naudojame context navigateWeek funkciją
+    if (contextWeekInfo.navigateWeek) {
+      contextWeekInfo.navigateWeek(direction);
     }
   };
 
   const goToToday = () => {
     setCurrentWeek(new Date());
     
-    // CHANGE: Atnaujiname displayWeekInfo kad "Dabar" mygtukas veiktų
-    if (contextWeekInfo.weekInfo?.goToToday) {
-      contextWeekInfo.weekInfo.goToToday();
+    // CHANGE: Naudojame context goToToday funkciją
+    if (contextWeekInfo.goToToday) {
+      contextWeekInfo.goToToday();
     }
   };
 

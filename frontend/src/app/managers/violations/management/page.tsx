@@ -10,6 +10,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { ReactDataTable } from '@/components/DataTable';
 import { violationAPI } from '@/lib/api';
+import { PenaltyStatus } from '@/lib/types';
 import TodoCompletionModal from '@/components/ui/TodoCompletionModal';
 import ViolationFormModal from '@/components/ui/ViolationFormModal';
 import StatusFilter from '@/components/ui/StatusFilter';
@@ -292,7 +293,7 @@ export default function ManagerViolationsManagementPage() {
     fetchViolations();
   };
 
-  const handleUpdateTodos = async (violationId: number, updatedTodos: any[], allCompleted: boolean, penaltyStatus: string) => {
+  const handleUpdateTodos = async (violationId: number, updatedTodos: any[], allCompleted: boolean, penaltyStatus: 'paid' | 'unpaid') => {
     if (!selectedViolationForTodos) return;
 
     try {
@@ -320,7 +321,7 @@ export default function ManagerViolationsManagementPage() {
       // Update local state
       setViolations(prev => prev.map(v => 
         v.id === selectedViolationForTodos.id 
-          ? { ...v, todos: updatedTodos, penalty_status: penaltyStatus, status: finalStatus }
+          ? { ...v, todos: updatedTodos, penalty_status: penaltyStatus as PenaltyStatus, status: finalStatus }
           : v
       ));
       

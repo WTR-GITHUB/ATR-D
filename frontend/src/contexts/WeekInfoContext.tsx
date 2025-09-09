@@ -64,7 +64,7 @@ export function WeekInfoProvider({ children, initialData }: WeekInfoProviderProp
   const setCurrentWeek = useCallback(async (week: Date) => {
     setIsLoading(true);
     try {
-      const newWeekInfo = await getWeekInfoByOffset(0); // This will be updated to use specific date
+      const newWeekInfo = await getWeekInfo(week);
       setWeekInfo(newWeekInfo);
     } catch (error) {
       console.error('Error setting current week:', error);

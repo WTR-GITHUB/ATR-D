@@ -42,6 +42,7 @@ export interface ScheduleItem {
     last_name: string;
     email: string;
   };
+  plan_status?: 'completed' | 'planned' | 'in_progress'; // CHANGE: Pridėtas plan_status property su specifiniu tipu
 }
 
 // CHANGE: Pridėti trūkstami tipai iš activities/types.ts

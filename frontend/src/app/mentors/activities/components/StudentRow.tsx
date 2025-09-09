@@ -70,7 +70,20 @@ const StudentRow: React.FC<StudentRowProps> = ({
   
   // CHANGE: Apskaičiuojame lessonId komponento lygyje
   const getLessonId = (): number => {
-    return lessonId || ('lesson' in student ? student.lesson || 1 : 1);
+    if (lessonId) return lessonId;
+    
+    if ('lesson' in student) {
+      // Jei lesson yra objektas, paimame id
+      if (typeof student.lesson === 'object' && student.lesson?.id) {
+        return student.lesson.id;
+      }
+      // Jei lesson yra number
+      if (typeof student.lesson === 'number') {
+        return student.lesson;
+      }
+    }
+    
+    return 1; // Default reikšmė
   };
   
   // Pagalbinės funkcijos duomenų gavimui iš skirtingų tipų

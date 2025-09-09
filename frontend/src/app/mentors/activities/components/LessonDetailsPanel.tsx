@@ -74,7 +74,9 @@ const LessonDetailsPanel: React.FC<LessonDetailsPanelProps> = ({
 
   // Funkcija gauti studentus konkrečiai pamokai
   const getStudentsForLesson = (lessonId: number): IMUPlan[] => {
-    return imuPlans.filter(plan => plan.lesson?.id === lessonId);
+    return imuPlans.filter(plan => 
+      typeof plan.lesson === 'object' && plan.lesson?.id === lessonId
+    );
   };
 
   return (
