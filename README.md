@@ -1,6 +1,120 @@
 # 🎓 A-DIENYNAS - Student Diary Management System
 
-**A-DIENYNAS** yra modernus studentų dienynas ir mokymosi valdymo sistema, sukurta su Django REST API backend'u ir Next.js frontend'u. Sistema valdo 5 vartotojų tipus: studentus, tėvus, kuratorius, mentorius ir administratorius.
+**A-DIENYNAS** yra elektroninis dienynas mokinių lankomumui ir atsiskaitymams fiksuoti, sukurta su Django REST API backend'u ir Next.js frontend'u. Sistema valdo 5 vartotojų tipus: studentus, tėvus, kuratorius, mentorius ir administratorius.
+
+## 🎯 **Sistemos Pagrindinė Idėja**
+
+### **1. Elektroninis Dienynas - Mokinių Lankomumas ir Atsiskaitymai**
+
+Sistema skirta fiksuoti mokinių lankomumą ir atsiskaitymus per du pagrindinius procesus:
+
+#### **Pamokų Kūrimas ir Valdymas**
+- **Mentoriai** (mokytojai) kuria ir redaguoja pamokas
+- Nustato pamokos parametrus: tikslus, fokusus, kompetencijas
+- Kiekviena pamoka turi detalią struktūrą su mokymo lygiais (54%, 74%, 84%, 100%)
+
+#### **Ugdymo Planų Sudarymas**
+- Mentoriai sudėlioja pamokas tam tikra seka
+- Sukuria ugdymo planus vienam mokiniui arba visai vaikų grupei
+- Planai pritaikomi konkrečiam mokiniui per individualų mokinio ūgties planą
+
+#### **Individualių Ūgties Planų Generavimas**
+- Kiekvienam mokiniui pamokų seka parenkama pagal globalų tvarkaraštį
+- Sistema automatiškai priskiria pamokų vietas (slotus) pagal galimybes
+- Pavyzdys: Mokinys "A" matematikos trupmenų pamoką turės 2025-09-05, 1-os pamokos metu, 203-oje klasėje
+
+#### **Mentorių Veiklos Puslapis**
+- Mentoriai mato savo užimtumą ir mokinių sąrašus
+- Gali pradėti pamoką, žymėti lankomumą ir atsiskaitymus
+- Visi duomenys fiksuojami sistemoje realiu laiku
+
+#### **AI Grįžtamojo Ryšio Formavimas** *(Plėtojama)*
+- Pagal naujausius Lietuvos švietimo reikalavimus
+- Atsiskaitymo duomenys siunčiami per AI API
+- Mokytojas peržiūri ir tvirtina AI sugeneruotą grįžtamąjį ryšį
+
+### **2. Globalus Tvarkaraštis** *(Pradėta kurti)*
+
+#### **Kortelių Sistema**
+- Tvarkaraštį kuriantis asmuo sukuria pagalbinius elementus - "korteles"
+- Kiekviena kortelė nurodo: dalyką, lygį, kabinetą, mentorių
+- Lygis "atradimų" terminais apibrėžia vaikų grupę
+
+#### **Drag-and-Drop Funkcionalumas**
+- Korteles galima vilkti į konkrečią savaitės dieną ir pamokos laiką
+- Automatinis sutapimų tikrinimas tarp mokinių
+- Mentorius galimybių tikrinimas (ar gali dirbti, ar neturi kitų veiklų)
+
+#### **Backend Sprendimas**
+- Sukurtas paprastas BackEnd sprendimas
+- Jau pasitarnavo direktorei sudėlioti šių metų tvarkaraštį
+- Labai palengvina tvarkaraščio sudarymo procesą
+
+## 📋 **Sistemos Būsena ir TODO Sąrašas**
+
+### **✅ Jau Sukurta ir Veikia**
+
+#### **Backend Funkcionalumas**
+- [x] Pamokų kūrimo ir redagavimo sistema
+- [x] Ugdymo planų sudarymas
+- [x] Individualių ūgties planų generavimas
+- [x] Mentorių veiklos puslapis
+- [x] Lankomumo ir atsiskaitymų fiksavimas
+- [x] Django Admin prieiga visoms funkcijoms
+- [ ] Globalaus tvarkaraščio Backend sprendimas
+
+#### **Frontend Funkcionalumas**
+- [x] Mentorių veiklos puslapis su lankomumo žymėjimu
+- [x] Atsiskaitymų fiksavimo sistema
+- [x] Role-based navigacija
+- [x] Responsive dizainas
+
+### **🔄 Dabar Kuriama**
+
+#### **Globalus Tvarkaraštis**
+- [ ] Drag-and-drop kortelių sistema
+- [ ] Sutapimų tikrinimo algoritmai
+- [ ] Mentorius galimybių tikrinimas
+- [ ] Frontend tvarkaraščio kūrimo sąsaja
+
+### **📅 Ateityje Planuojama**
+
+#### **AI Integracija**
+- [ ] AI grįžtamojo ryšio formavimas
+- [ ] API integracija su AI paslaugomis
+- [ ] Mokytojo patvirtinimo sistema
+
+#### **Papildomi Vartotojai**
+- [ ] Mokinio prieiga (student portal)
+- [ ] Tėvų prieiga (parent portal)
+- [ ] Mokinio pažangos stebėjimas
+
+#### **Manager Funkcionalumas**
+- [ ] Django Admin funkcijų perkėlimas į FrontEnd
+- [ ] Mokinys+dalykas+lygis valdymas
+- [ ] Mokinys+kuratorius santykių valdymas
+- [ ] Mentorius+dalykas priskyrimas
+- [ ] Vartotojų kūrimo sąsaja
+- [ ] Klasės ir pamokų laikų valdymas
+
+### **🔧 Techninis Tobulinimas**
+
+#### **Backend Optimizacija**
+- [ ] Globalaus tvarkaraščio algoritmų tobulinimas
+- [ ] Performance optimizacija dideliems duomenų kiekiams
+- [ ] API endpoint'ų papildymas
+
+#### **Frontend Plėtra**
+- [ ] Manager role FrontEnd funkcijos
+- [ ] Student/Parent portal kūrimas
+- [ ] AI integracijos sąsaja
+- [ ] Advanced tvarkaraščio redaktorius
+
+#### **Sistemos Integracija**
+- [ ] AI API integracija
+- [ ] Duomenų eksportas/importas
+- [ ] Notification sistema
+- [ ] Mobile aplikacija
 
 ## 🏗️ **Sistemos Architektūra**
 
