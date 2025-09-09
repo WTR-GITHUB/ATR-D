@@ -1153,7 +1153,9 @@ A-DIENYNAS/
 │   ├── 📁 plans/                     # Ugdymo planai
 │   ├── 📁 violation/                 # Pažeidimų valdymas
 │   ├── manage.py                     # Django CLI
-│   └── requirements.txt              # Python priklausomybės
+│   ├── gunicorn.conf.py              # Gunicorn konfigūracija
+│   └── entrypoint.sh                 # Container startup script
+│   # Pastaba: requirements.txt yra root kataloge
 ├── 📁 frontend/                      # Next.js frontend aplikacija
 │   ├── 📁 src/
 │   │   ├── 📁 app/                   # Next.js App Router puslapiai
@@ -1174,6 +1176,7 @@ A-DIENYNAS/
 ├── 📁 ATRADIMAI/                     # Papildomi projektai
 ├── docker-compose.yml                # Docker Compose konfigūracija
 ├── env.docker                        # Aplinkos kintamieji
+├── requirements.txt                  # Python priklausomybės
 └── README.md                         # Šis failas
 ```
 
@@ -1505,19 +1508,6 @@ sudo nano /etc/logrotate.d/a-dienynas
 sudo apt install htop iotop nethogs
 ```
 
-## 📞 **Support & Maintenance**
-
-### **Regular Tasks**
-- **Daily:** Check system status
-- **Weekly:** Create backups
-- **Monthly:** Security updates
-- **Quarterly:** Performance review
-
-### **Contact Information**
-- **IT Engineers:** [Contact Info]
-- **Documentation:** [Wiki Link]
-- **Issues:** [Issue Tracker]
-
 ## 📚 **Additional Resources**
 
 ### **Documentation**
@@ -1533,59 +1523,7 @@ sudo apt install htop iotop nethogs
 
 ---
 
-## ❓ **Klausimai ir Papildomi Aprašymai**
-
-### **Ar Reikia Papildomų Aprašymų?**
-
-Prašome patikrinti, ar reikia papildomų aprašymų šiems aspektams:
-
-#### **1. Duomenų Bazės Schema**
-- Ar reikia detalių duomenų bazės lentelių aprašymo?
-- Ar reikia modelių santykių diagramos?
-- Ar reikia migracijų istorijos aprašymo?
-
-#### **2. Frontend Komponentai**
-- Ar reikia detalių React komponentų aprašymo?
-- Ar reikia UI/UX dizaino gairių?
-- Ar reikia state management (Zustand) aprašymo?
-
-#### **3. Deployment ir DevOps**
-- Ar reikia detalių deployment scenarijų?
-- Ar reikia CI/CD pipeline aprašymo?
-- Ar reikia monitoring ir logging konfigūracijos?
-
-#### **4. Saugumas**
-- Ar reikia detalių saugumo gairių?
-- Ar reikia JWT token valdymo aprašymo?
-- Ar reikia CORS ir rate limiting konfigūracijos?
-
-#### **5. Testavimas**
-- Ar reikia testavimo strategijos aprašymo?
-- Ar reikia unit/integration test pavyzdžių?
-- Ar reikia test duomenų kūrimo gairių?
-
-#### **6. Vartotojų Dokumentacija**
-- Ar reikia vartotojų vadovo?
-- Ar reikia administratorių gairių?
-- Ar reikia API dokumentacijos (Swagger/OpenAPI)?
-
-#### **7. ATRADIMAI Katalogas**
-- Ar reikia ATRADIMAI katalogo aprašymo?
-- Ar reikia papildomų projektų integracijos gairių?
-
-### **Pasiūlymai Papildomoms Sekcijoms:**
-
-1. **📊 Duomenų Bazės Schema** - Detalių modelių aprašymas
-2. **🎨 Frontend Architektūra** - Komponentų struktūra ir valdymas
-3. **🔒 Saugumo Gairės** - Detali saugumo konfigūracija
-4. **🧪 Testavimo Strategija** - Testavimo metodai ir pavyzdžiai
-5. **📚 Vartotojų Vadovas** - End-user dokumentacija
-6. **🔧 DevOps Gairės** - Deployment ir maintenance
-7. **📈 Performance Optimization** - Sistemos optimizavimas
-
----
-
-**Last Updated:** 2025-01-25  
+**Last Updated:** 2025-09-09  
 **Version:** 2.0.0  
 **Maintainer:** IT Engineering Team
 
