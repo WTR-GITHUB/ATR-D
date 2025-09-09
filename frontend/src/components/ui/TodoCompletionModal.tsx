@@ -6,29 +6,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, Circle } from 'lucide-react';
-
-interface TodoItem {
-  id: string;
-  text: string;
-  completed: boolean;
-  created_at: string;
-}
-
-interface Violation {
-  id: number;
-  student: number;
-  student_name: string;
-  todos: TodoItem[];
-  status: string;
-  penalty_status: string;
-  description: string;
-}
+import { Violation, TodoItem } from '@/lib/types';
 
 interface TodoCompletionModalProps {
   isOpen: boolean;
   onClose: () => void;
   violation: Violation | null;
-  onUpdate: (violationId: number, updatedTodos: TodoItem[], allCompleted: boolean, penaltyStatus: string) => Promise<void>;
+  onUpdate: (violationId: number, updatedTodos: TodoItem[], allCompleted: boolean, penaltyStatus: 'paid' | 'unpaid') => Promise<void>;
 }
 
 const TodoCompletionModal: React.FC<TodoCompletionModalProps> = ({
@@ -38,7 +22,7 @@ const TodoCompletionModal: React.FC<TodoCompletionModalProps> = ({
   onUpdate
 }) => {
   const [todos, setTodos] = useState<TodoItem[]>([]);
-  const [penaltyStatus, setPenaltyStatus] = useState<string>('unpaid');
+  const [penaltyStatus, setPenaltyStatus] = useState<'paid' | 'unpaid'>('unpaid');
   const [isUpdating, setIsUpdating] = useState(false);
 
   // Update todos when violation changes
@@ -47,7 +31,7 @@ const TodoCompletionModal: React.FC<TodoCompletionModalProps> = ({
       setTodos(violation.todos);
     }
     if (violation?.penalty_status) {
-      setPenaltyStatus(violation.penalty_status);
+      setPenaltyStatus(violation.penalty_status as 'paid' | 'unpaid');
     }
   }, [violation]);
 

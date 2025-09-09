@@ -30,20 +30,22 @@ export default function LoginPage() {
       const user = await authAPI.me();
       
       // PRIORITY: Use default_role if it exists AND is valid, otherwise use first role
-      let roleToUse;
+      let roleToUse: string;
       if (user.data.default_role && user.data.roles.includes(user.data.default_role)) {
         roleToUse = user.data.default_role;
       } else {
         roleToUse = user.data.roles[0];
       }
-      const roleToPath = {
+      
+      const roleToPath: Record<string, string> = {
         manager: 'managers',
         curator: 'curators', 
         mentor: 'mentors',
         parent: 'parents',
         student: 'students'
       };
-      const dashboardUrl = `/${roleToPath[roleToUse] || roleToUse}`;
+      
+      const dashboardUrl = `/${roleToPath[roleToUse as keyof typeof roleToPath] || roleToUse}`;
       
       router.push(dashboardUrl);
     } catch (error) {

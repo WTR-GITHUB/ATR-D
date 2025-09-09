@@ -95,11 +95,11 @@ services:
     container_name: a-dienynas-frontend
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-      - NODE_ENV=${NODE_ENV}
+      - NODE_ENV=production
     volumes:
       - ./frontend:/app
       - /app/node_modules
-      - /app/.next
+      # - /app/.next  # Užkomentuota - neperrašyti build direktorijos
       - ./logs/frontend:/app/logs
     ports:
       - "3000:3000"

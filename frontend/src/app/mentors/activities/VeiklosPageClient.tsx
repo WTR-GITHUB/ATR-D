@@ -347,7 +347,7 @@ const VeiklosPageClient = () => {
                   error={lessonError}
                   isActivityActive={isActivityActive} // CHANGE: Pridėtas veiklos aktyvumas
                   activityStartTime={activityStartTime} // CHANGE: Pridėtas veiklos pradžios laikas
-                  planStatus={globalSchedule?.plan_status} // CHANGE: Pridėtas plano statusas
+                  planStatus={globalSchedule?.plan_status as "completed" | "planned" | "in_progress" | undefined} // CHANGE: Pridėtas plano statusas
                   subjectId={globalSchedule?.subject?.id}
                   globalScheduleId={globalScheduleId}
                 />
