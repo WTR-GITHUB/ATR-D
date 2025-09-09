@@ -1,9 +1,3 @@
-# /home/master/DIENYNAS/README.md
-# A-DIENYNAS - Student Diary Management System
-# CHANGE: Updated comprehensive README with current project structure, roles, and API documentation
-# PURPOSE: Complete documentation for A-DIENYNAS system including Docker deployment, roles, and API
-# UPDATES: Added role system explanation, API endpoints, updated project structure, Docker instructions
-
 # 🎓 A-DIENYNAS - Student Diary Management System
 
 **A-DIENYNAS** yra modernus studentų dienynas ir mokymosi valdymo sistema, sukurta su Django REST API backend'u ir Next.js frontend'u. Sistema valdo 5 vartotojų tipus: studentus, tėvus, kuratorius, mentorius ir administratorius.
