@@ -667,9 +667,9 @@ export default function EditLessonPage() {
       {/* Skill Creation Modal */}
       {isSkillModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-xl mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Sukurti naują gebėjimą</h3>
+          <div className="bg-white rounded-lg w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h3 className="text-lg font-medium text-gray-900">Gebėjimų sąrašas</h3>
               <button
                 onClick={() => setIsSkillModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -678,7 +678,8 @@ export default function EditLessonPage() {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-4">
               <div>
                 <label htmlFor="skill-subject" className="block text-sm font-medium text-gray-700 mb-2">
                   Dalykas
@@ -824,6 +825,7 @@ export default function EditLessonPage() {
                 </div>
               </div>
             </div>
+            </div>
           </div>
         </div>
       )}
@@ -831,9 +833,9 @@ export default function EditLessonPage() {
       {/* CompetencyAtcheve Creation Modal */}
       {isCompetencyAtcheveModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Sukurti naują kompetencijos pasiekimą</h3>
+          <div className="bg-white rounded-lg w-full max-w-4xl mx-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h3 className="text-lg font-medium text-gray-900">Kompetencijų pasiekimų sąrašas</h3>
               <button
                 onClick={() => setIsCompetencyAtcheveModalOpen(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -842,7 +844,8 @@ export default function EditLessonPage() {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-4">
               <div>
                 <label htmlFor="competency-atcheve-subject" className="block text-sm font-medium text-gray-700 mb-2">
                   Dalykas
@@ -898,7 +901,7 @@ export default function EditLessonPage() {
 
               <div>
                 <DynamicList
-                  label="Todo sąrašas"
+                  label="Konkrečių veiksmų sąrašas"
                   values={competencyAtcheveFormData.todos}
                   onChange={(values) => setCompetencyAtcheveFormData(prev => ({ ...prev, todos: values }))}
                   placeholder="Įveskite veiksmą"
@@ -916,7 +919,7 @@ export default function EditLessonPage() {
                 <Button
                   type="button"
                   onClick={handleCreateCompetencyAtcheve}
-                  disabled={!competencyAtcheveFormData.competency || competencyAtcheveFormData.virtues.length === 0 || competencyAtcheveFormData.todos.length === 0}
+                  disabled={!competencyAtcheveFormData.competency || competencyAtcheveFormData.virtues.length === 0}
                 >
                   Sukurti BUP kompetenciją
                 </Button>
@@ -939,7 +942,7 @@ export default function EditLessonPage() {
                           Dorybės
                         </th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                          Todo sąrašas
+                          Konkrečių veiksmų sąrašas
                         </th>
                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
                           Veiksmai
@@ -1002,6 +1005,7 @@ export default function EditLessonPage() {
                   </table>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </div>
