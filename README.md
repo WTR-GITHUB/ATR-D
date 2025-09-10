@@ -181,10 +181,10 @@ DEBUG=False docker compose up -d
 ```
 
 ### **4. Access System**
-- **Frontend:** http://192.168.88.167 (current server)
-- **Backend API:** http://192.168.88.167/api
+- **Frontend:** https://dienynas.mokyklaatradimai.lt (production server)
+- **Backend API:** https://dienynas.mokyklaatradimai.lt/api
 - **Local Access:** http://localhost (for development)
-- **Future Server:** http://192.168.192.168 (configured)
+- **Admin Access:** https://dienynas.mokyklaatradimai.lt/admin
 - **Admin Access:** admin@example.com / admin123
 
 ## 👥 **Rolių Sistema**
@@ -939,8 +939,8 @@ const renderDescription = (description: string) => {
 # Django CORS settings
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
-    "http://192.168.88.167:3000",
-    "http://192.168.192.168:3000",
+    "https://dienynas.mokyklaatradimai.lt",
+    "http://dienynas.mokyklaatradimai.lt",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -1294,9 +1294,9 @@ A-DIENYNAS/
 Sistema sukonfigūruota dirbti su keliais serverio IP adresais:
 
 #### **Current Configuration**
-- **Active Server IP:** 192.168.88.167
-- **Future Server IP:** 192.168.192.168 (pre-configured)
+- **Production Domain:** https://dienynas.mokyklaatradimai.lt
 - **Local Development:** localhost, 127.0.0.1
+- **Admin Access:** https://dienynas.mokyklaatradimai.lt/admin
 
 ### **Automatic IP Switching**
 Naudokite automatizuotą script'ą serverio IP keitimui:
@@ -1309,7 +1309,7 @@ Naudokite automatizuotą script'ą serverio IP keitimui:
 ./scripts/switch-server-ip.sh future
 
 # Switch to custom IP
-./scripts/switch-server-ip.sh 192.168.1.100
+./scripts/switch-server-ip.sh example.com
 
 # Show current configuration
 grep -E "(NEXT_PUBLIC_API_URL|ALLOWED_HOSTS)" .env
@@ -1322,7 +1322,7 @@ Jei reikia keisti rankiniu būdu:
 ```bash
 # Edit server_name in nginx config
 nano docker/nginx/sites-enabled/a-dienynas.conf
-# server_name localhost 192.168.88.167 192.168.192.168;
+# server_name localhost dienynas.mokyklaatradimai.lt;
 ```
 
 **2. Environment Variables**
@@ -1330,9 +1330,9 @@ nano docker/nginx/sites-enabled/a-dienynas.conf
 # Edit .env file
 nano .env
 # Update these lines:
-# ALLOWED_HOSTS=localhost,127.0.0.1,192.168.88.167,192.168.192.168
-# CORS_ALLOWED_ORIGINS=http://localhost:3000,http://192.168.88.167:3000,http://192.168.192.168:3000
-# NEXT_PUBLIC_API_URL=http://192.168.88.167/api
+# ALLOWED_HOSTS=localhost,127.0.0.1,dienynas.mokyklaatradimai.lt
+# CORS_ALLOWED_ORIGINS=http://localhost:3000,https://dienynas.mokyklaatradimai.lt
+# NEXT_PUBLIC_API_URL=https://dienynas.mokyklaatradimai.lt/api
 ```
 
 **3. Restart Services**
@@ -1366,8 +1366,7 @@ Edit `env.docker` file to configure:
 - **6379:** Redis - Internal Docker network
 
 ### **Network Access**
-- **Current Server IP:** 192.168.88.167
-- **Future Server IP:** 192.168.192.168 (pre-configured)
+- **Production Domain:** https://dienynas.mokyklaatradimai.lt
 - **Local Development:** localhost, 127.0.0.1
 
 ## 💾 **Backup Strategy**

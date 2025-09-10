@@ -15,8 +15,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Server IP configurations
-CURRENT_IP="192.168.88.167"
-FUTURE_IP="192.168.192.168"
+CURRENT_IP="dienynas.mokyklaatradimai.lt"
+FUTURE_IP="dienynas.mokyklaatradimai.lt"
 
 # Function to display usage
 usage() {
@@ -32,7 +32,7 @@ usage() {
     echo "Examples:"
     echo "  $0 current"
     echo "  $0 future" 
-    echo "  $0 192.168.1.100"
+    echo "  $0 example.com"
     exit 1
 }
 
