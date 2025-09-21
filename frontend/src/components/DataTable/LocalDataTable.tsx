@@ -1,25 +1,52 @@
 // frontend/src/components/DataTable/LocalDataTable.tsx
 'use client';
 
-import React, { useEffect, useRef, useCallback, useState } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import '@/styles/datatables.css';
-import FilterRow from './FilterRow';
 
 interface LocalDataTableProps {
   id: string;
-  data: any[];
+  data: Record<string, unknown>[];
   columns: {
     title: string;
     data: string;
-    render?: (data: any, type: any, row: any) => string;
+    render?: (data: unknown, type: unknown, row: Record<string, unknown>) => string;
   }[];
-  options?: any;
+  options?: Record<string, unknown>;
 }
 
 declare global {
   interface Window {
-    $: any;
-    DataTable: any;
+    $: (selector: string | HTMLElement) => {
+      css: (properties: Record<string, string> | string, value?: string) => unknown;
+      find: (selector: string) => unknown;
+      hover: (handlerIn: () => void, handlerOut: () => void) => unknown;
+      index: () => number;
+      closest: (selector: string) => unknown;
+      before: (element: unknown) => unknown;
+      append: (element: unknown) => unknown;
+      prepend: (element: unknown) => unknown;
+      parent: () => unknown;
+      show: () => unknown;
+      hide: () => unknown;
+      length: number;
+      attr: (name: string, value?: string) => string | unknown;
+      on: (event: string, handler: (this: HTMLElement) => void) => unknown;
+      off: (event: string, handler?: (this: HTMLElement) => void) => unknown;
+      val: (value?: string) => string | unknown;
+      text: (value?: string) => string | unknown;
+      html: (value?: string) => string | unknown;
+      textContent?: string;
+    };
+    DataTable: (selector: string, options: Record<string, unknown>) => {
+      table: () => { node: () => HTMLElement | null };
+      destroy: () => void;
+      api: () => {
+        columns: () => {
+          every: (callback: (this: { header: () => HTMLElement; search: (value?: string) => unknown }) => void) => void;
+        };
+      };
+    };
   }
 }
 
@@ -30,7 +57,7 @@ const LocalDataTable: React.FC<LocalDataTableProps> = ({
   options = {} 
 }) => {
   const tableRef = useRef<HTMLTableElement>(null);
-  const dataTableRef = useRef<any>(null);
+  const dataTableRef = useRef<{ table: () => { node: () => HTMLElement | null }; destroy: () => void; api: () => { columns: () => { every: (callback: (this: { header: () => HTMLElement; search: (value?: string) => unknown }) => void) => void } } } | null>(null);
   const initializedRef = useRef(false);
 
   const applyStyles = useCallback(() => {
@@ -38,7 +65,7 @@ const LocalDataTable: React.FC<LocalDataTableProps> = ({
       const table = dataTableRef.current.table().node();
       if (table) {
         // Force apply styles to table
-        window.$(table).css({
+        (window.$(table) as { css: (properties: Record<string, string>) => unknown }).css({
           'border': '1px solid #dee2e6',
           'border-collapse': 'collapse',
           'width': '100%',
@@ -46,7 +73,7 @@ const LocalDataTable: React.FC<LocalDataTableProps> = ({
         });
         
         // Force apply styles to all cells
-        window.$(table).find('th, td').css({
+        (window.$(table).find('th, td') as { css: (properties: Record<string, string>) => unknown }).css({
           'border': '1px solid #dee2e6',
           'padding': '12px',
           'text-align': 'left',
@@ -58,28 +85,28 @@ const LocalDataTable: React.FC<LocalDataTableProps> = ({
         });
         
         // Force apply styles to all rows
-        window.$(table).find('tbody tr').css({
+        (window.$(table).find('tbody tr') as { css: (properties: Record<string, string>) => unknown }).css({
           'border-bottom': '1px solid #dee2e6',
           'background-color': '#fff'
         });
         
         // Apply alternating row colors
-        window.$(table).find('tbody tr:nth-child(even)').css({
+        (window.$(table).find('tbody tr:nth-child(even)') as { css: (properties: Record<string, string>) => unknown }).css({
           'background-color': '#f8f9fa'
         });
         
         // Apply hover effect
-        window.$(table).find('tbody tr').hover(
-          function(this: any) { window.$(this).css('background-color', '#e9ecef'); },
-          function(this: any) { 
-            const index = window.$(this).index();
+        (window.$(table).find('tbody tr') as { hover: (handlerIn: () => void, handlerOut: () => void) => unknown }).hover(
+          function(this: HTMLElement) { (window.$(this) as { css: (property: string, value: string) => unknown }).css('background-color', '#e9ecef'); },
+          function(this: HTMLElement) { 
+            const index = (window.$(this) as { index: () => number }).index();
             const bgColor = index % 2 === 0 ? '#fff' : '#f8f9fa';
-            window.$(this).css('background-color', bgColor);
+            (window.$(this) as { css: (property: string, value: string) => unknown }).css('background-color', bgColor);
           }
         );
         
         // Force apply styles to headers
-        window.$(table).find('thead th').css({
+        (window.$(table).find('thead th') as { css: (properties: Record<string, string>) => unknown }).css({
           'background-color': '#f8f9fa',
           'font-weight': '600',
           'border-bottom': '2px solid #dee2e6'
@@ -119,13 +146,13 @@ const LocalDataTable: React.FC<LocalDataTableProps> = ({
             initializeDataTable();
           };
         };
-      } else if (window.$ && window.DataTable) {
+      } else if (typeof window.$ === 'function' && typeof window.DataTable === 'function') {
         initializeDataTable();
       }
     };
 
     const initializeDataTable = () => {
-      if (tableRef.current && !initializedRef.current && window.$ && window.DataTable) {
+      if (tableRef.current && !initializedRef.current && typeof window.$ === 'function' && typeof window.DataTable === 'function') {
         try {
           // Destroy existing instance if any
           if (dataTableRef.current) {
@@ -134,7 +161,7 @@ const LocalDataTable: React.FC<LocalDataTableProps> = ({
           }
 
           // Initialize DataTable with simple configuration
-          dataTableRef.current = window.$(`#${id}`).DataTable({
+          dataTableRef.current = (window.$(`#${id}`) as unknown as { DataTable: (options: Record<string, unknown>) => typeof dataTableRef.current }).DataTable({
             data: data,
             columns: columns,
             responsive: true,
@@ -161,7 +188,7 @@ const LocalDataTable: React.FC<LocalDataTableProps> = ({
                 "sSortDescending": ": rūšiuoti mažėjimo tvarka"
               }
             },
-            initComplete: function (this: any) {
+            initComplete: function (this: { api: () => { columns: () => { every: (callback: (this: { header: () => HTMLElement; search: (value?: string) => unknown }) => void) => void } } }) {
               // Create filter container above table
               const tableWrapper = window.$(`#${id}`).closest('.dataTables_wrapper');
               const filterContainer = window.$('<div class="filter-container" style="margin-bottom: 16px; padding: 16px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; position: relative; z-index: 10;"></div>');
@@ -169,8 +196,9 @@ const LocalDataTable: React.FC<LocalDataTableProps> = ({
               
               this.api()
                 .columns()
-                .every(function (this: any) {
-                  const column = this;
+                .every(function (this: { header: () => HTMLElement; search: (value?: string) => unknown }) {
+                  // eslint-disable-next-line @typescript-eslint/no-this-alias
+                  const column = this; // Capture this for use in nested function
                   const title = column.header().textContent;
 
                   // Create filter input
@@ -191,30 +219,34 @@ const LocalDataTable: React.FC<LocalDataTableProps> = ({
                   
                   input.attr('placeholder', `Ieškoti ${title}`);
                   
-                  filterDiv.append(label).append(input);
-                  filterRow.append(filterDiv);
+                  const filterDivTyped = filterDiv as { append: (element: unknown) => unknown };
+                  filterDivTyped.append(label);
+                  filterDivTyped.append(input);
+                  (filterRow as { append: (element: unknown) => unknown }).append(filterDiv);
                   
                   // Event listener for user input
-                  input.on('keyup change', function(this: any) {
-                    if (column.search() !== this.value) {
-                      column.search(this.value).draw();
+                  (input as { on: (event: string, handler: (this: HTMLElement) => void) => unknown }).on('keyup change', function(this: HTMLElement) {
+                    const inputElement = this as HTMLInputElement;
+                    const searchResult = (column.search() as string);
+                    if (searchResult !== inputElement.value) {
+                      (column.search(inputElement.value) as { draw: () => unknown }).draw();
                     }
                   });
                 });
               
-              filterContainer.append(filterRow);
+              (filterContainer as { append: (element: unknown) => unknown }).append(filterRow);
               
               // Insert filter container before the table wrapper
-              tableWrapper.before(filterContainer);
+              (tableWrapper as { before: (element: unknown) => unknown }).before(filterContainer);
               
               // Force show the filter container
-              filterContainer.show();
-              console.log('Filter container created:', filterContainer.length);
+              (filterContainer as { show: () => unknown }).show();
+              console.log('Filter container created:', (filterContainer as { length: number }).length);
               
               // Alternative: Insert directly into the parent container
-              const parentContainer = tableWrapper.parent();
-              if (parentContainer.length) {
-                parentContainer.prepend(filterContainer);
+              const parentContainer = (tableWrapper as { parent: () => unknown }).parent();
+              if ((parentContainer as { length: number }).length) {
+                (parentContainer as { prepend: (element: unknown) => unknown }).prepend(filterContainer);
                 console.log('Filter container inserted into parent');
               }
             },
@@ -227,7 +259,9 @@ const LocalDataTable: React.FC<LocalDataTableProps> = ({
           applyStyles();
           
           // Re-apply styles after any data changes
-          dataTableRef.current.on('draw.dt', applyStyles);
+          if (dataTableRef.current && 'on' in dataTableRef.current) {
+            (dataTableRef.current as { on: (event: string, handler: () => void) => unknown }).on('draw.dt', applyStyles);
+          }
           
         } catch (error) {
           console.error('Error initializing DataTable:', error);
@@ -241,7 +275,7 @@ const LocalDataTable: React.FC<LocalDataTableProps> = ({
     return () => {
       destroyDataTable();
     };
-  }, [data, columns, options, destroyDataTable, applyStyles]);
+  }, [id, data, columns, options, destroyDataTable, applyStyles]);
 
   // Apply styles whenever data changes
   useEffect(() => {
@@ -294,4 +328,4 @@ const LocalDataTable: React.FC<LocalDataTableProps> = ({
   );
 };
 
-export default LocalDataTable; 
+export default LocalDataTable;

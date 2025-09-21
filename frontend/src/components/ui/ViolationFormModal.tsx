@@ -7,7 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, AlertTriangle, Users, Tag, FileText, Calendar } from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
 import { violationAPI, usersAPI } from '@/lib/api';
 import MultiSelect from './MultiSelect';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './Select';
@@ -58,6 +58,28 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   
 
+  // CHANGE: Function to populate form with initial data for editing
+  const populateFormWithInitialData = React.useCallback((violation: Violation) => {
+    // CHANGE: violation.category is a category NAME (string), need to find the ID
+    const categoryItem = categories.find(cat => cat.name === violation.category);
+    const categoryId = categoryItem ? categoryItem.id.toString() : '';
+    
+    
+    setFormData({
+      students: violation.student ? [violation.student] : [],
+      category: categoryId, // Use category ID found by name
+      todos: violation.todos ? violation.todos.map((todo: { text: string }) => todo.text) : [],
+      description: violation.description || '',
+      notes: violation.notes || ''
+    });
+    
+    // Set the date from violation
+    if (violation.created_at) {
+      const date = new Date(violation.created_at);
+      setSelectedDate(date.toISOString().split('T')[0]);
+    }
+  }, [categories]);
+
   // Load initial data
   useEffect(() => {
     if (isOpen) {
@@ -70,7 +92,7 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
     if (editMode && initialData && categories.length > 0) {
       populateFormWithInitialData(initialData);
     }
-  }, [editMode, initialData, categories]);
+  }, [editMode, initialData, categories, populateFormWithInitialData]);
 
 
   const loadInitialData = async () => {
@@ -94,30 +116,7 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
     }
   };
 
-  // CHANGE: Function to populate form with initial data for editing
-  const populateFormWithInitialData = (violation: Violation) => {
-    // CHANGE: violation.category is a category NAME (string), need to find the ID
-    const categoryItem = categories.find(cat => cat.name === violation.category);
-    const categoryId = categoryItem ? categoryItem.id.toString() : '';
-    
-    
-    setFormData({
-      students: violation.student ? [violation.student] : [],
-      category: categoryId, // Use category ID found by name
-      todos: violation.todos ? violation.todos.map((todo: any) => todo.text) : [],
-      description: violation.description || '',
-      notes: violation.notes || ''
-    });
-    
-    // Set the date from violation
-    if (violation.created_at) {
-      const date = new Date(violation.created_at);
-      setSelectedDate(date.toISOString().split('T')[0]);
-    }
-  };
-
-
-  const handleInputChange = (field: keyof ViolationFormData, value: any) => {
+  const handleInputChange = (field: keyof ViolationFormData, value: unknown) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
     // Clear error when user starts typing
@@ -233,11 +232,11 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
       onSuccess?.();
       onClose();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`Error ${editMode ? 'updating' : 'creating'} violations:`, error);
       
-      if (error.response?.data) {
-        const apiErrors = error.response.data;
+      if ((error as { response?: { data?: unknown } }).response?.data) {
+        const apiErrors = (error as { response: { data: Record<string, unknown> } }).response.data;
         const newErrors: { [key: string]: string } = {};
         
         // Map API errors to form fields
@@ -245,7 +244,7 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
           if (Array.isArray(apiErrors[key])) {
             newErrors[key] = apiErrors[key][0];
           } else {
-            newErrors[key] = apiErrors[key];
+            newErrors[key] = String(apiErrors[key]);
           }
         });
         

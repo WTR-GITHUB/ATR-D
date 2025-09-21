@@ -72,7 +72,7 @@ export default function ClientAuthGuard({
 
 // Pagalbinė funkcija nukreipti į dashboard pagal roles
 // CHANGE: Naudojama numatytoji rolė arba pirma rolė iš user.roles sąrašo
-function redirectToDashboard(roles: string[] | null | undefined, router: any, defaultRole?: string) {
+function redirectToDashboard(roles: string[] | null | undefined, router: { push: (path: string) => void }, defaultRole?: string) {
   const userRoles = roles || [];
   
   if (userRoles.length > 0) {

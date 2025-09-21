@@ -20,18 +20,8 @@ const Header: React.FC = () => {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // CHANGE: Nustatyti rolę pagal URL kai puslapis keičiasi
-  useEffect(() => {
-    if (!isAuthenticated || !user) return;
-
-    const currentRole = getCurrentRole();
-    if (currentRole && currentRole !== getAuthCurrentRole()) {
-      setCurrentRole(currentRole);
-    }
-  }, [pathname, isAuthenticated, user, setCurrentRole, getAuthCurrentRole]);
-
   // Get current role from URL or user's default role
-  const getCurrentRole = (): string => {
+  const getCurrentRole = React.useCallback((): string => {
     // CHANGE: Pirmiausia patikrinti current_role iš auth store
     const authCurrentRole = getAuthCurrentRole();
     
@@ -59,7 +49,17 @@ const Header: React.FC = () => {
     
     // Fallback to user's default role or first role
     return user?.default_role || user?.roles?.[0] || '';
-  };
+  }, [getAuthCurrentRole, pathname, user]);
+
+  // CHANGE: Nustatyti rolę pagal URL kai puslapis keičiasi
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    const currentRole = getCurrentRole();
+    if (currentRole && currentRole !== getAuthCurrentRole()) {
+      setCurrentRole(currentRole);
+    }
+  }, [pathname, isAuthenticated, user, setCurrentRole, getAuthCurrentRole, getCurrentRole]);
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">

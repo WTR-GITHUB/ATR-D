@@ -38,9 +38,10 @@ export const usePeriods = (): UsePeriodsReturn => {
       
       const response = await api.get('/schedule/periods/');
       setPeriods(response.data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Klaida gaunant periodų duomenis:', err);
-      setError(err.response?.data?.detail || 'Nepavyko gauti periodų duomenų');
+      const error = err as { response?: { data?: { detail?: string } } };
+      setError(error.response?.data?.detail || 'Nepavyko gauti periodų duomenų');
     } finally {
       setIsLoading(false);
     }

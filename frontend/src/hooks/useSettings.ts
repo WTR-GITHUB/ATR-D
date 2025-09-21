@@ -64,11 +64,15 @@ export default function useSettings() {
         success: true,
         message: response.data?.message || 'Slaptažodis sėkmingai pakeistas!'
       };
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.message || 
-                          err.response?.data?.detail || 
-                          err.response?.data?.errors?.old_password?.[0] ||
-                          err.response?.data?.errors?.new_password?.[0] ||
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string; detail?: string } } };
+      const errorData = error.response?.data;
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.detail || 
+                          (errorData && typeof errorData === 'object' && 'errors' in errorData 
+                            ? ((errorData.errors as Record<string, string[]>)?.old_password?.[0] ||
+                               (errorData.errors as Record<string, string[]>)?.new_password?.[0])
+                            : undefined) ||
                           'Klaida keičiant slaptažodį';
       
       setError(errorMessage);

@@ -128,3 +128,9 @@ PROJECT_STRUCTURE.md
 roliu_paaiškinimas.txt
 USER_CREATION_GUIDE.md
 env.docker
+ai_lesson_template.json
+test.json
+.cursor/
+.claude/
+.serena/
+DOCs/

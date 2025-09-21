@@ -7,7 +7,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
 import { ReactDataTable } from '@/components/DataTable';
 import { violationAPI } from '@/lib/api';
 import TodoCompletionModal from '@/components/ui/TodoCompletionModal';
@@ -22,20 +21,15 @@ import {
   Edit, 
   Trash2, 
   DollarSign,
-  Users,
-  FileText,
   TrendingUp
 } from 'lucide-react';
 import Link from 'next/link';
-import { Violation, ViolationFilters } from '@/lib/types';
+import { Violation, TodoItem, ViolationStatus, PenaltyStatus } from '@/lib/types';
 
 export default function CuratorViolationsManagementPage() {
-  const { user } = useAuth();
   const [violations, setViolations] = useState<Violation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedViolations, setSelectedViolations] = useState<number[]>([]);
-  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
   
   // Todo modal state
   const [isTodoModalOpen, setIsTodoModalOpen] = useState(false);
@@ -46,7 +40,7 @@ export default function CuratorViolationsManagementPage() {
   const [selectedViolationForEdit, setSelectedViolationForEdit] = useState<Violation | null>(null);
   
   // Categories state
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<{id: number; name: string; description?: string}[]>([]);
   
   // Filter states for modern switches
   const [statusFilter, setStatusFilter] = useState(0); // -1, 0, 1
@@ -157,18 +151,18 @@ export default function CuratorViolationsManagementPage() {
     {
       title: 'Mokinys',
       data: 'student_name',
-      render: (data: any) => data || '-'
+      render: (data: unknown) => (data as string) || '-'
     },
     {
       title: 'Kategorija',
       data: 'category',
-      render: (data: any) => getCategoryName(data)
+      render: (data: unknown) => getCategoryName((data as number)?.toString() || '')
     },
     {
       title: 'Aprašymas',
       data: 'description',
-      render: (data: any) => {
-        const description = data || '-';
+      render: (data: unknown) => {
+        const description = (data as string) || '-';
         return description.length > 50 
           ? `${description.substring(0, 50)}...` 
           : description;
@@ -177,17 +171,17 @@ export default function CuratorViolationsManagementPage() {
     {
       title: 'Skolos statusas',
       data: 'status',
-      render: (data: any) => getStatusBadge(data)
+      render: (data: unknown) => getStatusBadge(data as string)
     },
     {
       title: 'Mokesčio statusas',
       data: 'penalty_status',
-      render: (data: any) => getPenaltyStatusBadge(data)
+      render: (data: unknown) => getPenaltyStatusBadge(data as string)
     },
     {
       title: 'Mokestis (€)',
       data: 'penalty_amount',
-      render: (data: any, row: Violation) => {
+      render: (data: unknown) => {
         const amount = parseFloat(String(data)) || 0;
         return `${amount.toFixed(2)}€`;
       }
@@ -195,40 +189,41 @@ export default function CuratorViolationsManagementPage() {
     {
       title: 'Data',
       data: 'created_at',
-      render: (data: any) => {
+      render: (data: unknown) => {
         if (!data) return '-';
-        return new Date(data).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' });
+        return new Date(data as string).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' });
       }
     },
     {
       title: 'Veiksmai',
       data: 'id',
-      render: (data: any, row: Violation) => {
+      render: (data: unknown, row: unknown) => {
+        const violation = row as Violation;
         // Hide buttons only if BOTH conditions are met: completed AND paid
-        if (row.status === 'completed' && row.penalty_status === 'paid') {
+        if (violation.status === 'completed' && violation.penalty_status === 'paid') {
           return <span className="text-green-600 font-medium">Išpirkta</span>;
         }
-        
+
         return (
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => handleEdit(data)}
+              onClick={() => handleEdit(data as number)}
               className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
               title="Redaguoti"
             >
               <Edit className="w-4 h-4" />
             </button>
-            
+
             <button
-              onClick={() => handleOpenTodoModal(row)}
+              onClick={() => handleOpenTodoModal(violation)}
               className="p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded transition-colors"
               title="Valdyti užduotis"
             >
               <CheckCircle className="w-4 h-4" />
             </button>
-            
+
             <button
-              onClick={() => handleDelete(data)}
+              onClick={() => handleDelete(data as number)}
               className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded transition-colors"
               title="Trinti"
             >
@@ -273,7 +268,7 @@ export default function CuratorViolationsManagementPage() {
     setSelectedViolationForTodos(null);
   };
 
-  const handleUpdateTodos = async (violationId: number, updatedTodos: any[], allCompleted: boolean, penaltyStatus: string) => {
+  const handleUpdateTodos = async (violationId: number, updatedTodos: TodoItem[], allCompleted: boolean, penaltyStatus: string) => {
     if (!selectedViolationForTodos) return;
 
     try {
@@ -301,7 +296,7 @@ export default function CuratorViolationsManagementPage() {
       // Update local state
       setViolations(prev => prev.map(v => 
         v.id === selectedViolationForTodos.id 
-          ? { ...v, todos: updatedTodos, penalty_status: penaltyStatus as any, status: finalStatus as any }
+          ? { ...v, todos: updatedTodos, penalty_status: penaltyStatus as PenaltyStatus, status: finalStatus as ViolationStatus }
           : v
       ));
       
@@ -328,31 +323,31 @@ export default function CuratorViolationsManagementPage() {
     }
   };
 
-  // Bulk actions
-  const handleBulkAction = async (action: string) => {
-    if (selectedViolations.length === 0) {
-      alert('Pasirinkite pažeidimus');
-      return;
-    }
+  // Bulk actions - commented out as not currently used
+  // const handleBulkAction = async (action: string) => {
+  //   if (selectedViolations.length === 0) {
+  //     alert('Pasirinkite pažeidimus');
+  //     return;
+  //   }
 
-    setIsBulkActionLoading(true);
-    try {
-      await violationAPI.violations.bulkAction({
-        action,
-        violation_ids: selectedViolations
-      });
+  //   setIsBulkActionLoading(true);
+  //   try {
+  //     await violationAPI.violations.bulkAction({
+  //       action,
+  //       violation_ids: selectedViolations
+  //     });
       
-      // Refresh data
-      const response = await violationAPI.violations.getAll();
-      setViolations(response.data);
-      setSelectedViolations([]);
-    } catch (err) {
-      console.error('Error performing bulk action:', err);
-      alert('Nepavyko atlikti masinio veiksmo');
-    } finally {
-      setIsBulkActionLoading(false);
-    }
-  };
+  //     // Refresh data
+  //     const response = await violationAPI.violations.getAll();
+  //     setViolations(response.data);
+  //     setSelectedViolations([]);
+  //   } catch (err) {
+  //     console.error('Error performing bulk action:', err);
+  //     alert('Nepavyko atlikti masinio veiksmo');
+  //   } finally {
+  //     setIsBulkActionLoading(false);
+  //   }
+  // };
 
   if (isLoading) {
     return (
@@ -463,13 +458,13 @@ export default function CuratorViolationsManagementPage() {
               // Status filter logic
               if (statusFilter === 1 && violation.status !== 'completed') return false;
               if (statusFilter === -1 && violation.status !== 'pending') return false;
-              
+
               // Penalty status filter logic
               if (penaltyStatusFilter === 1 && violation.penalty_status !== 'paid') return false;
               if (penaltyStatusFilter === -1 && violation.penalty_status !== 'unpaid') return false;
-              
+
               return true;
-            })}
+            }) as unknown as Record<string, unknown>[]}
             columns={columns}
             filterableColumns={['student_name', 'category', 'penalty_amount']}
             customFilters={{

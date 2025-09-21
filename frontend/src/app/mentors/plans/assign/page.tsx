@@ -326,7 +326,7 @@ export default function AssignPlanPage() {
           
           // CHANGE: Type-safe error handling for student processing
           const errorMessage = error && typeof error === 'object' && 'response' in error 
-            ? (error as any).response?.data?.error || (error as any).message || 'Nežinoma klaida'
+            ? (error as { response?: { data?: { error?: string } }; message?: string }).response?.data?.error || (error as { response?: { data?: { error?: string } }; message?: string }).message || 'Nežinoma klaida'
             : 'Nežinoma klaida';
           
           const errorResult: StudentResult = {
@@ -364,7 +364,7 @@ export default function AssignPlanPage() {
       
       // CHANGE: Type-safe error handling for generation process
       const errorMessage = error && typeof error === 'object' && 'message' in error 
-        ? (error as any).message || 'Nežinoma klaida'
+        ? (error as { message?: string }).message || 'Nežinoma klaida'
         : 'Nežinoma klaida';
       
       alert('Generavimo procesas nepavyko: ' + errorMessage);

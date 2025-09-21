@@ -87,7 +87,7 @@ export const AccordionItem: React.FC<AccordionItemProps> = ({
     if (defaultOpen && !openItems.has(id)) {
       context.toggleItem(id);
     }
-  }, [defaultOpen, id]);
+  }, [defaultOpen, id, context, openItems]);
 
   // CHANGE: Dinamiškai nustatomas max-height pagal turinio dydį
   const maxHeight = largeContent ? 'max-h-[2000px]' : 'max-h-96';

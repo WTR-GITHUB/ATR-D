@@ -6,21 +6,21 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
-import { Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import React from 'react';
+import { Clock } from 'lucide-react';
 import useStudentSchedule from '@/hooks/useStudentSchedule';
 import usePeriods from '@/hooks/usePeriods';
 import { useWeekInfoContext } from '@/contexts/WeekInfoContext';
 import StudentScheduleCell from './StudentScheduleCell';
-import { AttendanceStatus } from '@/app/mentors/activities/types';
+// import { AttendanceStatus } from '@/app/mentors/activities/types';
 
 interface StudentWeeklyScheduleCalendarProps {
   studentId: number;
   onScheduleItemSelect?: (itemId: number) => void;
   selectedScheduleId?: number;
   className?: string;
-  onWeekChange?: (weekInfo: any) => void;
-  weekInfo?: any;
+  onWeekChange?: (weekInfo: Record<string, unknown>) => void;
+  weekInfo?: Record<string, unknown>;
   onNavigateWeek?: (direction: number) => void;
   onGoToToday?: () => void;
 }
@@ -39,12 +39,12 @@ const weekDays = [
 const StudentWeeklyScheduleCalendar: React.FC<StudentWeeklyScheduleCalendarProps> = ({
   studentId,
   onScheduleItemSelect,
-  selectedScheduleId,
+  // selectedScheduleId,
   className = '',
-  onWeekChange,
+  // onWeekChange,
   weekInfo: parentWeekInfo,
-  onNavigateWeek,
-  onGoToToday
+  // onNavigateWeek,
+  // onGoToToday
 }) => {
   // Savaitės informacija - use context if available, fallback to parent
   const contextWeekInfo = useWeekInfoContext();
@@ -57,17 +57,15 @@ const StudentWeeklyScheduleCalendar: React.FC<StudentWeeklyScheduleCalendarProps
   const { 
     scheduleItems, 
     isLoading: scheduleLoading, 
-    error, 
-    studentName, 
-    count 
+    error
   } = useStudentSchedule({
     studentId,
-    weekStartDate: displayWeekInfo?.weekDates?.[0]?.toISOString().split('T')[0] || '',
-    enabled: !!displayWeekInfo?.weekDates?.[0]
+    weekStartDate: (displayWeekInfo?.weekDates as Date[])?.[0]?.toISOString().split('T')[0] || '',
+    enabled: !!(displayWeekInfo?.weekDates as Date[])?.[0]
   });
 
   // Savaitės datos - naudojame tiesiogiai iš displayWeekInfo
-  const weekDates = displayWeekInfo?.weekDates || [];
+  const weekDates = (displayWeekInfo?.weekDates as Date[]) || [];
 
   // Patikriname ar šiandien
   const isToday = (date: Date | undefined) => {
@@ -77,22 +75,22 @@ const StudentWeeklyScheduleCalendar: React.FC<StudentWeeklyScheduleCalendarProps
   };
 
   // Navigacija savaitėmis
-  const navigateWeek = (direction: number) => {
-    if (onNavigateWeek) {
-      onNavigateWeek(direction);
-    } else if (displayWeekInfo?.navigateWeek) {
-      displayWeekInfo.navigateWeek(direction);
-    }
-  };
+  // const navigateWeek = (direction: number) => {
+  //   if (onNavigateWeek) {
+  //     onNavigateWeek(direction);
+  //   } else if (displayWeekInfo?.navigateWeek) {
+  //     displayWeekInfo.navigateWeek(direction);
+  //   }
+  // };
 
   // Eiti į šiandienos savaitę
-  const goToToday = () => {
-    if (onGoToToday) {
-      onGoToToday();
-    } else if (displayWeekInfo?.goToToday) {
-      displayWeekInfo.goToToday();
-    }
-  };
+  // const goToToday = () => {
+  //   if (onGoToToday) {
+  //     onGoToToday();
+  //   } else if (displayWeekInfo?.goToToday) {
+  //     displayWeekInfo.goToToday();
+  //   }
+  // };
 
   // Gauname pamokas pagal datą ir periodą (gali būti kelios)
   const getScheduleItems = (date: Date | undefined, periodId: number) => {
@@ -105,7 +103,7 @@ const StudentWeeklyScheduleCalendar: React.FC<StudentWeeklyScheduleCalendarProps
   };
 
   // Lankomumo statuso keitimas
-  const handleAttendanceChange = async (itemId: number, status: AttendanceStatus) => {
+  const handleAttendanceChange = async () => {
     try {
       // TODO: Implementuoti attendance status keitimą per API
       // Attendance change handled
@@ -173,24 +171,27 @@ const StudentWeeklyScheduleCalendar: React.FC<StudentWeeklyScheduleCalendarProps
             </div>
             
             {/* Dienų antraštės */}
-            {weekDays.map((day, dayIndex) => (
-              <div 
-                key={`header-${day.key}`} 
-                className={`flex flex-col items-center justify-center rounded-lg border-2 ${
-                  isToday(weekDates[dayIndex]) 
-                    ? 'bg-blue-500 text-white border-blue-600' 
-                    : 'bg-gray-50 text-gray-700 border-gray-200'
-                }`}
-              >
-                <span className="text-sm font-semibold">{day.short}</span>
-                <span className="text-xs opacity-80">
-                  {weekDates[dayIndex]?.getDate().toString().padStart(2, '0')}-{(weekDates[dayIndex]?.getMonth() + 1).toString().padStart(2, '0')}
-                </span>
-              </div>
-            ))}
+            {weekDays.map((day, dayIndex) => {
+              const currentDate = weekDates[dayIndex] as Date | undefined;
+              return (
+                <div 
+                  key={`header-${day.key}`} 
+                  className={`flex flex-col items-center justify-center rounded-lg border-2 ${
+                    isToday(currentDate) 
+                      ? 'bg-blue-500 text-white border-blue-600' 
+                      : 'bg-gray-50 text-gray-700 border-gray-200'
+                  }`}
+                >
+                  <span className="text-sm font-semibold">{day.short}</span>
+                  <span className="text-xs opacity-80">
+                    {currentDate?.getDate().toString().padStart(2, '0')}-{((currentDate?.getMonth() ?? 0) + 1).toString().padStart(2, '0')}
+                  </span>
+                </div>
+              );
+            })}
 
             {/* Pamokų eilutės */}
-            {periods.map((period, periodIndex) => (
+            {periods.map((period) => (
               <React.Fragment key={`row-${period.id}`}>
                 {/* Laiko stulpelis */}
                 <div className="flex items-center justify-center bg-gray-50 rounded-lg border min-h-20">
@@ -211,7 +212,8 @@ const StudentWeeklyScheduleCalendar: React.FC<StudentWeeklyScheduleCalendarProps
                 
                 {/* Dienų ląstelės */}
                 {weekDays.map((day, dayIndex) => {
-                  const scheduleItems = getScheduleItems(weekDates[dayIndex], period.id);
+                  const currentDate = weekDates[dayIndex] as Date | undefined;
+                  const scheduleItems = getScheduleItems(currentDate, period.id);
                   const isEmpty = scheduleItems.length === 0;
                   
                   return (

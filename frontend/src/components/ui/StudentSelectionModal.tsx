@@ -7,7 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Users, Search } from 'lucide-react';
+import { X, Users } from 'lucide-react';
 import { usersAPI } from '@/lib/api';
 import MultiSelect from './MultiSelect';
 import { User } from '@/lib/types';

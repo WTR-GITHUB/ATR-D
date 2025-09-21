@@ -19,7 +19,7 @@ interface StudentScheduleCalendarProps {
   onScheduleItemSelect?: (scheduleId: number) => void;
   selectedScheduleId?: number;
   className?: string;
-  onWeekChange?: (weekInfo: any) => void;
+  onWeekChange?: (weekInfo: Record<string, unknown>) => void;
 }
 
 const StudentScheduleCalendar: React.FC<StudentScheduleCalendarProps> = ({
@@ -36,7 +36,7 @@ const StudentScheduleCalendar: React.FC<StudentScheduleCalendarProps> = ({
   // Savaitės valdymas - use context if available
   const contextWeekInfo = useWeekInfoContext();
   const [currentWeek, setCurrentWeek] = useState(new Date());
-  const [displayWeekInfo, setDisplayWeekInfo] = useState<any>(null);
+  const [displayWeekInfo, setDisplayWeekInfo] = useState<Record<string, unknown> | null>(null);
   
   // Naudojame displayWeekInfo arba context weekInfo
   const finalWeekInfo = displayWeekInfo || contextWeekInfo.weekInfo;
@@ -44,7 +44,7 @@ const StudentScheduleCalendar: React.FC<StudentScheduleCalendarProps> = ({
   // Perduodame weekInfo į parent komponentą
   React.useEffect(() => {
     if (typeof onWeekChange === 'function' && finalWeekInfo) {
-      onWeekChange(finalWeekInfo);
+      onWeekChange(finalWeekInfo as Record<string, unknown>);
     }
   }, [finalWeekInfo, onWeekChange]);
 
@@ -117,9 +117,9 @@ const StudentScheduleCalendar: React.FC<StudentScheduleCalendarProps> = ({
             <h3 className="text-lg font-semibold text-gray-900">Studento tvarkaraštis</h3>
             {finalWeekInfo ? (
               <p className="text-sm text-gray-600">
-                {finalWeekInfo.dateRangeText}
-                <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${finalWeekInfo.statusColor}`}>
-                  {finalWeekInfo.statusText}
+                {finalWeekInfo.dateRangeText as string}
+                <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${finalWeekInfo.statusColor as string}`}>
+                  {finalWeekInfo.statusText as string}
                 </span>
               </p>
             ) : (
@@ -174,7 +174,7 @@ const StudentScheduleCalendar: React.FC<StudentScheduleCalendarProps> = ({
             selectedScheduleId={selectedScheduleId}
             onWeekChange={setDisplayWeekInfo}
             className="border-0 shadow-none"
-            weekInfo={finalWeekInfo}
+            weekInfo={finalWeekInfo as Record<string, unknown> | undefined}
             onNavigateWeek={navigateWeek}
             onGoToToday={goToToday}
           />

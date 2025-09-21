@@ -17,12 +17,19 @@ import {
   AttendanceStatus
 } from '../types';
 import GradeSelector from './GradeSelector';
-import useGrades from '@/hooks/useGrades';
+import useGrades, { Grade } from '@/hooks/useGrades';
 import { useAuth } from '@/hooks/useAuth';
 // CHANGE: Pašalintas individual API import'as, naudojame tik bulk API
 
 // Tipas, kuris gali priimti abu duomenų tipus
 type StudentData = Student | IMUPlan;
+
+// Tipas lankomumo statistikoms
+interface AttendanceStats {
+  present: number;
+  total: number;
+  percentage: number;
+}
 
 interface StudentRowProps {
   student: StudentData;
@@ -34,7 +41,7 @@ interface StudentRowProps {
   // CHANGE: Pridėtas subject ID prop'as lankomumo statistikai skaičiuoti
   subjectId?: number;
   // CHANGE: Pridėtas bulk stats prop'as lankomumo statistikai
-  bulkStats?: { [studentId: number]: any } | null;
+  bulkStats?: { [studentId: number]: Record<string, unknown> } | null;
   // CHANGE: Pridėtas veiklos aktyvumo prop
   isActivityActive?: boolean;
   // CHANGE: Pridėtas plano statusas
@@ -48,17 +55,17 @@ const StudentRow: React.FC<StudentRowProps> = ({
   onAttendanceChange,
   isIMUPlan = false,
   lessonId,
-  subjectId,
+  // subjectId,
   bulkStats,
   isActivityActive = false, // CHANGE: Pridėtas veiklos aktyvumo parametras
   planStatus = 'planned' // CHANGE: Pridėtas plano statusas
 }) => {
   // CHANGE: Debug console.log'ai pašalinti - bulk API veikia
   const [expanded, setExpanded] = useState(false);
-  const [currentGrade, setCurrentGrade] = useState<any>(null);
+  const [currentGrade, setCurrentGrade] = useState<Grade | null>(null);
   
   // CHANGE: Naudojame useGrades hook'ą esamo vertinimo gavimui
-  const { getStudentGrade, isLoading: gradeLoading, error: gradeError } = useGrades();
+  const { getStudentGrade } = useGrades();
   
   // CHANGE: Gaunome prisijungusio vartotojo duomenis mentorId nustatymui
   const { user } = useAuth();
@@ -69,7 +76,7 @@ const StudentRow: React.FC<StudentRowProps> = ({
   // CHANGE: Pašalintas individual API hook'as, naudojame tik bulk API
   
   // CHANGE: Apskaičiuojame lessonId komponento lygyje
-  const getLessonId = (): number => {
+  const getLessonId = React.useCallback((): number => {
     if (lessonId) return lessonId;
     
     if ('lesson' in student) {
@@ -84,15 +91,15 @@ const StudentRow: React.FC<StudentRowProps> = ({
     }
     
     return 1; // Default reikšmė
-  };
+  }, [lessonId, student]);
   
   // Pagalbinės funkcijos duomenų gavimui iš skirtingų tipų
-  const getStudentId = (): number => {
+  const getStudentId = React.useCallback((): number => {
     if (isIMUPlan) {
       return (student as IMUPlan).student;
     }
     return (student as Student).id;
-  };
+  }, [isIMUPlan, student]);
 
   const getStudentName = (): string => {
     if (isIMUPlan) {
@@ -109,7 +116,7 @@ const StudentRow: React.FC<StudentRowProps> = ({
     return (student as Student).attendance_status || '';
   };
 
-  const getAttendanceStats = () => {
+  const getAttendanceStats = (): AttendanceStats => {
     if (isIMUPlan && bulkStats) {
       // Realūs duomenys iš bulk API
       const studentId = getStudentId();
@@ -117,9 +124,9 @@ const StudentRow: React.FC<StudentRowProps> = ({
       
       if (studentStats) {
         return {
-          present: studentStats.present_records,
-          total: studentStats.total_records,
-          percentage: studentStats.percentage
+          present: Number(studentStats.present_records) || 0,
+          total: Number(studentStats.total_records) || 0,
+          percentage: Number(studentStats.percentage) || 0
         };
       }
     }
@@ -168,7 +175,7 @@ const StudentRow: React.FC<StudentRowProps> = ({
     };
 
     fetchCurrentGrade();
-  }, [expanded, getStudentGrade, student, isIMUPlan]);
+  }, [expanded, getStudentGrade, student, isIMUPlan, getLessonId, getStudentId]);
 
   // CHANGE: Pašalintas individual API useEffect, naudojame tik bulk API
   
@@ -191,20 +198,20 @@ const StudentRow: React.FC<StudentRowProps> = ({
     return (status as AttendanceStatus) || 'present';
   };
 
-  const convertFromAttendanceStatus = (status: AttendanceStatus): AttendanceStatus => {
-    if (isIMUPlan) {
-      // REFAKTORINIMAS: Dabar galime grąžinti attendance_status
-      // Bet palaikome seną logiką migracijos metu
-      switch (status) {
-        case 'present': return 'present';  // Tiesiogiai attendance_status
-        case 'left': return 'left';        // CHANGE: Pakeista 'late' į 'left'
-        case 'absent': return 'absent';    // Tiesiogiai attendance_status
-        case 'excused': return 'excused';  // Tiesiogiai attendance_status
-        default: return 'present';         // CHANGE: Vietoj null grąžiname 'present'
-      }
-    }
-    return status;
-  };
+  // const convertFromAttendanceStatus = (status: AttendanceStatus): AttendanceStatus => {
+  //   if (isIMUPlan) {
+  //     // REFAKTORINIMAS: Dabar galime grąžinti attendance_status
+  //     // Bet palaikome seną logiką migracijos metu
+  //     switch (status) {
+  //       case 'present': return 'present';  // Tiesiogiai attendance_status
+  //       case 'left': return 'left';        // CHANGE: Pakeista 'late' į 'left'
+  //       case 'absent': return 'absent';    // Tiesiogiai attendance_status
+  //       case 'excused': return 'excused';  // Tiesiogiai attendance_status
+  //       default: return 'present';         // CHANGE: Vietoj null grąžiname 'present'
+  //     }
+  //   }
+  //   return status;
+  // };
 
   const [attendance, setAttendance] = useState<AttendanceStatus>(convertToAttendanceStatus(getStudentStatus()));
   
@@ -233,7 +240,7 @@ const StudentRow: React.FC<StudentRowProps> = ({
         });
 
         if (response.ok) {
-          const result = await response.json();
+          // const result = await response.json();
   
           
           // CHANGE: Atnaujiname local state po sėkmingo API atsakymo
@@ -258,15 +265,15 @@ const StudentRow: React.FC<StudentRowProps> = ({
   const localAttendanceStats = getAttendanceStats();
 
   // Lankomumo būsenos rodymas - dabar visada turi būti statusas
-  const getAttendanceDisplay = () => {
-    switch (attendance) {
-      case 'present': return 'Dalyvavo';
-      case 'absent': return 'Nedalyvavo';
-      case 'left': return 'Paliko';
-      case 'excused': return 'Pateisinta';
-      default: return 'Nepažymėta';
-    }
-  };
+  // const getAttendanceDisplay = () => {
+  //   switch (attendance) {
+  //     case 'present': return 'Dalyvavo';
+  //     case 'absent': return 'Nedalyvavo';
+  //     case 'left': return 'Paliko';
+  //     case 'excused': return 'Pateisinta';
+  //     default: return 'Nepažymėta';
+  //   }
+  // };
 
   return (
     <div className={`border border-gray-200 rounded-lg mb-2 shadow-sm transition-all ${
@@ -342,10 +349,10 @@ const StudentRow: React.FC<StudentRowProps> = ({
             
             <GradeSelector
               currentGrade={currentGrade} // CHANGE: Dabar perduodame tikrą esamą vertinimą
-              onGradeChange={(grade) => {
+              onGradeChange={(grade: unknown) => {
         
                 // CHANGE: Atnaujiname local state su nauju vertinimu
-                setCurrentGrade(grade);
+                setCurrentGrade(grade as Grade);
               }}
               studentId={getStudentId()}
                                     lessonId={getLessonId()} // CHANGE: Naudojame apskaičiuotą lessonId

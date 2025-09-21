@@ -31,8 +31,8 @@ interface LessonSequenceItem {
 
 interface LessonDualListTransferProps {
   availableLessons: Lesson[];
-  selectedLessons: LessonSequenceItem[] | any[]; // Leidžiame bet kokį tipą
-  onSelectionChange: (selected: any[]) => void; // Leidžiame bet kokį tipą
+  selectedLessons: LessonSequenceItem[] | Record<string, unknown>[];
+  onSelectionChange: (selected: LessonSequenceItem[] | Record<string, unknown>[]) => void;
   availableTitle?: string;
   selectedTitle?: string;
   isLoading?: boolean;
@@ -170,7 +170,7 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
   deletedLessonsCount = 0
 }) => {
   const [internalAvailable, setInternalAvailable] = useState<Lesson[]>([]);
-  const [internalSelected, setInternalSelected] = useState<any[]>(selectedLessons);
+  const [internalSelected, setInternalSelected] = useState<LessonSequenceItem[] | Record<string, unknown>[]>(selectedLessons);
   const [availableSelected, setAvailableSelected] = useState<number[]>([]);
   const [selectedSelected, setSelectedSelected] = useState<number[]>([]);
   const [draggedPosition, setDraggedPosition] = useState<number | null>(null);
@@ -200,7 +200,7 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
   }, [availableLessons, selectedLessons]);
 
   // Convert lesson to sequence item
-  const lessonToSequenceItem = (lesson: Lesson, position: number): any => {
+  const lessonToSequenceItem = (lesson: Lesson, position: number): LessonSequenceItem | null => {
     
     // Patikriname ar lesson turi reikalingus laukus
     if (!lesson || typeof lesson !== 'object') {
@@ -235,20 +235,20 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
     const newSelected = [...internalSelected, ...newSequenceItems];
     
     // Keep lessons in available list (don't remove them)
-    setInternalSelected(newSelected);
+    setInternalSelected(newSelected as LessonSequenceItem[]);
     setAvailableSelected([]);
-    onSelectionChange(newSelected);
+    onSelectionChange(newSelected as LessonSequenceItem[]);
   };
 
   // Move selected sequence items back to available (remove from sequence)
   const moveToAvailable = () => {
-    const newSelected = internalSelected.filter(item => !selectedSelected.includes(item.id));
+    const newSelected = internalSelected.filter(item => !selectedSelected.includes((item as LessonSequenceItem).id));
     
     // Reorder positions
     const reorderedSelected = newSelected.map((item, index) => ({ ...item, position: index + 1 }));
     
     // Don't add items back to available - they're already there
-    setInternalSelected(reorderedSelected);
+    setInternalSelected(reorderedSelected as LessonSequenceItem[]);
     setSelectedSelected([]);
     onSelectionChange(reorderedSelected);
   };
@@ -312,11 +312,11 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
         }
         
         // Keep lessons in available list (don't remove them)
-        setInternalSelected(newSelected);
+        setInternalSelected(newSelected as LessonSequenceItem[]);
         setAvailableSelected([]);
         
         try {
-          onSelectionChange(newSelected);
+          onSelectionChange(newSelected as LessonSequenceItem[]);
         } catch (error) {
           console.error('Error calling onSelectionChange:', error);
         }
@@ -538,9 +538,9 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
               ) : (
                 internalSelected.map(item => (
                   <SequenceItem
-                    key={item.position}
-                    item={item}
-                    isSelected={selectedSelected.includes(item.id)}
+                    key={(item as LessonSequenceItem).position}
+                    item={item as LessonSequenceItem}
+                    isSelected={selectedSelected.includes((item as LessonSequenceItem).id)}
                     onSelect={handleSelectedSelect}
                     onDragStart={handleDragStart}
                     onDragOver={handleDragOver}

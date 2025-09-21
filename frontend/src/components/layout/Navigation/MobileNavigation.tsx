@@ -6,7 +6,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Menu, X } from 'lucide-react';
 import BaseNavigation from './BaseNavigation';
 

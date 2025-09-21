@@ -78,7 +78,7 @@ export default function SettingsPage() {
       } else {
         setMessage({ type: 'error', text: response.message });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Klaida keičiant slaptažodį. Patikrinkite seną slaptažodį.' });
     }
   };

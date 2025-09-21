@@ -8,7 +8,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+// import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -81,7 +81,7 @@ async function fetchLevels(): Promise<Level[]> {
 }
 
 export default function CreateLessonSequencePage() {
-  const { user } = useAuth();
+  // useAuth();
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -145,8 +145,18 @@ export default function CreateLessonSequencePage() {
   };
 
   // Handle lesson sequence changes from the dual list component
-  const handleLessonSequenceChange = (selected: LessonSequenceItem[]) => {
-    setSelectedLessons(selected);
+  const handleLessonSequenceChange = (selected: Record<string, unknown>[] | LessonSequenceItem[]) => {
+    // Type guard to ensure we have LessonSequenceItem[]
+    const lessonItems = selected.map(item => ({
+      id: Number(item.id),
+      title: String(item.title),
+      subject: String(item.subject),
+      levels: String(item.levels),
+      topic: String(item.topic),
+      position: Number(item.position) || 0
+    })) as LessonSequenceItem[];
+    
+    setSelectedLessons(lessonItems);
   };
 
   const handleSubmit = async () => {
@@ -218,22 +228,24 @@ export default function CreateLessonSequencePage() {
       } else {
         throw new Error('Nepavyko sukurti pamokų sekos');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Klaida kuriant pamokų seką:', error);
       
       let errorMessage = 'Įvyko klaida kuriant pamokų seką';
       
       // Geresnis klaidų apdorojimas
-      if (error.response?.data) {
-        if (Array.isArray(error.response.data)) {
+      const axiosError = error as { response?: { data?: unknown } };
+      if (axiosError.response?.data) {
+        const errorData = axiosError.response.data;
+        if (Array.isArray(errorData)) {
           // Jei backend grąžina klaidų sąrašą
-          errorMessage = error.response.data.join('\n');
-        } else if (typeof error.response.data === 'string') {
-          errorMessage = error.response.data;
-        } else if (error.response.data.detail) {
-          errorMessage = error.response.data.detail;
-        } else if (error.response.data.error) {
-          errorMessage = error.response.data.error;
+          errorMessage = errorData.join('\n');
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (errorData && typeof errorData === 'object' && 'detail' in errorData) {
+          errorMessage = (errorData as { detail: string }).detail;
+        } else if (errorData && typeof errorData === 'object' && 'error' in errorData) {
+          errorMessage = (errorData as { error: string }).error;
         }
       }
       

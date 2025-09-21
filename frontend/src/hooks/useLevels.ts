@@ -1,5 +1,5 @@
 // frontend/src/hooks/useLevels.ts
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { levelsAPI } from '@/lib/api';
 import { Level } from '@/lib/types';
 
@@ -8,26 +8,28 @@ export const useLevels = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLevels = async () => {
+  const fetchLevels = useCallback(async () => {
     try {
       setLoading(true);
       const response = await levelsAPI.getAll();
       setLevels(response.data);
       setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Klaida gaunant lygius');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Klaida gaunant lygius');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const createLevel = async (levelData: Partial<Level>) => {
     try {
       const response = await levelsAPI.create(levelData);
       setLevels(prev => [...prev, response.data]);
       return response.data;
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida kuriant lygį');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      throw new Error(error.response?.data?.message || 'Klaida kuriant lygį');
     }
   };
 
@@ -38,8 +40,9 @@ export const useLevels = () => {
         level.id === id ? response.data : level
       ));
       return response.data;
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida atnaujinant lygį');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      throw new Error(error.response?.data?.message || 'Klaida atnaujinant lygį');
     }
   };
 
@@ -47,14 +50,15 @@ export const useLevels = () => {
     try {
       await levelsAPI.delete(id);
       setLevels(prev => prev.filter(level => level.id !== id));
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida šalinant lygį');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      throw new Error(error.response?.data?.message || 'Klaida šalinant lygį');
     }
   };
 
   useEffect(() => {
     fetchLevels();
-  }, []);
+  }, [fetchLevels]);
 
   return {
     levels,

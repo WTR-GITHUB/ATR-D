@@ -51,7 +51,7 @@ export const LOCALE_CONFIG = {
 export const formatDate = (date: Date, options: Intl.DateTimeFormatOptions = LOCALE_CONFIG.dateFormat.short): string => {
   try {
     return date.toLocaleDateString('en-US', options);
-  } catch (error) {
+  } catch {
     // Fallback to fallback locale if primary fails
     return date.toLocaleDateString('en-US', options);
   }
@@ -63,7 +63,7 @@ export const formatDate = (date: Date, options: Intl.DateTimeFormatOptions = LOC
 export const formatTime = (date: Date, options: Intl.DateTimeFormatOptions = LOCALE_CONFIG.dateFormat.time): string => {
   try {
     return date.toLocaleTimeString('en-US', options);
-  } catch (error) {
+  } catch {
     return date.toLocaleTimeString('en-US', options);
   }
 };
@@ -74,7 +74,7 @@ export const formatTime = (date: Date, options: Intl.DateTimeFormatOptions = LOC
 export const formatDateTime = (date: Date, options: Intl.DateTimeFormatOptions = LOCALE_CONFIG.dateFormat.datetime): string => {
   try {
     return date.toLocaleString('en-US', options);
-  } catch (error) {
+  } catch {
     return date.toLocaleString('en-US', options);
   }
 };

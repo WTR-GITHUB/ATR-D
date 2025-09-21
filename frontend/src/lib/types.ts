@@ -330,7 +330,7 @@ export interface TableColumn<T> {
   key: keyof T;
   label: string;
   sortable?: boolean;
-  render?: (value: any, row: T) => any;
+  render?: (value: unknown, row: T) => React.ReactNode;
 }
 
 // Modal types
@@ -338,7 +338,7 @@ export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  children: any;
+  children: React.ReactNode;
 }
 
 // Validation types
@@ -515,7 +515,7 @@ export interface ViolationTableColumn {
   key: keyof Violation;
   label: string;
   sortable?: boolean;
-  render?: (value: any, row: Violation) => React.ReactNode;
+  render?: (value: unknown, row: Violation) => React.ReactNode;
   width?: string;
   align?: 'left' | 'center' | 'right';
 }

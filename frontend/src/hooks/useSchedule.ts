@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 
 export interface ScheduleItem {
@@ -103,7 +103,7 @@ export const useSchedule = (params: UseScheduleParams = {}): UseScheduleReturn =
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSchedule = async () => {
+  const fetchSchedule = useCallback(async () => {
     if (!params.enabled) return;
     
     try {
@@ -136,18 +136,18 @@ export const useSchedule = (params: UseScheduleParams = {}): UseScheduleReturn =
       
       // CHANGE: Type-safe error handling for schedule data fetching
       const errorMessage = err && typeof err === 'object' && 'response' in err 
-        ? (err as any).response?.data?.detail || 'Nepavyko gauti tvarkaraščio duomenų'
+        ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Nepavyko gauti tvarkaraščio duomenų'
         : 'Nepavyko gauti tvarkaraščio duomenų';
       
       setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [params.enabled, params.date, params.period, params.subject]);
 
   useEffect(() => {
     fetchSchedule();
-  }, [params.date, params.period, params.subject, params.enabled]);
+  }, [fetchSchedule, params.date, params.period, params.subject, params.enabled]);
 
   return {
     scheduleItems,

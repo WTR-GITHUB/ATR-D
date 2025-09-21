@@ -53,7 +53,7 @@ export const useLessons = (): UseLessonsReturn => {
       
       // CHANGE: Type-safe error handling for lessons fetching
       const errorMessage = err && typeof err === 'object' && 'response' in err 
-        ? (err as any).response?.data?.detail || 'Nepavyko gauti pamokų duomenų'
+        ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Nepavyko gauti pamokų duomenų'
         : 'Nepavyko gauti pamokų duomenų';
       
       setError(errorMessage);

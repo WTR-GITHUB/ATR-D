@@ -4,7 +4,7 @@
 # PURPOSE: Container image for Next.js frontend service
 # UPDATES: Fixed CMD syntax and build process for both dev and production modes
 
-FROM node:18-alpine
+FROM node:24.8.0-alpine
 
 # Set working directory
 WORKDIR /app
@@ -16,7 +16,7 @@ RUN apk add --no-cache curl
 COPY frontend/package*.json ./
 
 # Install ALL dependencies (including devDependencies for build)
-RUN npm ci
+RUN npm install
 
 # Copy frontend code
 COPY frontend/ .

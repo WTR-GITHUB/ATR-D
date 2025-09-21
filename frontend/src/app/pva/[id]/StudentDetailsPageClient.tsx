@@ -10,37 +10,31 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useStudentDetails } from '@/hooks/useStudentDetails';
 import { useAuth } from '@/hooks/useAuth';
-import { StudentScheduleCalendar, AttendanceStatusIcon, AttendanceFilter } from '../components';
+import { StudentScheduleCalendar } from '../components';
 import { ReactDataTable } from '@/components/DataTable';
 import api, { violationAPI } from '@/lib/api';
-import TodoCompletionModal from '@/components/ui/TodoCompletionModal';
+// import TodoCompletionModal from '@/components/ui/TodoCompletionModal';
 import { 
   AlertTriangle, 
   CheckCircle, 
   Clock, 
-  Edit, 
   Trash2, 
-  DollarSign,
-  TrendingUp,
   BookOpen,
-  Calendar,
   User,
-  XCircle,
-  Minus,
   UserCheck,
   Footprints,
   UserX,
   MessagesSquare
 } from 'lucide-react';
 import { Violation } from '@/lib/types';
-import { formatDateTime, formatDate } from '@/lib/localeConfig';
+import { formatDate } from '@/lib/localeConfig';
 
 // Client-side Student Details page component
 // Handles all interactive functionality
 const StudentDetailsPageClient = () => {
   const params = useParams();
   const studentId = params.id as string;
-  const { user, token } = useAuth();
+  useAuth();
   const { student, loading, error, accessDenied } = useStudentDetails(studentId);
   
   // Tvarkaraščio valdymas
@@ -51,15 +45,18 @@ const StudentDetailsPageClient = () => {
   const [violationsLoading, setViolationsLoading] = useState(true);
   const [violationsError, setViolationsError] = useState<string | null>(null);
   
-  // Todo modal state
+  // Todo modal state (currently unused but kept for future functionality)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isTodoModalOpen, setIsTodoModalOpen] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedViolationForTodos, setSelectedViolationForTodos] = useState<Violation | null>(null);
   
-  // Categories state
-  const [categories, setCategories] = useState<any[]>([]);
+  // Categories state (currently unused but kept for future functionality)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [categories, setCategories] = useState<{id: number; name: string; description?: string}[]>([]);
   
   // IMU Plans state
-  const [imuPlans, setImuPlans] = useState<any[]>([]);
+  const [imuPlans, setImuPlans] = useState<Record<string, unknown>[]>([]);
   const [imuPlansLoading, setImuPlansLoading] = useState(true);
   const [imuPlansError, setImuPlansError] = useState<string | null>(null);
   const [isDeletingPlan, setIsDeletingPlan] = useState<number | null>(null);
@@ -169,30 +166,30 @@ const StudentDetailsPageClient = () => {
   };
 
   // Handle todo modal close
-  const handleTodoModalClose = () => {
-    setIsTodoModalOpen(false);
-    setSelectedViolationForTodos(null);
-  };
+  // const handleTodoModalClose = () => {
+  //   setIsTodoModalOpen(false);
+  //   setSelectedViolationForTodos(null);
+  // };
 
   // Handle todo completion success
-  const handleTodoCompletionSuccess = () => {
-    // Refresh violations data
-    const fetchViolations = async () => {
-      try {
-        const response = await violationAPI.violations.getAll();
-        const studentViolations = response.data.filter((violation: Violation) => 
-          violation.student_name && violation.student_name.includes(student?.first_name || '') && 
-          violation.student_name.includes(student?.last_name || '')
-        );
-        setViolations(studentViolations);
-      } catch (err) {
-        console.error('Error refreshing violations:', err);
-      }
-    };
+  // const handleTodoCompletionSuccess = () => {
+  //   // Refresh violations data
+  //   const fetchViolations = async () => {
+  //     try {
+  //       const response = await violationAPI.violations.getAll();
+  //       const studentViolations = response.data.filter((violation: Violation) => 
+  //         violation.student_name && violation.student_name.includes(student?.first_name || '') && 
+  //         violation.student_name.includes(student?.last_name || '')
+  //       );
+  //       setViolations(studentViolations);
+  //     } catch (err) {
+  //       console.error('Error refreshing violations:', err);
+  //     }
+  //   };
     
-    fetchViolations();
-    handleTodoModalClose();
-  };
+  //   fetchViolations();
+  //   handleTodoModalClose();
+  // };
 
   // Loading state
   if (loading) {
@@ -445,43 +442,47 @@ const StudentDetailsPageClient = () => {
                 {
                   title: 'Pamoka',
                   data: 'lesson_title',
-                  render: (data: any, row: any) => row.lesson?.title || 'Nepriskirta pamoka'
+                  render: (_data: unknown, row: unknown): string => ((row as Record<string, unknown>).lesson as Record<string, unknown>)?.title as string || 'Nepriskirta pamoka'
                 },
                 {
                   title: 'Dalykas',
                   data: 'subject_name',
-                  render: (data: any, row: any) => row.global_schedule?.subject?.name || 'Nepriskirtas dalykas'
+                  render: (_data: unknown, row: unknown): string => (((row as Record<string, unknown>).global_schedule as Record<string, unknown>)?.subject as Record<string, unknown>)?.name as string || 'Nepriskirtas dalykas'
                 },
                 {
                   title: 'Lygis',
                   data: 'level_name',
-                  render: (data: any, row: any) => row.global_schedule?.level?.name || 'Nepriskirtas lygis'
+                  render: (_data: unknown, row: unknown): string => (((row as Record<string, unknown>).global_schedule as Record<string, unknown>)?.level as Record<string, unknown>)?.name as string || 'Nepriskirtas lygis'
                 },
                 {
                   title: 'Data',
                   data: 'global_schedule',
-                  render: (data: any) => {
-                    if (!data?.date) return '-';
-                    return new Date(data.date).toLocaleDateString('lt-LT');
+                  render: (data: unknown): string => {
+                    const scheduleData = data as Record<string, unknown>;
+                    if (!scheduleData?.date) return '-';
+                    return new Date(scheduleData.date as string).toLocaleDateString('lt-LT');
                   }
                 },
                 {
                   title: 'Laikas',
                   data: 'global_schedule',
-                  render: (data: any) => {
-                    if (!data?.period) return '-';
-                    return `${data.period.starttime} - ${data.period.endtime}`;
+                  render: (data: unknown): string => {
+                    const scheduleData = data as Record<string, unknown>;
+                    if (!scheduleData?.period) return '-';
+                    const period = scheduleData.period as Record<string, unknown>;
+                    return `${period.starttime} - ${period.endtime}`;
                   }
                 },
                 {
                   title: 'Klasė',
                   data: 'classroom_name',
-                  render: (data: any, row: any) => row.global_schedule?.classroom?.name || '-'
+                  render: (_data: unknown, row: unknown): string => (((row as Record<string, unknown>).global_schedule as Record<string, unknown>)?.classroom as Record<string, unknown>)?.name as string || '-'
                 },
                 {
                   title: 'Lankomumas',
                   data: 'attendance_status',
-                  render: (data: any) => {
+                  render: (data: unknown) => {
+                    const status = data as string;
                     // Tik ikonos be teksto, kaip AttendanceMarker komponente
                     const getIconStyle = (status: string) => {
                       const baseStyle = "w-8 h-8 rounded flex items-center justify-center";
@@ -516,8 +517,8 @@ const StudentDetailsPageClient = () => {
                     };
 
                     return (
-                      <div className={getIconStyle(data)}>
-                        {getIcon(data)}
+                      <div className={getIconStyle(status)}>
+                        {getIcon(status)}
                       </div>
                     );
                   }
@@ -525,13 +526,13 @@ const StudentDetailsPageClient = () => {
                 {
                   title: 'Veiksmai',
                   data: 'id',
-                  render: (data: any, row: any) => {
-                    const isDeleting = isDeletingPlan === data;
+                  render: (data: unknown) => {
+                    const isDeleting = isDeletingPlan === (data as number);
                     
                     return (
                       <div className="flex items-center space-x-2">
                         <button
-                          onClick={() => handleDeleteIMUPlan(data)}
+                          onClick={() => handleDeleteIMUPlan(data as number)}
                           disabled={isDeleting}
                           className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Ištrinti ugdymo planą"
@@ -551,7 +552,7 @@ const StudentDetailsPageClient = () => {
               onFiltersChange={(filters, customFilters) => {
                 // Handle custom attendance filter
                 if (customFilters.attendance !== undefined) {
-                  setAttendanceFilter(customFilters.attendance);
+                  setAttendanceFilter(customFilters.attendance as string | null);
                 }
               }}
               onClearFilters={() => {

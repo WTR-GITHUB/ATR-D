@@ -11,7 +11,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, MapPin, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import useWeeklySchedule from '@/hooks/useWeeklySchedule';
-import useSubjects from '@/hooks/useSubjects';
+// import useSubjects from '@/hooks/useSubjects';
 import usePeriods from '@/hooks/usePeriods';
 import { useWeekInfoContext } from '@/contexts/WeekInfoContext';
 // CHANGE: Pataisytas import'as - ScheduleItem importuojamas iš useSchedule hook'o
@@ -20,7 +20,7 @@ import { ScheduleItem } from '@/hooks/useSchedule';
 interface WeeklyScheduleCalendarProps {
   className?: string;
   showHeader?: boolean; // Ar rodyti antraštę (kai naudojamas akordeone - false)
-  onWeekChange?: (weekInfo: any) => void; // Callback savaitės informacijai perduoti į parent
+  onWeekChange?: (weekInfo: Record<string, unknown>) => void; // Callback savaitės informacijai perduoti į parent
   onScheduleItemSelect?: (item: ScheduleItem | null) => void; // Callback pamokos pasirinkimui
   selectedScheduleId?: number | null; // Pasirinktos pamokos ID
 }
@@ -111,7 +111,7 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
   // Pašalinta vietinė selectedLesson būsena - naudojame props
   
   // API hooks duomenų gavimui
-  const { subjects } = useSubjects();
+  // useSubjects();
   const { periods } = usePeriods();
   // Pašalinta lessonDetails logika - naudojama activities puslapyje
   
@@ -266,7 +266,7 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
             ))}
 
             {/* Pamokų eilutės */}
-            {periods.map((period, periodIndex) => (
+            {periods.map((period) => (
               <React.Fragment key={`row-${period.id}`}>
                 {/* Laiko stulpelis */}
                 <div className="flex items-center justify-center bg-gray-50 rounded-lg border min-h-20">

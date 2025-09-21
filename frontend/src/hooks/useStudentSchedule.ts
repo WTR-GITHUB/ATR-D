@@ -4,7 +4,7 @@
 // Gauna duomenis pagal studento ID ir savaitės datą
 // CHANGE: Sukurtas naujas hook studento tvarkaraščio duomenims
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 
 interface StudentScheduleItem {
@@ -47,7 +47,7 @@ export const useStudentSchedule = (params: UseStudentScheduleParams): UseStudent
   const [studentName, setStudentName] = useState<string>('');
   const [count, setCount] = useState<number>(0);
 
-  const fetchStudentSchedule = async () => {
+  const fetchStudentSchedule = useCallback(async () => {
     if (!params.enabled || !params.weekStartDate || !params.studentId) return;
 
     try {
@@ -65,20 +65,21 @@ export const useStudentSchedule = (params: UseStudentScheduleParams): UseStudent
       setStudentName(response.data.student_name || '');
       setCount(response.data.count || 0);
       
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Klaida gaunant studento tvarkaraščio duomenis:', err);
-      setError(err.response?.data?.error || 'Nepavyko gauti studento tvarkaraščio duomenų');
+      const error = err as { response?: { data?: { error?: string } } };
+      setError(error.response?.data?.error || 'Nepavyko gauti studento tvarkaraščio duomenų');
       setScheduleItems([]);
       setStudentName('');
       setCount(0);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [params.enabled, params.weekStartDate, params.studentId]);
 
   useEffect(() => {
     fetchStudentSchedule();
-  }, [params.studentId, params.weekStartDate, params.enabled]);
+  }, [fetchStudentSchedule]);
 
   return { scheduleItems, isLoading, error, studentName, count };
 };

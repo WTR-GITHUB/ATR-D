@@ -12,8 +12,7 @@ import {
   UserCheck, 
   UserX, 
   Footprints, 
-  MessagesSquare,
-  X
+  MessagesSquare
 } from 'lucide-react';
 import { AttendanceStatus } from '../types';
 
@@ -145,29 +144,29 @@ export const AttendanceButtonGroup: React.FC<AttendanceButtonGroupProps> = ({
 }) => {
   const statuses: AttendanceStatus[] = ['present', 'left', 'absent', 'excused']; // CHANGE: Pakeista 'late' į 'left'
 
-  // Mygtuko dydžio nustatymas
-  const getSizeClasses = () => {
-    switch (size) {
-      case 'sm':
-        return 'w-6 h-6';
-      case 'lg':
-        return 'w-10 h-10';
-      default:
-        return 'w-8 h-8';
-    }
-  };
+  // Mygtuko dydžio nustatymas - commented out as not used
+  // const getSizeClasses = () => {
+  //   switch (size) {
+  //     case 'sm':
+  //       return 'w-6 h-6';
+  //     case 'lg':
+  //       return 'w-10 h-10';
+  //     default:
+  //       return 'w-8 h-8';
+  //   }
+  // };
 
-  // Ikonos dydžio nustatymas
-  const getIconSize = () => {
-    switch (size) {
-      case 'sm':
-        return 12;
-      case 'lg':
-        return 20;
-      default:
-        return 16;
-    }
-  };
+  // Ikonos dydžio nustatymas - commented out as not used
+  // const getIconSize = () => {
+  //   switch (size) {
+  //     case 'sm':
+  //       return 12;
+  //     case 'lg':
+  //       return 20;
+  //     default:
+  //       return 16;
+  //   }
+  // };
 
   return (
     <div className="flex space-x-2">

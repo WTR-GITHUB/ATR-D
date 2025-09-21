@@ -54,15 +54,16 @@ export const useStudentDetails = (studentId: string) => {
         const data: StudentDetails = response.data;
         setStudent(data);
 
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const error = err as { response?: { status?: number; data?: unknown } };
         
         // Handle 403 Forbidden error
-        if (err.response?.status === 403) {
+        if (error.response?.status === 403) {
           setAccessDenied(true);
           return;
         }
         
-        setError(err.response?.data?.message || err.message || 'Nepavyko gauti studento duomenų');
+        setError((error.response?.data as { message?: string })?.message || (err as { message?: string }).message || 'Nepavyko gauti studento duomenų');
       } finally {
         setLoading(false);
       }

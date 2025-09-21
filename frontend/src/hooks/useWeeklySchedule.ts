@@ -4,7 +4,7 @@
 // Gauna duomenis visoms savaitės dienoms ir filtruoja pagal mentorių
 // CHANGE: Sukurtas naujas hook savaitės tvarkaraščio duomenims
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 // CHANGE: Pataisytas import'as - ScheduleItem importuojamas iš useSchedule hook'o
 import { ScheduleItem } from '@/hooks/useSchedule';
@@ -18,6 +18,7 @@ interface UseWeeklyScheduleReturn {
   scheduleItems: ScheduleItem[];
   isLoading: boolean;
   error: string | null;
+  refetch: () => Promise<void>;
 }
 
 export const useWeeklySchedule = (params: UseWeeklyScheduleParams): UseWeeklyScheduleReturn => {
@@ -25,7 +26,7 @@ export const useWeeklySchedule = (params: UseWeeklyScheduleParams): UseWeeklySch
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchWeeklySchedule = async () => {
+  const fetchWeeklySchedule = useCallback(async () => {
     if (!params.enabled || !params.weekStartDate) return;
 
 
@@ -45,25 +46,26 @@ export const useWeeklySchedule = (params: UseWeeklyScheduleParams): UseWeeklySch
         try {
           const response = await api.get(`/schedule/schedules/daily/?date=${dateStr}`);
           weekItems.push(...response.data);
-        } catch (dayError) {
+        } catch {
           // Netęsiame klaidų, nes kai kurios dienos gali neturėti pamokų
         }
       }
 
       setScheduleItems(weekItems);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('❌ Klaida gaunant savaitės tvarkaraščio duomenis:', err);
-      setError(err.response?.data?.detail || 'Nepavyko gauti savaitės tvarkaraščio duomenų');
+      const error = err as { response?: { data?: { detail?: string } } };
+      setError(error.response?.data?.detail || 'Nepavyko gauti savaitės tvarkaraščio duomenų');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [params.enabled, params.weekStartDate]);
 
   useEffect(() => {
     fetchWeeklySchedule();
-  }, [params.weekStartDate, params.enabled]);
+  }, [fetchWeeklySchedule, params.weekStartDate, params.enabled]);
 
-  return { scheduleItems, isLoading, error };
+  return { scheduleItems, isLoading, error, refetch: fetchWeeklySchedule };
 };
 
 export default useWeeklySchedule;

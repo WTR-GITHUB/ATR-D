@@ -1,7 +1,7 @@
 // frontend/src/hooks/useCurriculum.ts
 import { useState, useEffect, useCallback } from 'react';
 import { curriculumAPI, plansAPI } from '@/lib/api';
-import { Subject, Level, Lesson, Skill, Competency, CompetencyAtcheve, Virtue, Objective, Component } from '@/lib/types';
+import { Subject, Level, Lesson, Skill, Competency, Virtue } from '@/lib/types';
 
 // Hook dalykų valdymui
 export const useSubjects = () => {
@@ -15,8 +15,9 @@ export const useSubjects = () => {
       const response = await curriculumAPI.subjects.getAll();
       setSubjects(response.data);
       setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Klaida gaunant dalykus');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || 'Klaida gaunant dalykus');
     } finally {
       setLoading(false);
     }
@@ -27,8 +28,9 @@ export const useSubjects = () => {
       const response = await curriculumAPI.subjects.create(subjectData);
       setSubjects(prev => [...prev, response.data]);
       return response.data;
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida kuriant dalyką');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      throw new Error(error.response?.data?.message || 'Klaida kuriant dalyką');
     }
   };
 
@@ -39,8 +41,9 @@ export const useSubjects = () => {
         subject.id === id ? response.data : subject
       ));
       return response.data;
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida atnaujinant dalyką');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      throw new Error(error.response?.data?.message || 'Klaida atnaujinant dalyką');
     }
   };
 
@@ -48,8 +51,9 @@ export const useSubjects = () => {
     try {
       await curriculumAPI.subjects.delete(id);
       setSubjects(prev => prev.filter(subject => subject.id !== id));
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida šalinant dalyką');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      throw new Error(error.response?.data?.message || 'Klaida šalinant dalyką');
     }
   };
 
@@ -89,8 +93,8 @@ export const useAttendanceStats = () => {
       
       const response = await plansAPI.imuPlans.getAttendanceStats(studentId, subjectId);
       setStats(response.data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Klaida gaunant lankomumo statistiką');
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida gaunant lankomumo statistiką');
       setStats(null);
     } finally {
       setLoading(false);
@@ -137,20 +141,40 @@ export const useBulkAttendanceStats = () => {
       const response = await plansAPI.imuPlans.getBulkAttendanceStats(subjectId, globalScheduleId, lessonId);
       
       // Konvertuoti į objektą su student_id kaip raktu
-      const statsObject: { [studentId: number]: any } = {};
+      const statsObject: { [studentId: number]: {
+        student_id: number;
+        student_name: string;
+        total_records: number;
+        present_records: number;
+        absent_records: number;
+        left_records: number;
+        excused_records: number;
+        percentage: number;
+        calculated_from: string;
+      } } = {};
       
       // CHANGE: Backend'o API grąžina 'student_stats', ne 'students'
       const studentsArray = response.data.students || response.data.student_stats;
       
       if (studentsArray && Array.isArray(studentsArray)) {
-        studentsArray.forEach((student: any) => {
+        studentsArray.forEach((student: {
+          student_id: number;
+          student_name: string;
+          total_records: number;
+          present_records: number;
+          absent_records: number;
+          left_records: number;
+          excused_records: number;
+          percentage: number;
+          calculated_from: string;
+        }) => {
           statsObject[student.student_id] = student;
         });
       }
       
       setStats(statsObject);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Klaida gaunant bulk lankomumo statistiką');
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida gaunant bulk lankomumo statistiką');
       setStats(null);
     } finally {
       setLoading(false);
@@ -183,8 +207,8 @@ export const useLevels = () => {
       const response = await curriculumAPI.levels.getAll();
       setLevels(response.data);
       setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Klaida gaunant lygius');
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida gaunant lygius');
     } finally {
       setLoading(false);
     }
@@ -195,8 +219,8 @@ export const useLevels = () => {
       const response = await curriculumAPI.levels.create(levelData);
       setLevels(prev => [...prev, response.data]);
       return response.data;
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida kuriant lygį');
+    } catch (err: unknown) {
+      throw new Error((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida kuriant lygį');
     }
   };
 
@@ -207,8 +231,8 @@ export const useLevels = () => {
         level.id === id ? response.data : level
       ));
       return response.data;
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida atnaujinant lygį');
+    } catch (err: unknown) {
+      throw new Error((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida atnaujinant lygį');
     }
   };
 
@@ -216,8 +240,8 @@ export const useLevels = () => {
     try {
       await curriculumAPI.levels.delete(id);
       setLevels(prev => prev.filter(level => level.id !== id));
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida šalinant lygį');
+    } catch (err: unknown) {
+      throw new Error((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida šalinant lygį');
     }
   };
 
@@ -248,8 +272,8 @@ export const useLessons = () => {
       const response = await curriculumAPI.lessons.getAll();
       setLessons(response.data);
       setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Klaida gaunant pamokas');
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida gaunant pamokas');
     } finally {
       setLoading(false);
     }
@@ -260,8 +284,8 @@ export const useLessons = () => {
       const response = await curriculumAPI.lessons.create(lessonData);
       setLessons(prev => [...prev, response.data]);
       return response.data;
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida kuriant pamoką');
+    } catch (err: unknown) {
+      throw new Error((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida kuriant pamoką');
     }
   };
 
@@ -272,8 +296,8 @@ export const useLessons = () => {
         lesson.id === id ? response.data : lesson
       ));
       return response.data;
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida atnaujinant pamoką');
+    } catch (err: unknown) {
+      throw new Error((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida atnaujinant pamoką');
     }
   };
 
@@ -281,8 +305,8 @@ export const useLessons = () => {
     try {
       await curriculumAPI.lessons.delete(id);
       setLessons(prev => prev.filter(lesson => lesson.id !== id));
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida šalinant pamoką');
+    } catch (err: unknown) {
+      throw new Error((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida šalinant pamoką');
     }
   };
 
@@ -290,8 +314,8 @@ export const useLessons = () => {
     try {
       const response = await curriculumAPI.lessons.getById(id);
       return response.data;
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida gaunant pamoką');
+    } catch (err: unknown) {
+      throw new Error((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida gaunant pamoką');
     }
   };
 
@@ -317,14 +341,14 @@ export const useSkills = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSkills = async (params?: any) => {
+  const fetchSkills = async (params?: Record<string, unknown>) => {
     try {
       setLoading(true);
       const response = await curriculumAPI.skills.getAll(params);
       setSkills(response.data);
       setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Klaida gaunant gebėjimus');
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida gaunant gebėjimus');
     } finally {
       setLoading(false);
     }
@@ -335,8 +359,8 @@ export const useSkills = () => {
       const response = await curriculumAPI.skills.create(skillData);
       setSkills(prev => [...prev, response.data]);
       return response.data;
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida kuriant gebėjimą');
+    } catch (err: unknown) {
+      throw new Error((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida kuriant gebėjimą');
     }
   };
 
@@ -347,8 +371,8 @@ export const useSkills = () => {
         skill.id === id ? response.data : skill
       ));
       return response.data;
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida atnaujinant gebėjimą');
+    } catch (err: unknown) {
+      throw new Error((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida atnaujinant gebėjimą');
     }
   };
 
@@ -356,8 +380,8 @@ export const useSkills = () => {
     try {
       await curriculumAPI.skills.delete(id);
       setSkills(prev => prev.filter(skill => skill.id !== id));
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida šalinant gebėjimą');
+    } catch (err: unknown) {
+      throw new Error((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida šalinant gebėjimą');
     }
   };
 
@@ -382,14 +406,14 @@ export const useCompetencies = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCompetencies = async (params?: any) => {
+  const fetchCompetencies = async (params?: Record<string, unknown>) => {
     try {
       setLoading(true);
       const response = await curriculumAPI.competencies.getAll(params);
       setCompetencies(response.data);
       setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Klaida gaunant kompetencijas');
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida gaunant kompetencijas');
     } finally {
       setLoading(false);
     }
@@ -400,8 +424,8 @@ export const useCompetencies = () => {
       const response = await curriculumAPI.competencies.create(competencyData);
       setCompetencies(prev => [...prev, response.data]);
       return response.data;
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida kuriant kompetenciją');
+    } catch (err: unknown) {
+      throw new Error((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida kuriant kompetenciją');
     }
   };
 
@@ -412,8 +436,8 @@ export const useCompetencies = () => {
         competency.id === id ? response.data : competency
       ));
       return response.data;
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida atnaujinant kompetenciją');
+    } catch (err: unknown) {
+      throw new Error((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida atnaujinant kompetenciją');
     }
   };
 
@@ -421,8 +445,8 @@ export const useCompetencies = () => {
     try {
       await curriculumAPI.competencies.delete(id);
       setCompetencies(prev => prev.filter(competency => competency.id !== id));
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida šalinant kompetenciją');
+    } catch (err: unknown) {
+      throw new Error((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida šalinant kompetenciją');
     }
   };
 
@@ -453,8 +477,8 @@ export const useVirtues = () => {
       const response = await curriculumAPI.virtues.getAll();
       setVirtues(response.data);
       setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Klaida gaunant dorybes');
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida gaunant dorybes');
     } finally {
       setLoading(false);
     }
@@ -465,8 +489,8 @@ export const useVirtues = () => {
       const response = await curriculumAPI.virtues.create(virtueData);
       setVirtues(prev => [...prev, response.data]);
       return response.data;
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida kuriant dorybę');
+    } catch (err: unknown) {
+      throw new Error((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida kuriant dorybę');
     }
   };
 
@@ -477,8 +501,8 @@ export const useVirtues = () => {
         virtue.id === id ? response.data : virtue
       ));
       return response.data;
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida atnaujinant dorybę');
+    } catch (err: unknown) {
+      throw new Error((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida atnaujinant dorybę');
     }
   };
 
@@ -486,8 +510,8 @@ export const useVirtues = () => {
     try {
       await curriculumAPI.virtues.delete(id);
       setVirtues(prev => prev.filter(virtue => virtue.id !== id));
-    } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Klaida šalinant dorybę');
+    } catch (err: unknown) {
+      throw new Error((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Klaida šalinant dorybę');
     }
   };
 

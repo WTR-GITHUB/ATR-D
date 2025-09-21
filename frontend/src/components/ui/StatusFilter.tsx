@@ -41,11 +41,11 @@ const StatusFilter: React.FC<StatusFilterProps> = ({
     return positiveLabel;
   };
 
-  const getLabelColor = () => {
-    if (value === -1) return 'text-red-600';
-    if (value === 0) return 'text-gray-600';
-    return 'text-green-600';
-  };
+  // const getLabelColor = () => {
+  //   if (value === -1) return 'text-red-600';
+  //   if (value === 0) return 'text-gray-600';
+  //   return 'text-green-600';
+  // };
 
   return (
     <div className="flex flex-col items-center space-y-2">

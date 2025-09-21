@@ -112,12 +112,12 @@ export interface LessonDetails {
   subject_name: string;
   content: string; // Mokomoji medžiaga
   objectives: string; // JSON string
-  objectives_list: any[]; // Parsed JSON
+  objectives_list: string[]; // Parsed JSON
   components: string; // JSON string  
-  components_list: any[]; // Parsed JSON
+  components_list: string[]; // Parsed JSON
   focus: string; // JSON string
-  focus_list: any[]; // Parsed JSON
-  skills_list: number[]; // Gebėjimų ID sąrašas
+  focus_list: string[]; // Parsed JSON
+  skills_list: { id: number; code: string; name: string; }[]; // Gebėjimų objektų sąrašas
   virtues_names: string[]; // Dorybių pavadinimai
   levels_names: string[]; // Lygių pavadinimai
   slenkstinis: string; // 54% lygis

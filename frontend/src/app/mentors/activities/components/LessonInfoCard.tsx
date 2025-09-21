@@ -17,12 +17,19 @@ import {
   Focus
 } from 'lucide-react';
 import { LessonDetails, IMUPlan, Student, AttendanceStatus } from '../types';
-import StudentRow from './StudentRow';
+// import StudentRow from './StudentRow';
 import StudentsList from './StudentsList';
 import { User as UserType } from '@/lib/types';
 import api from '@/lib/api';
 import { Accordion, AccordionItem } from '@/components/ui/Accordion';
 import { useBulkAttendanceStats } from '@/hooks/useCurriculum';
+
+// CHANGE: Pridėti tipai objektams iš JSON
+interface JsonObject {
+  id?: number;
+  name?: string;
+  title?: string;
+}
 
 interface LessonInfoCardProps {
   lesson: LessonDetails;
@@ -32,20 +39,21 @@ interface LessonInfoCardProps {
   planStatus?: 'planned' | 'in_progress' | 'completed'; // CHANGE: Pridėtas plano statusas
   subjectId?: number; // CHANGE: Pridėtas subject ID lankomumo statistikai
   globalScheduleId?: number; // CHANGE: Pridėtas globalScheduleId prop
+  hideHeader?: boolean; // CHANGE: Pridėtas hideHeader prop accordion be header'io
 }
 
 const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
   lesson,
   studentsForThisLesson,
   isActivityActive = false,
-  activityStartTime = null,
+  // activityStartTime = null,
   planStatus = 'planned', // CHANGE: Pridėtas plano statusas
   subjectId, // CHANGE: Pridėtas subjectId parametras
-  globalScheduleId // CHANGE: Pridėtas globalScheduleId parametras
+  globalScheduleId, // CHANGE: Pridėtas globalScheduleId parametras
+  hideHeader = false // CHANGE: Pridėtas hideHeader parametras accordion be header'io
 }) => {
   // CHANGE: State valdymas mokinių pridėjimui
   const [students, setStudents] = useState<Student[]>([]);
-  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
 
   // CHANGE: Atnaujinti students state kai keičiasi studentsForThisLesson
   useEffect(() => {
@@ -73,8 +81,6 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
     if (!globalScheduleId) return;
 
     try {
-      setIsLoadingStudents(true);
-
       // Naudoti naują endpoint'ą mokinių pridėjimui
     const response = await api.post('/plans/imu-plans/add-students-to-lesson/', {
       global_schedule_id: globalScheduleId,
@@ -105,12 +111,10 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
       console.error('Klaida pridedant mokinius:', error);
       // Rodyti klaidos pranešimą vartotojui
       alert('Nepavyko pridėti mokinių. Patikrinkite, ar mokiniai dar nėra pridėti į šią pamoką.');
-    } finally {
-      setIsLoadingStudents(false);
     }
   };
   // Pagalbinė funkcija JSON string'o parse'inimui
-  const parseJsonString = (jsonString: string): any[] => {
+  const parseJsonString = (jsonString: string): unknown[] => {
     if (!jsonString) return [];
     try {
       return JSON.parse(jsonString);
@@ -145,13 +149,13 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
           }
         }
       }
-    } catch (error) {
+    } catch {
       // Klaida apdorojama tyliai
     }
   };
 
   // CHANGE: Naudojame bulk attendance stats hook'ą
-  const { stats: bulkStats, loading: statsLoading, error: statsError, fetchBulkAttendanceStats } = useBulkAttendanceStats();
+  const { fetchBulkAttendanceStats } = useBulkAttendanceStats();
 
   // CHANGE: Pridėtas useEffect lankomumo statistikos atnaujinimui, kai pasirenkama pamoka
   useEffect(() => {
@@ -169,32 +173,34 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-4">
-      {/* Antraštė su pagerintų stilium */}
-      <div className="p-6 border-b border-gray-100">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">{lesson.title}</h1>
-            <p className="text-gray-600 mt-1">
-              {lesson.subject_name} • {lesson.levels_names.join(', ')} • {lesson.topic}
-            </p>
-          </div>
-          {lesson.virtues_names.length > 0 && (
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-500">Dorybės:</span>
-              <div className="flex space-x-2">
-                {lesson.virtues_names.map((virtue, index) => (
-                  <span 
-                    key={index}
-                    className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium"
-                  >
-                    {virtue}
-                  </span>
-                ))}
-              </div>
+      {/* Antraštė su pagerintų stilium - paslėpta jei hideHeader=true */}
+      {!hideHeader && (
+        <div className="p-6 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">{lesson.title}</h1>
+              <p className="text-gray-600 mt-1">
+                {lesson.subject_name} • {Array.isArray(lesson.levels_names) ? lesson.levels_names.join(', ') : 'N/A'} • {lesson.topic}
+              </p>
             </div>
-          )}
+            {Array.isArray(lesson.virtues_names) && lesson.virtues_names.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">Dorybės:</span>
+                <div className="flex space-x-2">
+                  {lesson.virtues_names.map((virtue, index) => (
+                    <span 
+                      key={index}
+                      className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium"
+                    >
+                      {virtue}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="p-6">
         {/* CHANGE: Vienas bendras akordeono komponentas su visais elementais viduje */}
@@ -220,7 +226,11 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
                   <div className="space-y-2">
                     {components.map((component, index) => (
                       <div key={index} className="p-3 bg-blue-100 rounded-lg border border-blue-200">
-                        <span className="text-blue-800 text-sm font-medium">{component}</span>
+                        <span className="text-blue-800 text-sm font-medium">
+                          {typeof component === 'object' && component ? 
+                            (component as JsonObject).name || (component as JsonObject).title || `Component ${(component as JsonObject).id}` : 
+                            String(component)}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -237,7 +247,7 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
                   <div className="space-y-2">
                     {objectives.map((objective, index) => (
                       <div key={index} className="p-3 bg-green-100 rounded-lg border border-green-200">
-                        <span className="text-green-800 text-sm font-medium">{objective}</span>
+                        <span className="text-green-800 text-sm font-medium">{String(objective)}</span>
                       </div>
                     ))}
                   </div>
@@ -289,9 +299,13 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
                   </h3>
                   <div className="space-y-2">
                     {/* CHANGE: Dabar rodomi gebėjimų pavadinimai vietoj ID */}
-                    {lesson.skills_list.map((skillName, index) => (
+                    {lesson.skills_list.map((skill, index) => (
                       <div key={index} className="p-3 bg-purple-100 rounded-lg border border-purple-200">
-                        <span className="text-purple-800 text-sm font-medium">{skillName}</span>
+                        <span className="text-purple-800 text-sm font-medium">
+                          {typeof skill === 'object' && skill ? 
+                            (skill as JsonObject).name || (skill as JsonObject).title || `Skill ${(skill as JsonObject).id}` : 
+                            String(skill)}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -308,7 +322,11 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
                   <div className="space-y-2">
                     {lesson.competency_atcheve_name.map((competency, index) => (
                       <div key={index} className="p-3 bg-indigo-100 rounded-lg border border-indigo-200">
-                        <span className="text-indigo-800 text-sm font-medium">{competency}</span>
+                        <span className="text-indigo-800 text-sm font-medium">
+                          {typeof competency === 'object' && competency ? 
+                            (competency as JsonObject).name || (competency as JsonObject).title || `Competency ${(competency as JsonObject).id}` : 
+                            String(competency)}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -325,7 +343,11 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
                   <div className="space-y-2">
                     {focus.map((focusItem, index) => (
                       <div key={index} className="p-3 bg-gray-100 rounded-lg border border-gray-200">
-                        <span className="text-gray-600 text-sm font-medium">{focusItem}</span>
+                        <span className="text-gray-600 text-sm font-medium">
+                          {typeof focusItem === 'object' && focusItem ? 
+                            (focusItem as JsonObject).name || (focusItem as JsonObject).title || `Focus ${(focusItem as JsonObject).id}` : 
+                            String(focusItem)}
+                        </span>
                       </div>
                     ))}
                   </div>

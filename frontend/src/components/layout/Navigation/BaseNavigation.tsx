@@ -7,7 +7,7 @@
 'use client';
 
 import React from 'react';
-import { usePathname } from 'next/navigation';
+// import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import ManagerNavigation from './roles/ManagerNavigation';
 import CuratorNavigation from './roles/CuratorNavigation';
@@ -21,7 +21,7 @@ interface BaseNavigationProps {
 
 const BaseNavigation: React.FC<BaseNavigationProps> = ({ isMobile = false }) => {
   const { user, isAuthenticated, getCurrentRole } = useAuth();
-  const pathname = usePathname();
+  // usePathname();
 
   if (!isAuthenticated || !user) {
     return null;

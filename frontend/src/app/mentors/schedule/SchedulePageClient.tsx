@@ -8,8 +8,8 @@
 
 import React from 'react';
 import WeeklySchedule from '@/components/dashboard/WeeklySchedule';
-import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Calendar, ArrowLeft } from 'lucide-react';
+// import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 // Client-side Schedule page component

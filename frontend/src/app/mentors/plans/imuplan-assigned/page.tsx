@@ -7,7 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+// import { useAuth } from '@/hooks/useAuth';
 import { ReactDataTable } from '@/components/DataTable';
 import Button from '@/components/ui/Button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
@@ -35,7 +35,7 @@ interface Subject {
 }
 
 export default function IMUPlanAssignedPage() {
-  const { user } = useAuth();
+  // useAuth();
   
   const [plans, setPlans] = useState<IMUPlan[]>([]);
   const [filteredPlans, setFilteredPlans] = useState<IMUPlan[]>([]);
@@ -50,7 +50,8 @@ export default function IMUPlanAssignedPage() {
       try {
         const response = await api.get('/crm/mentor-subjects/my_subjects/');
         setSubjects(response.data);
-      } catch (error: any) {
+      } catch (error: unknown) {
+        // const axiosError = error as { response?: { data?: unknown } };
         console.error('Klaida gaunant dalykus:', error);
       }
     }
@@ -67,7 +68,8 @@ export default function IMUPlanAssignedPage() {
         const response = await api.get('/plans/imu-plans/');
         setPlans(response.data);
         setFilteredPlans(response.data);
-      } catch (error: any) {
+      } catch (error: unknown) {
+        // const axiosError = error as { response?: { data?: unknown } };
         console.error('Klaida gaunant IMU planus:', error);
         setError('Įvyko klaida gaunant priskirtus ugdymo planus');
       } finally {

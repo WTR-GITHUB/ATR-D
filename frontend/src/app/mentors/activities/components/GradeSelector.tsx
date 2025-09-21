@@ -55,7 +55,7 @@ export default function GradeSelector({
   const [selectedGrade, setSelectedGrade] = useState<string>('');
   const [percentage, setPercentage] = useState<string>('');
   const [achievementLevels, setAchievementLevels] = useState<AchievementLevel[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // const [isLoading, setIsLoading] = useState(false); // CHANGE: Pašalintas nenaudojamas state
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -202,13 +202,13 @@ export default function GradeSelector({
       
       // CHANGE: Type-safe error handling with axios error type checking
       if (error && typeof error === 'object' && 'response' in error) {
-        const axiosError = error as any;
+        const axiosError = error as { response?: { status?: number; data?: unknown } };
         if (axiosError.response?.status === 400) {
           const errorData = axiosError.response.data;
           console.error('❌ GradeSelector: 400 klaidos detalės:', errorData);
           setError(`Vertinimas jau egzistuoja arba neteisingi duomenys: ${JSON.stringify(errorData)}`);
         } else {
-          setError(axiosError.response?.data?.error || 'Nepavyko išsaugoti vertinimo');
+          setError((axiosError.response?.data as { error?: string })?.error || 'Nepavyko išsaugoti vertinimo');
         }
       } else {
         setError('Nepavyko išsaugoti vertinimo');
@@ -235,14 +235,7 @@ export default function GradeSelector({
     return `${baseStyle} bg-white text-gray-500 border-gray-200 hover:border-gray-300`;
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-4">
-        <Loader2 className="animate-spin h-6 w-6 text-blue-600" />
-        <span className="ml-2 text-gray-600">Kraunama...</span>
-      </div>
-    );
-  }
+  // CHANGE: Pašalintas isLoading check'as, nes state nėra naudojamas
 
   return (
     <div className="grid grid-cols-3 gap-4">

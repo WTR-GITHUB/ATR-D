@@ -3,7 +3,7 @@
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Users, BookOpen, TrendingUp, Calendar, Award, MessageSquare, GraduationCap, AlertTriangle } from 'lucide-react';
+import { Users, BookOpen, TrendingUp, Calendar, Award, GraduationCap, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function MentorDashboardPage() {

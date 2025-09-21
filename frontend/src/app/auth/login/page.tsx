@@ -3,13 +3,11 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { getDashboardUrlByRoles } from '@/lib/roleUtils';
 import { authAPI } from '@/lib/api';
 
 export default function LoginPage() {

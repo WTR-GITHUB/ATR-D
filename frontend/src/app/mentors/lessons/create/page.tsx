@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
 import { Skill, Competency, CompetencyAtcheve } from '@/lib/types';
 import Card, { CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -11,11 +10,10 @@ import MultiSelect from '@/components/ui/MultiSelect';
 import DynamicList from '@/components/ui/DynamicList';
 import { ArrowLeft, Save, Plus, X } from 'lucide-react';
 import Link from 'next/link';
-import { lessonsAPI, subjectsAPI, virtuesAPI, levelsAPI, skillsAPI, competenciesAPI, competencyAtcheveAPI, mentorSubjectsAPI } from '@/lib/api';
+import { virtuesAPI, levelsAPI, skillsAPI, competenciesAPI, competencyAtcheveAPI, mentorSubjectsAPI } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 export default function CreateLessonPage() {
-  const { user } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [subjects, setSubjects] = useState<{ id: number; subject_name: string; name: string; description: string; mentor_subject_id: number }[]>([]);
@@ -122,13 +120,13 @@ export default function CreateLessonPage() {
   const handleCreateSkill = async () => {
     try {
       // CHANGE: Convert subject string to number for backend
-      const dataToSend = {
-        ...skillFormData,
-        subject: skillFormData.subject ? parseInt(skillFormData.subject) : null
-      };
+      // const dataToSend = {
+      //   ...skillFormData,
+      //   subject: skillFormData.subject ? parseInt(skillFormData.subject) : null
+      // };
       
       
-      const response = await skillsAPI.create(dataToSend);
+      // const response = await skillsAPI.create(dataToSend);
       
       // Refresh skills list
       const skillsRes = await skillsAPI.getAll();
@@ -147,7 +145,7 @@ export default function CreateLessonPage() {
       
       // DEBUG: Log detailed error information
       if (error && typeof error === 'object' && 'response' in error) {
-        const axiosError = error as any;
+        const axiosError = error as { response?: { data?: unknown; status?: number; headers?: unknown } };
         console.error('🔍 Error response data:', axiosError.response?.data);
         console.error('🔍 Error status:', axiosError.response?.status);
         console.error('🔍 Error headers:', axiosError.response?.headers);
@@ -166,13 +164,13 @@ export default function CreateLessonPage() {
   const handleCreateCompetencyAtcheve = async () => {
     try {
       // Convert todos array to JSON string for backend
-      const dataToSend = {
-        ...competencyAtcheveFormData,
-        todos: JSON.stringify(competencyAtcheveFormData.todos),
-        subject: competencyAtcheveFormData.subject || null
-      };
+      // const dataToSend = {
+      //   ...competencyAtcheveFormData,
+      //   todos: JSON.stringify(competencyAtcheveFormData.todos),
+      //   subject: competencyAtcheveFormData.subject || null
+      // };
       
-      const response = await competencyAtcheveAPI.create(dataToSend);
+      // const response = await competencyAtcheveAPI.create(dataToSend);
       
       // Refresh competencyAtcheves list
       const competencyAtchevesRes = await competencyAtcheveAPI.getAll();
@@ -207,26 +205,25 @@ export default function CreateLessonPage() {
     try {
       
       // Prepare lesson data
-      const lessonData = {
-        title: formData.title,
-        content: formData.content,
-        subject: formData.subject,
-        topic: formData.topic || '',
-        objectives: JSON.stringify(formData.objectives),
-        components: JSON.stringify(formData.components),
-        skills: formData.skills.map(id => parseInt(id)),
-        competency_atcheves: formData.competency_atcheve.map(id => parseInt(id)),
-
-        virtues: formData.virtues.map(id => parseInt(id)),
-        levels: formData.levels.map(id => parseInt(id)),
-        focus: JSON.stringify(formData.focus),
-        slenkstinis: formData.slenkstinis,
-        bazinis: formData.bazinis,
-        pagrindinis: formData.pagrindinis,
-        aukstesnysis: formData.aukstesnysis
-      };
+      // const lessonData = {
+      //   title: formData.title,
+      //   content: formData.content,
+      //   subject: formData.subject,
+      //   topic: formData.topic || '',
+      //   objectives: JSON.stringify(formData.objectives),
+      //   components: JSON.stringify(formData.components),
+      //   skills: formData.skills.map(id => parseInt(id)),
+      //   competency_atcheves: formData.competency_atcheve.map(id => parseInt(id)),
+      //   virtues: formData.virtues.map(id => parseInt(id)),
+      //   levels: formData.levels.map(id => parseInt(id)),
+      //   focus: JSON.stringify(formData.focus),
+      //   slenkstinis: formData.slenkstinis,
+      //   bazinis: formData.bazinis,
+      //   pagrindinis: formData.pagrindinis,
+      //   aukstesnysis: formData.aukstesnysis
+      // };
       
-      const response = await lessonsAPI.create(lessonData);
+      // const response = await lessonsAPI.create(lessonData);
       
       // Redirect to lessons list
       router.push('/mentors/lessons');
@@ -235,7 +232,7 @@ export default function CreateLessonPage() {
       
       // CHANGE: Type-safe error handling for lesson creation
       if (error && typeof error === 'object' && 'response' in error) {
-        const axiosError = error as any;
+        const axiosError = error as { response?: { data?: unknown; status?: number; headers?: unknown } };
         console.error('Error response:', axiosError.response?.data);
         console.error('Error status:', axiosError.response?.status);
       }

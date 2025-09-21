@@ -6,9 +6,7 @@
 
 import React from 'react';
 import { 
-  Users, 
   TrendingUp, 
-  AlertTriangle, 
   Clock,
   CheckCircle,
   XCircle,
@@ -25,9 +23,9 @@ interface StudentStatsProps {
 
 const StudentStats: React.FC<StudentStatsProps> = ({
   attendanceStats,
-  performanceStats,
+  // performanceStats,
   isActivityActive = false,
-  activityStartTime = null
+  // activityStartTime = null
 }) => {
   // CHANGE: Apskaičiuojame aktyvų lankomumą (dalyvavo + paliko)
   const activeAttendance = attendanceStats.present_count + attendanceStats.left_count; // CHANGE: Pakeista 'late' į 'left'

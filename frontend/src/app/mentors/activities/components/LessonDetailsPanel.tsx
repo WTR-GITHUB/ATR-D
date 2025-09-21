@@ -28,7 +28,7 @@ interface LessonDetailsPanelProps {
 }
 
 const LessonDetailsPanel: React.FC<LessonDetailsPanelProps> = ({
-  lessonDetails,
+  // lessonDetails,
   allLessonsDetails,
   imuPlans,
   isLoading,

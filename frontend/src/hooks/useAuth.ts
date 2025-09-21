@@ -99,7 +99,7 @@ export const useAuth = create<AuthStore>()(
               isLoading: false,
               currentRole: initialRole, // Nustatyti dabartinę rolę
             });
-          } catch (userError: unknown) {
+          } catch {
             // CHANGE: Improved error handling for user data fetching
             // If fetching user data fails, use basic info from login
             const user = {
@@ -123,7 +123,7 @@ export const useAuth = create<AuthStore>()(
         } catch (error: unknown) {
           // CHANGE: Type-safe error handling for login errors
           const errorMessage = error && typeof error === 'object' && 'response' in error 
-            ? (error as any).response?.data?.detail || 'Login failed'
+            ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Login failed'
             : 'Login failed';
           
           set({
@@ -209,7 +209,7 @@ export const useAuth = create<AuthStore>()(
           
           set({ token: access });
           return true;
-        } catch (error) {
+        } catch {
           // Refresh failed, clear auth state
           get().logout();
           return false;
@@ -251,7 +251,7 @@ export const useAuth = create<AuthStore>()(
               isLoading: false,
               currentRole: validRole, // CHANGE: Set current role on init
             });
-          } catch (error) {
+          } catch {
             // CHANGE: Better error handling - try to refresh token first
             const refreshSuccess = await get().refreshAuthToken();
             if (!refreshSuccess) {

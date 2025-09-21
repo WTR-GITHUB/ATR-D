@@ -7,7 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+// import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { violationAPI } from '@/lib/api';
 import { 
@@ -15,11 +15,9 @@ import {
   Plus, 
   Settings, 
   BarChart3, 
-  Users, 
   CheckCircle, 
   Clock, 
   TrendingUp,
-  DollarSign,
   ArrowLeft
 } from 'lucide-react';
 import Link from 'next/link';
@@ -29,7 +27,7 @@ import ViolationFormModal from '@/components/ui/ViolationFormModal';
 import { ViolationStats, ViolationCategoryStats } from '@/lib/types';
 
 export default function MentorViolationsPage() {
-  const { user } = useAuth();
+  // useAuth();
   const [stats, setStats] = useState<ViolationStats | null>(null);
   const [categoryStats, setCategoryStats] = useState<ViolationCategoryStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -105,7 +103,7 @@ export default function MentorViolationsPage() {
   }
 
   // Custom tooltip for pie chart
-  const PieTooltip = ({ active, payload }: any) => {
+  const PieTooltip = ({ active, payload }: { active?: boolean; payload?: { name: string; value: number; color: string }[] }) => {
     if (active && payload && payload[0]) {
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
@@ -119,12 +117,12 @@ export default function MentorViolationsPage() {
   };
 
   // Custom tooltip for bar chart
-  const BarTooltip = ({ active, payload, label }: any) => {
+  const BarTooltip = ({ active, payload, label }: { active?: boolean; payload?: { dataKey: string; value: number; color: string }[]; label?: string }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
           <p className="font-semibold mb-2">{label}</p>
-          {payload.map((entry: any, index: number) => (
+          {payload.map((entry: { dataKey: string; value: number; color: string }, index: number) => (
             <p key={index} style={{ color: entry.color }}>
               {`${entry.dataKey === 'completed' ? 'Išpirkta' : 'Neišpirkta'}: ${entry.value}`}
             </p>
@@ -344,7 +342,7 @@ export default function MentorViolationsPage() {
                         outerRadius={100}
                         fill="#8884d8"
                         dataKey="value"
-                        label={({ name, percent }: { name: string; percent?: number }) => `${name} ${percent ? (percent * 100).toFixed(0) : '0'}%`}
+                        label={({ name, percent }: { name?: string; percent?: number }) => `${name || 'Unknown'} ${percent ? (percent * 100).toFixed(0) : '0'}%`}
                       >
                         {pieChartData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />

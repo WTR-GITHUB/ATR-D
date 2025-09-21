@@ -4,7 +4,7 @@
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { Users, BookOpen, TrendingUp, Calendar, Award, MessageSquare } from 'lucide-react';
+import { Users, BookOpen, Calendar, Award, MessageSquare } from 'lucide-react';
 
 export default function ParentsDashboardPage() {
   const { user } = useAuth();

@@ -3,7 +3,7 @@
 // Hook studento vertinimų duomenų gavimui iš backend'o
 // CHANGE: Sukurtas naujas hook vertinimų duomenų gavimui
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import api from '@/lib/api';
 
 interface AchievementLevel {
@@ -16,7 +16,7 @@ interface AchievementLevel {
   description: string;
 }
 
-interface Grade {
+export interface Grade {
   id: number;
   student: number;
   lesson: number;
@@ -93,7 +93,7 @@ export const useGrades = (): UseGradesReturn => {
       
       // CHANGE: Type-safe error handling for grades fetching
       const errorMessage = err && typeof err === 'object' && 'response' in err 
-        ? (err as any).response?.data?.error || 'Nepavyko gauti vertinimo'
+        ? (err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Nepavyko gauti vertinimo'
         : 'Nepavyko gauti vertinimo';
       
       setError(errorMessage);

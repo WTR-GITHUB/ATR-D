@@ -7,7 +7,7 @@
 'use client';
 
 import React from 'react';
-import { MapPin, BookOpen, User } from 'lucide-react';
+import { MapPin, BookOpen } from 'lucide-react';
 import AttendanceMarker from '@/app/mentors/activities/components/AttendanceMarker';
 import { AttendanceStatus } from '@/app/mentors/activities/types';
 

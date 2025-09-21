@@ -2,10 +2,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+// import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { ReactDataTable } from '@/components/DataTable';
-import { GraduationCap, BookOpen, Calendar, Target, Plus, Users, Edit, Trash2, Eye, X } from 'lucide-react';
+import { GraduationCap, BookOpen, Plus, Users, Edit, Trash2, Eye, X } from 'lucide-react';
 import api from '@/lib/api';
 
 // Interface'ai duomenų tipams
@@ -31,7 +31,7 @@ interface LessonSequenceItem {
 }
 
 export default function MentorPlansPage() {
-  const { user } = useAuth();
+  // useAuth();
   
   const [plans, setPlans] = useState<LessonSequence[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -279,7 +279,7 @@ export default function MentorPlansPage() {
                 
                 {selectedPlan.items && selectedPlan.items.length > 0 ? (
                   <div className="space-y-3">
-                    {selectedPlan.items.map((item, index) => (
+                    {selectedPlan.items.map((item) => (
                       <div key={item.id} className="flex items-center p-3 bg-gray-50 rounded-lg">
                         <div className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-medium mr-3">
                           {item.position}

@@ -7,7 +7,7 @@
 'use client';
 
 import React from 'react';
-import { MapPin, BookOpen } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import AttendanceMarker from '@/app/mentors/activities/components/AttendanceMarker';
 import { AttendanceStatus } from '@/app/mentors/activities/types';
 
@@ -86,7 +86,7 @@ const StudentScheduleCell: React.FC<StudentScheduleCellProps> = ({
 
   return (
     <div className="w-full h-full min-h-20 space-y-1">
-      {items.map((item, index) => (
+      {items.map((item) => (
         <div 
           key={item.id}
           className={`

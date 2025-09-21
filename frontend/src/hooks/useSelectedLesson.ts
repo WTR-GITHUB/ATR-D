@@ -127,7 +127,7 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
       
       // CHANGE: Type-safe error handling for lesson data fetching
       if (err && typeof err === 'object' && 'response' in err) {
-        const axiosError = err as any;
+        const axiosError = err as { response?: { status?: number; data?: unknown } };
         if (axiosError.response?.status === 404) {
           setState(prev => ({
             ...prev,
@@ -142,8 +142,8 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
         setState(prev => ({
           ...prev,
           isLoading: false,
-          error: axiosError.response?.data?.error || 
-                 axiosError.response?.data?.detail || 
+          error: (axiosError.response?.data as { error?: string; detail?: string })?.error || 
+                 (axiosError.response?.data as { error?: string; detail?: string })?.detail || 
                  'Nepavyko gauti pamokos duomenų'
         }));
       } else {
@@ -154,7 +154,7 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
         }));
       }
     }
-  }, []);
+  }, [saveToStorage]);
 
   // Pasirinkti tvarkaraščio elementą
   const selectScheduleItem = useCallback((item: ScheduleItem | null) => {

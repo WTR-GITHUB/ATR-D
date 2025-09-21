@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 
 export interface Subject {
@@ -29,24 +29,25 @@ export const useSubjects = (): UseSubjectsReturn => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSubjects = async () => {
+  const fetchSubjects = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       
       const response = await api.get('/crm/mentor-subjects/my_subjects/');
       setSubjects(response.data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Klaida gaunant dalykų duomenis:', err);
-      setError(err.response?.data?.detail || 'Nepavyko gauti dalykų duomenų');
+      const error = err as { response?: { data?: { detail?: string } } };
+      setError(error.response?.data?.detail || 'Nepavyko gauti dalykų duomenų');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchSubjects();
-  }, []);
+  }, [fetchSubjects]);
 
   return {
     subjects,

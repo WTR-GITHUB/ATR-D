@@ -10,7 +10,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+// import { useAuth } from '@/hooks/useAuth';
 import { useRouter, useParams } from 'next/navigation';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -31,7 +31,10 @@ interface Lesson {
 
 interface LessonSequenceItem {
   id: number;
-  lesson: number;
+  title: string;
+  subject: string;
+  levels: string;
+  topic: string;
   position: number;
 }
 
@@ -118,7 +121,7 @@ async function fetchPlan(planId: string): Promise<LessonSequence> {
 }
 
 export default function EditLessonSequencePage() {
-  const { user } = useAuth();
+  // useAuth();
   const router = useRouter();
   const params = useParams();
   const planId = params.id as string;
@@ -183,14 +186,16 @@ export default function EditLessonSequencePage() {
           subject: planData.subject?.toString() || '',
           level: planData.level?.toString() || ''
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Klaida gaunant duomenis:', error);
         let errorMessage = 'Įvyko klaida gaunant duomenis';
-        if (error.response?.data) {
-          if (typeof error.response.data === 'string') {
-            errorMessage = error.response.data;
-          } else if (error.response.data.detail) {
-            errorMessage = error.response.data.detail;
+        const axiosError = error as { response?: { data?: unknown } };
+        if (axiosError.response?.data) {
+          const errorData = axiosError.response.data;
+          if (typeof errorData === 'string') {
+            errorMessage = errorData;
+          } else if (errorData && typeof errorData === 'object' && 'detail' in errorData) {
+            errorMessage = (errorData as { detail: string }).detail;
           }
         }
         alert(errorMessage);
@@ -226,8 +231,19 @@ export default function EditLessonSequencePage() {
   };
 
   // Handle lesson sequence changes from the dual list component
-  const handleLessonSequenceChange = (selected: LessonSequenceItemDisplay[]) => {
-    setSelectedLessons(selected);
+  const handleLessonSequenceChange = (selected: Record<string, unknown>[] | LessonSequenceItem[]) => {
+    // Type guard to ensure we have LessonSequenceItemDisplay[]
+    const lessonItems = selected.map(item => ({
+      id: Number(item.id),
+      lesson: Number(item.id), // Use id as lesson ID for LessonSequenceItemDisplay
+      title: String(item.title),
+      subject: String(item.subject),
+      levels: String(item.levels || 'Nenurodyta'),
+      topic: String(item.topic),
+      position: Number(item.position) || 0
+    })) as LessonSequenceItemDisplay[];
+    
+    setSelectedLessons(lessonItems);
   };
 
 
@@ -324,23 +340,25 @@ export default function EditLessonSequencePage() {
       } else {
         throw new Error('Nepavyko atnaujinti pamokų sekos');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Klaida atnaujinant pamokų seką:', error);
-      console.log('Backend response data:', error.response?.data);
+      const axiosError = error as { response?: { data?: unknown } };
+      console.log('Backend response data:', axiosError.response?.data);
       
       let errorMessage = 'Įvyko klaida atnaujinant pamokų seką';
       
       // Geresnis klaidų apdorojimas
-      if (error.response?.data) {
-        if (Array.isArray(error.response.data)) {
+      if (axiosError.response?.data) {
+        const errorData = axiosError.response.data;
+        if (Array.isArray(errorData)) {
           // Jei backend grąžina klaidų sąrašą
-          errorMessage = error.response.data.join('\n');
-        } else if (typeof error.response.data === 'string') {
-          errorMessage = error.response.data;
-        } else if (error.response.data.detail) {
-          errorMessage = error.response.data.detail;
-        } else if (error.response.data.error) {
-          errorMessage = error.response.data.error;
+          errorMessage = errorData.join('\n');
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (errorData && typeof errorData === 'object' && 'detail' in errorData) {
+          errorMessage = (errorData as { detail: string }).detail;
+        } else if (errorData && typeof errorData === 'object' && 'error' in errorData) {
+          errorMessage = (errorData as { error: string }).error;
         }
       }
       

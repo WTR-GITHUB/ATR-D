@@ -15,12 +15,12 @@ interface LessonDetails {
   subject_name: string;
   content: string;
   objectives: string;
-  objectives_list: any[];
+  objectives_list: unknown[];
   components: string;
-  components_list: any[];
+  components_list: unknown[];
   focus: string;
-  focus_list: any[];
-  skills_list: number[];
+  focus_list: unknown[];
+  skills_list: { id: number; code: string; name: string; }[];
   virtues_names: string[];
   levels_names: string[];
   slenkstinis: string;
@@ -58,11 +58,12 @@ export const useLessonDetails = (): UseLessonDetailsReturn => {
       // Tada gauname visą lesson informaciją iš curriculum API
       const lessonResponse = await api.get(`/curriculum/lessons/${lessonId}/`);
       setLessonDetails(lessonResponse.data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Klaida gaunant pamokos detales:', err);
+      const error = err as { response?: { data?: { error?: string; detail?: string } } };
       setError(
-        err.response?.data?.error || 
-        err.response?.data?.detail || 
+        error.response?.data?.error || 
+        error.response?.data?.detail || 
         'Nepavyko gauti pamokos detalių'
       );
     } finally {

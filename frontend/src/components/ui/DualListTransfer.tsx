@@ -40,7 +40,7 @@ interface ListItemProps {
   isAvailable: boolean;
 }
 
-const ListItem: React.FC<ListItemProps> = ({ item, isSelected, onSelect, isAvailable }) => {
+const ListItem: React.FC<ListItemProps> = ({ item, isSelected, onSelect }) => {
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     onSelect(item.id);
@@ -96,12 +96,12 @@ const DualListTransfer: React.FC<DualListTransferProps> = ({
   const [internalSelected, setInternalSelected] = useState<DualListItem[]>(selectedItems);
   const [availableSelected, setAvailableSelected] = useState<number[]>([]);
   const [selectedSelected, setSelectedSelected] = useState<number[]>([]);
-  const [isClient, setIsClient] = useState(false);
+  // const [isClient, setIsClient] = useState(false);
 
   // Set client flag after component mounts
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  // useEffect(() => {
+  //   setIsClient(true);
+  // }, []);
 
   // Get scroll style based on items count
   const getScrollStyle = (itemsLength: number) => {

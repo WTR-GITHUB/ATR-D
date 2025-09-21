@@ -16,7 +16,7 @@ interface WeeklyScheduleProps {
   targetDate?: string; // Konkrečios dienos data testavimui
 }
 
-export default function WeeklySchedule({ weekStart, targetDate }: WeeklyScheduleProps) {
+export default function WeeklySchedule({ }: WeeklyScheduleProps) {
   const [isScheduleExpanded, setIsScheduleExpanded] = useState(true); // Pagal nutylėjimą išskleistas
   
   // Use WeekInfo context

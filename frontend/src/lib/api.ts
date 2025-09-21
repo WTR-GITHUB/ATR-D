@@ -69,7 +69,7 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${access}`;
           return api(originalRequest);
         }
-      } catch (refreshError) {
+      } catch {
         // CHANGE: Clear all auth data on refresh failure
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
@@ -100,7 +100,7 @@ api.interceptors.response.use(
         }
         
         return api(originalRequest);
-      } catch (userError) {
+      } catch {
         // If user data fetch fails, redirect to login
         localStorage.clear();
         window.location.href = '/auth/login';
@@ -122,10 +122,10 @@ export const authAPI = {
 
 // Users API
 export const usersAPI = {
-  getAll: (params?: any) => api.get('/users/users/', { params }),
+  getAll: (params?: Record<string, unknown>) => api.get('/users/users/', { params }),
   getById: (id: number) => api.get(`/users/users/${id}/`),
-  create: (userData: any) => api.post('/users/users/', userData),
-  update: (id: number, userData: any) => api.put(`/users/users/${id}/`, userData),
+  create: (userData: Record<string, unknown>) => api.post('/users/users/', userData),
+  update: (id: number, userData: Record<string, unknown>) => api.put(`/users/users/${id}/`, userData),
   delete: (id: number) => api.delete(`/users/users/${id}/`),
 };
 
@@ -134,24 +134,24 @@ export const crmAPI = {
   // Student-Parent relationships
   studentParents: {
     getAll: () => api.get('/crm/student-parents/'),
-    create: (data: any) => api.post('/crm/student-parents/', data),
-    update: (id: number, data: any) => api.put(`/crm/student-parents/${id}/`, data),
+    create: (data: Record<string, unknown>) => api.post('/crm/student-parents/', data),
+    update: (id: number, data: Record<string, unknown>) => api.put(`/crm/student-parents/${id}/`, data),
     delete: (id: number) => api.delete(`/crm/student-parents/${id}/`),
   },
   
   // Student-Curator relationships
   studentCurators: {
     getAll: () => api.get('/crm/student-curators/'),
-    create: (data: any) => api.post('/crm/student-curators/', data),
-    update: (id: number, data: any) => api.put(`/crm/student-curators/${id}/`, data),
+    create: (data: Record<string, unknown>) => api.post('/crm/student-curators/', data),
+    update: (id: number, data: Record<string, unknown>) => api.put(`/crm/student-curators/${id}/`, data),
     delete: (id: number) => api.delete(`/crm/student-curators/${id}/`),
   },
   
   // Student-Subject-Level relationships
   studentSubjectLevels: {
     getAll: () => api.get('/crm/student-subject-levels/'),
-    create: (data: any) => api.post('/crm/student-subject-levels/', data),
-    update: (id: number, data: any) => api.put(`/crm/student-subject-levels/${id}/`, data),
+    create: (data: Record<string, unknown>) => api.post('/crm/student-subject-levels/', data),
+    update: (id: number, data: Record<string, unknown>) => api.put(`/crm/student-subject-levels/${id}/`, data),
     delete: (id: number) => api.delete(`/crm/student-subject-levels/${id}/`),
   },
   
@@ -159,8 +159,8 @@ export const crmAPI = {
   mentorSubjects: {
     getAll: () => api.get('/crm/mentor-subjects/'),
     mySubjects: () => api.get('/crm/mentor-subjects/my_subjects/'), // CHANGE: Added mySubjects method for mentor's assigned subjects
-    create: (data: any) => api.post('/crm/mentor-subjects/', data),
-    update: (id: number, data: any) => api.put(`/crm/mentor-subjects/${id}/`, data),
+    create: (data: Record<string, unknown>) => api.post('/crm/mentor-subjects/', data),
+    update: (id: number, data: Record<string, unknown>) => api.put(`/crm/mentor-subjects/${id}/`, data),
     delete: (id: number) => api.delete(`/crm/mentor-subjects/${id}/`),
   },
 };
@@ -170,16 +170,16 @@ export const curriculumAPI = {
   // Subjects
   subjects: {
     getAll: () => api.get('/curriculum/subjects/'),
-    create: (subjectData: any) => api.post('/curriculum/subjects/', subjectData),
-    update: (id: number, subjectData: any) => api.put(`/curriculum/subjects/${id}/`, subjectData),
+    create: (subjectData: Record<string, unknown>) => api.post('/curriculum/subjects/', subjectData),
+    update: (id: number, subjectData: Record<string, unknown>) => api.put(`/curriculum/subjects/${id}/`, subjectData),
     delete: (id: number) => api.delete(`/curriculum/subjects/${id}/`),
   },
   
   // Levels
   levels: {
     getAll: () => api.get('/curriculum/levels/'),
-    create: (levelData: any) => api.post('/curriculum/levels/', levelData),
-    update: (id: number, levelData: any) => api.put(`/curriculum/levels/${id}/`, levelData),
+    create: (levelData: Record<string, unknown>) => api.post('/curriculum/levels/', levelData),
+    update: (id: number, levelData: Record<string, unknown>) => api.put(`/curriculum/levels/${id}/`, levelData),
     delete: (id: number) => api.delete(`/curriculum/levels/${id}/`),
   },
   
@@ -187,56 +187,56 @@ export const curriculumAPI = {
   lessons: {
     getAll: () => api.get('/curriculum/lessons/'),
     getById: (id: number) => api.get(`/curriculum/lessons/${id}/`),
-    create: (lessonData: any) => api.post('/curriculum/lessons/', lessonData),
-    update: (id: number, lessonData: any) => api.put(`/curriculum/lessons/${id}/`, lessonData),
+    create: (lessonData: Record<string, unknown>) => api.post('/curriculum/lessons/', lessonData),
+    update: (id: number, lessonData: Record<string, unknown>) => api.put(`/curriculum/lessons/${id}/`, lessonData),
     delete: (id: number) => api.delete(`/curriculum/lessons/${id}/`),
   },
   
   // Skills
   skills: {
-    getAll: (params?: any) => api.get('/curriculum/skills/', { params }),
-    create: (skillData: any) => api.post('/curriculum/skills/', skillData),
-    update: (id: number, skillData: any) => api.put(`/curriculum/skills/${id}/`, skillData),
+    getAll: (params?: Record<string, unknown>) => api.get('/curriculum/skills/', { params }),
+    create: (skillData: Record<string, unknown>) => api.post('/curriculum/skills/', skillData),
+    update: (id: number, skillData: Record<string, unknown>) => api.put(`/curriculum/skills/${id}/`, skillData),
     delete: (id: number) => api.delete(`/curriculum/skills/${id}/`),
   },
   
   // Competencies
   competencies: {
-    getAll: (params?: any) => api.get('/curriculum/competencies/', { params }),
-    create: (competencyData: any) => api.post('/curriculum/competencies/', competencyData),
-    update: (id: number, competencyData: any) => api.put(`/curriculum/competencies/${id}/`, competencyData),
+    getAll: (params?: Record<string, unknown>) => api.get('/curriculum/competencies/', { params }),
+    create: (competencyData: Record<string, unknown>) => api.post('/curriculum/competencies/', competencyData),
+    update: (id: number, competencyData: Record<string, unknown>) => api.put(`/curriculum/competencies/${id}/`, competencyData),
     delete: (id: number) => api.delete(`/curriculum/competencies/${id}/`),
   },
   
   // Competency Achievements
   competencyAtcheves: {
-    getAll: (params?: any) => api.get('/curriculum/competency-atcheves/', { params }),
-    create: (data: any) => api.post('/curriculum/competency-atcheves/', data),
-    update: (id: number, data: any) => api.put(`/curriculum/competency-atcheves/${id}/`, data),
+    getAll: (params?: Record<string, unknown>) => api.get('/curriculum/competency-atcheves/', { params }),
+    create: (data: Record<string, unknown>) => api.post('/curriculum/competency-atcheves/', data),
+    update: (id: number, data: Record<string, unknown>) => api.put(`/curriculum/competency-atcheves/${id}/`, data),
     delete: (id: number) => api.delete(`/curriculum/competency-atcheves/${id}/`),
   },
   
   // Virtues
   virtues: {
     getAll: () => api.get('/curriculum/virtues/'),
-    create: (virtueData: any) => api.post('/curriculum/virtues/', virtueData),
-    update: (id: number, virtueData: any) => api.put(`/curriculum/virtues/${id}/`, virtueData),
+    create: (virtueData: Record<string, unknown>) => api.post('/curriculum/virtues/', virtueData),
+    update: (id: number, virtueData: Record<string, unknown>) => api.put(`/curriculum/virtues/${id}/`, virtueData),
     delete: (id: number) => api.delete(`/curriculum/virtues/${id}/`),
   },
   
   // Objectives
   objectives: {
     getAll: () => api.get('/curriculum/objectives/'),
-    create: (objectiveData: any) => api.post('/curriculum/objectives/', objectiveData),
-    update: (id: number, objectiveData: any) => api.put(`/curriculum/objectives/${id}/`, objectiveData),
+    create: (objectiveData: Record<string, unknown>) => api.post('/curriculum/objectives/', objectiveData),
+    update: (id: number, objectiveData: Record<string, unknown>) => api.put(`/curriculum/objectives/${id}/`, objectiveData),
     delete: (id: number) => api.delete(`/curriculum/objectives/${id}/`),
   },
   
   // Components
   components: {
     getAll: () => api.get('/curriculum/components/'),
-    create: (componentData: any) => api.post('/curriculum/components/', componentData),
-    update: (id: number, componentData: any) => api.put(`/curriculum/components/${id}/`, componentData),
+    create: (componentData: Record<string, unknown>) => api.post('/curriculum/components/', componentData),
+    update: (id: number, componentData: Record<string, unknown>) => api.put(`/curriculum/components/${id}/`, componentData),
     delete: (id: number) => api.delete(`/curriculum/components/${id}/`),
   },
 };
@@ -245,14 +245,14 @@ export const curriculumAPI = {
 export const plansAPI = {
   // IMU Plans
   imuPlans: {
-    getAll: (params?: any) => api.get('/plans/imu-plans/', { params }),
+    getAll: (params?: Record<string, unknown>) => api.get('/plans/imu-plans/', { params }),
     getById: (id: number) => api.get(`/plans/imu-plans/${id}/`),
-    create: (planData: any) => api.post('/plans/imu-plans/', planData),
-    update: (id: number, planData: any) => api.put(`/plans/imu-plans/${id}/`, planData),
+    create: (planData: Record<string, unknown>) => api.post('/plans/imu-plans/', planData),
+    update: (id: number, planData: Record<string, unknown>) => api.put(`/plans/imu-plans/${id}/`, planData),
     delete: (id: number) => api.delete(`/plans/imu-plans/${id}/`),
     // Additional endpoints
-    bulkCreate: (data: any) => api.post('/plans/imu-plans/bulk_create_from_sequence/', data),
-    updateAttendance: (id: number, attendanceData: any) => api.post(`/plans/imu-plans/${id}/update_attendance/`, attendanceData),
+    bulkCreate: (data: Record<string, unknown>) => api.post('/plans/imu-plans/bulk_create_from_sequence/', data),
+    updateAttendance: (id: number, attendanceData: Record<string, unknown>) => api.post(`/plans/imu-plans/${id}/update_attendance/`, attendanceData),
     getAttendanceStats: (studentId: number, subjectId: number) => api.get(`/plans/imu-plans/attendance_stats/?student_id=${studentId}&subject_id=${subjectId}`),
     getBulkAttendanceStats: (subjectId: number, globalScheduleId?: number, lessonId?: number) => {
       const params = new URLSearchParams();
@@ -265,10 +265,10 @@ export const plansAPI = {
   
   // Lesson Sequences
   lessonSequences: {
-    getAll: (params?: any) => api.get('/plans/lesson-sequences/', { params }),
+    getAll: (params?: Record<string, unknown>) => api.get('/plans/lesson-sequences/', { params }),
     getById: (id: number) => api.get(`/plans/lesson-sequences/${id}/`),
-    create: (sequenceData: any) => api.post('/plans/lesson-sequences/', sequenceData),
-    update: (id: number, sequenceData: any) => api.put(`/plans/lesson-sequences/${id}/`, sequenceData),
+    create: (sequenceData: Record<string, unknown>) => api.post('/plans/lesson-sequences/', sequenceData),
+    update: (id: number, sequenceData: Record<string, unknown>) => api.put(`/plans/lesson-sequences/${id}/`, sequenceData),
     delete: (id: number) => api.delete(`/plans/lesson-sequences/${id}/`),
     duplicate: (id: number) => api.post(`/plans/lesson-sequences/${id}/duplicate/`),
   },
@@ -279,16 +279,16 @@ export const scheduleAPI = {
   // Periods
   periods: {
     getAll: () => api.get('/schedule/periods/'),
-    create: (periodData: any) => api.post('/schedule/periods/', periodData),
-    update: (id: number, periodData: any) => api.put(`/schedule/periods/${id}/`, periodData),
+    create: (periodData: Record<string, unknown>) => api.post('/schedule/periods/', periodData),
+    update: (id: number, periodData: Record<string, unknown>) => api.put(`/schedule/periods/${id}/`, periodData),
     delete: (id: number) => api.delete(`/schedule/periods/${id}/`),
   },
   
   // Classrooms
   classrooms: {
     getAll: () => api.get('/schedule/classrooms/'),
-    create: (classroomData: any) => api.post('/schedule/classrooms/', classroomData),
-    update: (id: number, classroomData: any) => api.put(`/schedule/classrooms/${id}/`, classroomData),
+    create: (classroomData: Record<string, unknown>) => api.post('/schedule/classrooms/', classroomData),
+    update: (id: number, classroomData: Record<string, unknown>) => api.put(`/schedule/classrooms/${id}/`, classroomData),
     delete: (id: number) => api.delete(`/schedule/classrooms/${id}/`),
   },
   
@@ -296,14 +296,15 @@ export const scheduleAPI = {
   globalSchedule: {
     getAll: () => api.get('/schedule/schedules/'),
     getById: (id: number) => api.get(`/schedule/schedules/${id}/`),
-    create: (scheduleData: any) => api.post('/schedule/schedules/', scheduleData),
-    update: (id: number, scheduleData: any) => api.put(`/schedule/schedules/${id}/`, scheduleData),
+    create: (scheduleData: Record<string, unknown>) => api.post('/schedule/schedules/', scheduleData),
+    update: (id: number, scheduleData: Record<string, unknown>) => api.put(`/schedule/schedules/${id}/`, scheduleData),
     delete: (id: number) => api.delete(`/schedule/schedules/${id}/`),
     // Additional schedule endpoints
     getWeekly: (weekStart: string) => api.get(`/schedule/schedules/weekly/?week_start=${weekStart}`),
     getDaily: (date: string) => api.get(`/schedule/schedules/daily/?date=${date}`),
     getConflicts: () => api.get('/schedule/schedules/conflicts/'),
     getMentorSubjects: () => api.get('/schedule/schedules/mentor-subjects/'),
+    getActiveActivities: () => api.get('/schedule/schedules/active_activities/'),
   },
 };
 
@@ -311,8 +312,8 @@ export const scheduleAPI = {
 export const gradesAPI = {
   getAll: () => api.get('/grades/grades/'),
   getById: (id: number) => api.get(`/grades/grades/${id}/`),
-  create: (gradeData: any) => api.post('/grades/grades/', gradeData),
-  update: (id: number, gradeData: any) => api.put(`/grades/grades/${id}/`, gradeData),
+  create: (gradeData: Record<string, unknown>) => api.post('/grades/grades/', gradeData),
+  update: (id: number, gradeData: Record<string, unknown>) => api.put(`/grades/grades/${id}/`, gradeData),
   delete: (id: number) => api.delete(`/grades/grades/${id}/`),
 };
 
@@ -322,8 +323,8 @@ export const violationAPI = {
   categories: {
     getAll: () => api.get('/violations/categories/'),
     getById: (id: number) => api.get(`/violations/categories/${id}/`),
-    create: (categoryData: any) => api.post('/violations/categories/', categoryData),
-    update: (id: number, categoryData: any) => api.put(`/violations/categories/${id}/`, categoryData),
+    create: (categoryData: Record<string, unknown>) => api.post('/violations/categories/', categoryData),
+    update: (id: number, categoryData: Record<string, unknown>) => api.put(`/violations/categories/${id}/`, categoryData),
     delete: (id: number) => api.delete(`/violations/categories/${id}/`),
   },
   
@@ -331,8 +332,8 @@ export const violationAPI = {
   types: {
     getAll: () => api.get('/violations/types/'),
     getById: (id: number) => api.get(`/violations/types/${id}/`),
-    create: (typeData: any) => api.post('/violations/types/', typeData),
-    update: (id: number, typeData: any) => api.put(`/violations/types/${id}/`, typeData),
+    create: (typeData: Record<string, unknown>) => api.post('/violations/types/', typeData),
+    update: (id: number, typeData: Record<string, unknown>) => api.put(`/violations/types/${id}/`, typeData),
     delete: (id: number) => api.delete(`/violations/types/${id}/`),
   },
   
@@ -340,21 +341,21 @@ export const violationAPI = {
   ranges: {
     getAll: () => api.get('/violations/ranges/'),
     getById: (id: number) => api.get(`/violations/ranges/${id}/`),
-    create: (rangeData: any) => api.post('/violations/ranges/', rangeData),
-    update: (id: number, rangeData: any) => api.put(`/violations/ranges/${id}/`, rangeData),
+    create: (rangeData: Record<string, unknown>) => api.post('/violations/ranges/', rangeData),
+    update: (id: number, rangeData: Record<string, unknown>) => api.put(`/violations/ranges/${id}/`, rangeData),
     delete: (id: number) => api.delete(`/violations/ranges/${id}/`),
   },
   
   // Violations (main CRUD)
   violations: {
-    getAll: (params?: any) => api.get('/violations/', { params }),
+    getAll: (params?: Record<string, unknown>) => api.get('/violations/', { params }),
     getById: (id: number) => api.get(`/violations/${id}/`),
-    create: (violationData: any) => api.post('/violations/', violationData),
-    update: (id: number, violationData: any) => api.put(`/violations/${id}/`, violationData),
+    create: (violationData: Record<string, unknown>) => api.post('/violations/', violationData),
+    update: (id: number, violationData: Record<string, unknown>) => api.put(`/violations/${id}/`, violationData),
     delete: (id: number) => api.delete(`/violations/${id}/`),
     
     // Bulk actions
-    bulkAction: (actionData: any) => api.post('/violations/bulk_action/', actionData),
+    bulkAction: (actionData: Record<string, unknown>) => api.post('/violations/bulk_action/', actionData),
     
     // Individual actions
     markCompleted: (id: number) => api.post(`/violations/${id}/mark_completed/`),
@@ -364,8 +365,8 @@ export const violationAPI = {
   
   // Statistics
   stats: {
-    getGeneral: (params?: any) => api.get('/violations/stats/', { params }),
-    getCategory: (params?: any) => api.get('/violations/category-stats/', { params }),
+    getGeneral: (params?: Record<string, unknown>) => api.get('/violations/stats/', { params }),
+    getCategory: (params?: Record<string, unknown>) => api.get('/violations/category-stats/', { params }),
   },
 };
 

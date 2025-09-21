@@ -7,8 +7,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CheckCircle, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Calendar, Play, Square, Clock } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Calendar, Play, Square, Clock } from 'lucide-react';
 import LessonDetailsPanel from './components/LessonDetailsPanel';
 import WeeklyScheduleCalendar from '@/components/dashboard/WeeklyScheduleCalendar';
 import { useWeekInfoContext } from '@/contexts/WeekInfoContext';
@@ -19,7 +18,6 @@ import api from '@/lib/api';
 // Client-side Veiklos page component
 // Handles all interactive functionality
 const VeiklosPageClient = () => {
-  const { user } = useAuth();
   const [isScheduleExpanded, setIsScheduleExpanded] = useState(false);
   
   // Use WeekInfo context instead of hook
@@ -35,7 +33,6 @@ const VeiklosPageClient = () => {
     isLoading: lessonLoading,
     error: lessonError,
     selectScheduleItem,
-    clearSelection,
     refreshLessonData
   } = useSelectedLesson();
 
@@ -251,7 +248,7 @@ const VeiklosPageClient = () => {
                     {lessonDetails ? (
                       <span className="flex items-center space-x-2">
                         <span className="font-medium text-blue-600">
-                          {lessonDetails.subject_name} - {lessonDetails.levels_names?.[0] || 'N/A'}
+                          {lessonDetails.subject_name} - {Array.isArray(lessonDetails.levels_names) ? lessonDetails.levels_names[0] || 'N/A' : 'N/A'}
                         </span>
                       </span>
                     ) : (

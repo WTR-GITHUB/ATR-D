@@ -8,11 +8,11 @@ import { Search, ChevronDown, ChevronUp } from 'lucide-react';
 interface Column {
   title: string;
   data: string;
-  render?: (data: any, row: any) => React.ReactNode;
+  render?: (data: unknown, row: unknown) => React.ReactNode;
 }
 
 interface ReactDataTableProps {
-  data: any[];
+  data: Record<string, unknown>[];
   columns: Column[];
   title?: string;
   itemsPerPage?: number;
@@ -21,7 +21,7 @@ interface ReactDataTableProps {
   filterableColumnIndexes?: number[]; // CHANGE: Pridėti galimybę nurodyti stulpelių indeksus
   customHeader?: React.ReactNode;
   customFilters?: { [key: string]: React.ReactNode };
-  onFiltersChange?: (filters: { [key: string]: string }, customFilters: { [key: string]: any }) => void;
+  onFiltersChange?: (filters: { [key: string]: string }, customFilters: { [key: string]: unknown }) => void;
   onClearFilters?: () => void;
 }
 
@@ -39,7 +39,7 @@ const ReactDataTable: React.FC<ReactDataTableProps> = ({
   onClearFilters
 }) => {
   const [filters, setFilters] = useState<{ [key: string]: string }>({});
-  const [customFilterValues, setCustomFilterValues] = useState<{ [key: string]: any }>({});
+  // const [customFilterValues, setCustomFilterValues] = useState<{ [key: string]: unknown }>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -61,16 +61,16 @@ const ReactDataTable: React.FC<ReactDataTableProps> = ({
         
         // Specialus filtravimas nested objektams
         if (key === 'lesson_title') {
-          cellValue = row.lesson?.title || '';
+          cellValue = (row as { lesson?: { title?: string } }).lesson?.title || '';
         }
         else if (key === 'subject_name') {
-          cellValue = row.global_schedule?.subject?.name || '';
+          cellValue = (row as { global_schedule?: { subject?: { name?: string } } }).global_schedule?.subject?.name || '';
         }
         else if (key === 'level_name') {
-          cellValue = row.global_schedule?.level?.name || '';
+          cellValue = (row as { global_schedule?: { level?: { name?: string } } }).global_schedule?.level?.name || '';
         }
         else if (key === 'classroom_name') {
-          cellValue = row.global_schedule?.classroom?.name || '';
+          cellValue = (row as { global_schedule?: { classroom?: { name?: string } } }).global_schedule?.classroom?.name || '';
         }
         
         if (cellValue === null || cellValue === undefined) return false;
@@ -265,7 +265,7 @@ const ReactDataTable: React.FC<ReactDataTableProps> = ({
                       key={colIndex}
                       className="border border-gray-200 px-4 py-3 text-sm text-gray-900"
                     >
-                      {column.render ? column.render(row[column.data], row) : row[column.data]}
+                      {column.render ? column.render(row[column.data], row) : String(row[column.data] || '')}
                     </td>
                   ))}
                 </tr>

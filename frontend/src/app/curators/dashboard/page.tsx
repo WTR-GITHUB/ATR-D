@@ -7,10 +7,8 @@
 'use client';
 
 import React from 'react';
-import { useAuth } from '@/hooks/useAuth';
 
 export default function CuratorsDashboardPage() {
-  const { user } = useAuth();
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">

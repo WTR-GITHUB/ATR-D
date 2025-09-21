@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
 import { ReactDataTable } from '@/components/DataTable';
 import { studentSubjectLevelsAPI } from '@/lib/api';
 import { Users, BookOpen, GraduationCap } from 'lucide-react';
@@ -21,7 +20,6 @@ interface StudentSubjectLevel {
 }
 
 export default function MentorStudentsPage() {
-  const { user } = useAuth();
   const [students, setStudents] = useState<StudentSubjectLevel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,8 +46,8 @@ export default function MentorStudentsPage() {
     {
       title: 'Vardas',
       data: 'student_name',
-      render: (data: any) => {
-        const fullName = data || '-';
+      render: (data: unknown) => {
+        const fullName = (data as string) || '-';
         const nameParts = fullName.split(' ');
         return nameParts[0] || '-';
       }
@@ -57,8 +55,8 @@ export default function MentorStudentsPage() {
     {
       title: 'Pavardė',
       data: 'student_name',
-      render: (data: any) => {
-        const fullName = data || '-';
+      render: (data: unknown) => {
+        const fullName = (data as string) || '-';
         const nameParts = fullName.split(' ');
         return nameParts.length > 1 ? nameParts.slice(1).join(' ') : '-';
       }
@@ -66,17 +64,17 @@ export default function MentorStudentsPage() {
     {
       title: 'El. paštas',
       data: 'student_email',
-      render: (data: any) => data || '-'
+      render: (data: unknown) => (data as string) || '-'
     },
     {
       title: 'Dalykas',
       data: 'subject_name',
-      render: (data: any) => data || '-'
+      render: (data: unknown) => (data as string) || '-'
     },
     {
       title: 'Lygis',
       data: 'level_name',
-      render: (data: any) => data || '-'
+      render: (data: unknown) => (data as string) || '-'
     }
   ];
 
@@ -169,7 +167,7 @@ export default function MentorStudentsPage() {
         </div>
       ) : (
         <ReactDataTable
-          data={students}
+          data={students as unknown as Record<string, unknown>[]}
           columns={columns}
           title="Studentų dalykų ir lygių sąrašas"
           itemsPerPage={100}

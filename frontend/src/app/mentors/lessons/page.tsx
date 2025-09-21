@@ -6,13 +6,13 @@ import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { ReactDataTable } from '@/components/DataTable';
 import { lessonsAPI } from '@/lib/api';
-import { BookOpen, Calendar, Users, Clock, Plus, Edit, Trash2 } from 'lucide-react';
+import { BookOpen, Calendar, Users, Plus, Edit, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 import { Lesson } from '@/lib/types';
 
 export default function MentorLessonsPage() {
-  const { user } = useAuth();
+  useAuth();
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,28 +54,28 @@ export default function MentorLessonsPage() {
     fetchLessons();
   }, []);
 
-  const columns = [
-    {
-      title: 'Dalykas',
-      data: 'subject_name'
-    },
-    {
-      title: 'Pavadinimas',
-      data: 'title'
-    },
-    {
-      title: 'Tema',
-      data: 'topic_name'
-    },
-    {
-      title: 'Mokymo lygiai',
-      data: 'levels_names'
-    },
-    {
-      title: 'Veiksmai',
-      data: 'id'
-    }
-  ];
+  // const columns = [
+  //   {
+  //     title: 'Dalykas',
+  //     data: 'subject_name'
+  //   },
+  //   {
+  //     title: 'Pavadinimas',
+  //     data: 'title'
+  //   },
+  //   {
+  //     title: 'Tema',
+  //     data: 'topic_name'
+  //   },
+  //   {
+  //     title: 'Mokymo lygiai',
+  //     data: 'levels_names'
+  //   },
+  //   {
+  //     title: 'Veiksmai',
+  //     data: 'id'
+  //   }
+  // ];
 
   if (isLoading) {
     return (

@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import { User, Settings, LogOut, Check, ChevronDown } from 'lucide-react';
+import { Settings, LogOut, Check, ChevronDown } from 'lucide-react';
 
 // Role display information
 const roleInfo = {

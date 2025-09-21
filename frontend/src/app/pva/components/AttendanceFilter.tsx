@@ -80,7 +80,7 @@ const AttendanceFilter: React.FC<AttendanceFilterProps> = ({
   return (
     <div className="flex items-center space-x-1">
       {/* Ikonų mygtukai */}
-      {statusOptions.map((option, index) => {
+      {statusOptions.map((option) => {
         const Icon = option.icon;
         const isActive = selectedStatus === option.value;
         const buttonClass = isActive 
