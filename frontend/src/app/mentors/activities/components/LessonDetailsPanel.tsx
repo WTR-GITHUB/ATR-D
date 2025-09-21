@@ -3,7 +3,7 @@
 // Komponentas išsamiai pamokos informacijai rodyti
 // Naudoja LessonInfoCard komponentą kiekvienai pamokai atvaizduoti
 // Filtruoja IMU planus pagal pamokas ir rodo studentus kiekvienai pamokai
-// CHANGE: Pertvarkyta naudoti LessonInfoCard komponentą su studentų filtravimu
+// CHANGE: Pertvarkyta naudoti SelectedActivityCard komponentą su studentų filtravimu
 // CHANGE: Pridėti props veiklos būsenai, kad StudentStats komponentas galėtų rodyti aktyvų "Dalyvavo" statusą
 
 import React from 'react';
@@ -81,7 +81,7 @@ const LessonDetailsPanel: React.FC<LessonDetailsPanelProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Rodome kiekvieną pamoką atskirame LessonInfoCard komponente */}
+      {/* Rodome kiekvieną pamoką atskirame SelectedActivityCard komponente */}
       {allLessonsDetails.map((lesson) => (
         <LessonInfoCard
           key={lesson.id}

@@ -7,6 +7,7 @@
 export { default as AttendanceMarker } from './AttendanceMarker';
 export { default as LessonDetailsPanel } from './LessonDetailsPanel';
 export { default as LessonInfoCard } from './LessonInfoCard';
+export { default as SelectedActivityCard } from './SelectedActivityCard';
 export { default as StudentRow } from './StudentRow';
 export { default as StudentsList } from './StudentsList';
 export { default as StudentStats } from './StudentStats';

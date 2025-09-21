@@ -8,7 +8,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, User } from 'lucide-react';
 import StudentRow from './StudentRow';
 import StudentSelectionModal from '@/components/ui/StudentSelectionModal';
@@ -23,21 +23,34 @@ interface StudentsListProps {
   showAddButton?: boolean;
   isActivityActive?: boolean; // CHANGE: Pridėtas veiklos aktyvumo prop
   planStatus?: 'planned' | 'in_progress' | 'completed'; // CHANGE: Pridėtas plano statusas
+  globalScheduleId?: number; // CHANGE: Pridėtas globalScheduleId modal filtravimui
+  lessonId?: number; // CHANGE: Pridėtas lessonId modal filtravimui
 }
 
 // Mokinių sąrašo komponentas
 // Pagrindinis komponentas mokinių sąrašo valdymui
 const StudentsList: React.FC<StudentsListProps> = ({
-  students,
+  students: initialStudents,
   onAttendanceChange,
   onAddStudent,
   onStudentsAdded,
   showAddButton = true,
   isActivityActive = false, // CHANGE: Pridėtas veiklos aktyvumo parametras
-  planStatus = 'planned' // CHANGE: Pridėtas plano statusas
+  planStatus = 'planned', // CHANGE: Pridėtas plano statusas
+  globalScheduleId, // CHANGE: Pridėtas globalScheduleId parametras
+  lessonId // CHANGE: Pridėtas lessonId parametras
 }) => {
   // CHANGE: Modal state valdymas
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // CHANGE: Pridėtas local students state realaus laiko atnaujinimui
+  const [students, setStudents] = useState<Student[]>(initialStudents);
+  
+  // CHANGE: Atnaujinti students state kai keičiasi initialStudents prop
+  useEffect(() => {
+    setStudents(initialStudents);
+  }, [initialStudents]);
+  
   // Statistikų skaičiavimas
   const getAttendanceStats = () => {
     const present = students.filter(s => s.attendance_status === 'present').length;
@@ -50,6 +63,21 @@ const StudentsList: React.FC<StudentsListProps> = ({
 
   // CHANGE: Gauname statistikas
   const stats = getAttendanceStats();
+
+  // CHANGE: Realaus laiko atnaujinimo funkcija lankomumo keitimui
+  const handleAttendanceChange = (studentId: number, status: AttendanceStatus) => {
+    // Atnaujinti local students state
+    setStudents(prevStudents => 
+      prevStudents.map(student => 
+        student.id === studentId 
+          ? { ...student, attendance_status: status }
+          : student
+      )
+    );
+    
+    // Iškviesti parent callback'ą
+    onAttendanceChange(studentId, status);
+  };
 
   // CHANGE: Modal handlers
   const handleAddStudent = () => {
@@ -68,6 +96,8 @@ const StudentsList: React.FC<StudentsListProps> = ({
   const handleCloseModal = () => {
     setIsModalOpen(false);
   };
+
+  // Debug logging removed - functionality working correctly
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -109,7 +139,7 @@ const StudentsList: React.FC<StudentsListProps> = ({
               <StudentRow
                 key={student.id}
                 student={student}
-                onAttendanceChange={onAttendanceChange}
+                onAttendanceChange={handleAttendanceChange} // CHANGE: Naudojame local handleAttendanceChange funkciją
                 isActivityActive={isActivityActive} // CHANGE: Perduodamas veiklos aktyvumas
                 planStatus={planStatus} // CHANGE: Perduodamas plano statusas
               />
@@ -137,6 +167,8 @@ const StudentsList: React.FC<StudentsListProps> = ({
           is_active: true,
           date_joined: new Date().toISOString()
         }))}
+        globalScheduleId={globalScheduleId}
+        lessonId={lessonId}
       />
     </div>
   );

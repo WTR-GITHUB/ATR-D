@@ -14,7 +14,7 @@ import { ScheduleItem } from '@/hooks/useSchedule';
 
 // CHANGE: Sukurtas SelectedLessonState tipas tiesiogiai hook'e
 interface SelectedLessonState {
-  globalScheduleId: number | null;
+  globalScheduleId: number | undefined;
   lessonDetails: LessonDetails | null;
   allLessonsDetails: LessonDetails[];
   imuPlans: IMUPlan[];
@@ -26,7 +26,7 @@ interface SelectedLessonState {
 const STORAGE_KEY = 'activities_selected_lesson';
 
 interface UseSelectedLessonReturn {
-  globalScheduleId: number | null;
+  globalScheduleId: number | undefined;
   lessonDetails: LessonDetails | null;
   allLessonsDetails: LessonDetails[];
   imuPlans: IMUPlan[];
@@ -41,7 +41,7 @@ interface UseSelectedLessonReturn {
 export const useSelectedLesson = (): UseSelectedLessonReturn => {
   const { getCurrentUserId } = useAuth();
   const [state, setState] = useState<SelectedLessonState>({
-    globalScheduleId: null,
+    globalScheduleId: undefined,
     lessonDetails: null,
     allLessonsDetails: [],
     imuPlans: [],
@@ -51,7 +51,7 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
   });
 
   // Išsaugoti pasirinkimą localStorage
-  const saveToStorage = useCallback((globalScheduleId: number | null) => {
+  const saveToStorage = useCallback((globalScheduleId: number | undefined) => {
     if (globalScheduleId) {
       localStorage.setItem(STORAGE_KEY, globalScheduleId.toString());
     } else {
@@ -62,7 +62,7 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
   // Atkurti pasirinkimą iš localStorage
   const loadFromStorage = useCallback(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? parseInt(saved, 10) : null;
+    return saved ? parseInt(saved, 10) : undefined;
   }, []);
 
   // Gauti pamokos detales pagal GlobalSchedule ID
@@ -135,7 +135,7 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
             error: 'Pasirinkta pamoka neegzistuoja. Prašome pasirinkti pamoką iš tvarkaraščio.'
           }));
           // Išvalyti neteisingą ID iš localStorage
-          saveToStorage(null);
+          saveToStorage(undefined);
           return;
         }
         
@@ -160,7 +160,7 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
   const selectScheduleItem = useCallback((item: ScheduleItem | null) => {
     if (!item) {
       setState({
-        globalScheduleId: null,
+        globalScheduleId: undefined,
         lessonDetails: null,
         allLessonsDetails: [],
         imuPlans: [],
@@ -168,7 +168,7 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
         isLoading: false,
         error: null
       });
-      saveToStorage(null);
+      saveToStorage(undefined);
       return;
     }
 

@@ -62,13 +62,18 @@ class GlobalScheduleSerializer(serializers.ModelSerializer):
     # REFAKTORINIMAS: Pridėti planų valdymo laukai
     plan_status_display = serializers.CharField(source='get_plan_status_display', read_only=True)
     
+    # CHANGE: Pridėti IMUPlan tikrinimo laukas
+    has_imu_plan = serializers.SerializerMethodField()
+    
     class Meta:
         model = GlobalSchedule
         fields = [
             'id', 'date', 'weekday', 'period', 'classroom', 'subject', 'level', 'user',
             'period_name', 'classroom_name', 'subject_name', 'level_name', 'mentor_name',
             # REFAKTORINIMAS: Pridėti planų valdymo laukai
-            'plan_status', 'plan_status_display', 'started_at', 'completed_at'
+            'plan_status', 'plan_status_display', 'started_at', 'completed_at',
+            # CHANGE: Pridėti IMUPlan tikrinimo laukas
+            'has_imu_plan'
         ]
         read_only_fields = ['weekday']  # Savaitės diena nustatoma automatiškai
         # lesson laukas pašalintas
@@ -124,6 +129,11 @@ class GlobalScheduleSerializer(serializers.ModelSerializer):
                 'description': obj.classroom.description
             }
         return None
+    
+    def get_has_imu_plan(self, obj):
+        """Tikrina ar yra IMUPlan įrašų šiam GlobalSchedule slotui"""
+        from plans.models import IMUPlan
+        return IMUPlan.objects.filter(global_schedule=obj).exists()
     
     # get_lesson metodas pašalintas
     

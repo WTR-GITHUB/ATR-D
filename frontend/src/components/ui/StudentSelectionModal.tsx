@@ -6,7 +6,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Users } from 'lucide-react';
 import { usersAPI } from '@/lib/api';
 import MultiSelect from './MultiSelect';
@@ -16,14 +16,18 @@ interface StudentSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onStudentsSelected: (students: User[]) => void;
-  existingStudents: User[]; // Mokinių sąrašas, kurie jau pridėti
+  existingStudents: User[]; // Mokinių sąrašas, kurie jau pridėti (frontend state)
+  globalScheduleId?: number; // GlobalSchedule ID backend filtravimui
+  lessonId?: number; // Lesson ID backend filtravimui
 }
 
 const StudentSelectionModal: React.FC<StudentSelectionModalProps> = ({
   isOpen,
   onClose,
   onStudentsSelected,
-  existingStudents
+  existingStudents,
+  globalScheduleId,
+  lessonId
 }) => {
   // Form state
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
@@ -34,21 +38,24 @@ const StudentSelectionModal: React.FC<StudentSelectionModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load students when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      loadStudents();
-    }
-  }, [isOpen]);
+  // Load existing IMU plans from backend to filter out already added students
+  const loadExistingPlans = useCallback(async () => {
+    if (!globalScheduleId || !lessonId) return [];
 
-  // Filter out existing students
-  useEffect(() => {
-    if (allStudents.length > 0) {
-      const existingIds = existingStudents.map(s => s.id);
-      const available = allStudents.filter(s => !existingIds.includes(s.id));
-      setFilteredStudents(available);
+    try {
+      const { plansAPI } = await import('@/lib/api');
+      const response = await plansAPI.imuPlans.getAll({ 
+        global_schedule: globalScheduleId,
+        lesson: lessonId
+      });
+      
+      const imuPlans = Array.isArray(response.data) ? response.data : (response.data.results || []);
+      return imuPlans.map((plan: { student: number }) => plan.student);
+    } catch (error) {
+      console.error('Error loading existing plans:', error);
+      return [];
     }
-  }, [allStudents, existingStudents]);
+  }, [globalScheduleId, lessonId]);
 
   const loadStudents = async () => {
     try {
@@ -66,6 +73,35 @@ const StudentSelectionModal: React.FC<StudentSelectionModalProps> = ({
       setIsLoading(false);
     }
   };
+
+  // Load students when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      loadStudents();
+    }
+  }, [isOpen]);
+
+  // Filter out existing students (both frontend state and backend data)
+  useEffect(() => {
+    const filterStudents = async () => {
+      if (allStudents.length === 0) return;
+
+      // Get existing student IDs from frontend state
+      const frontendExistingIds = existingStudents.map(s => s.id);
+      
+      // Get existing student IDs from backend
+      const backendExistingIds = await loadExistingPlans();
+      
+      // Combine both sources
+      const allExistingIds = [...frontendExistingIds, ...backendExistingIds];
+      
+      // Filter out existing students
+      const available = allStudents.filter(s => !allExistingIds.includes(s.id));
+      setFilteredStudents(available);
+    };
+
+    filterStudents();
+  }, [allStudents, existingStudents, loadExistingPlans]);
 
   const handleStudentsChange = (values: string[]) => {
     setSelectedStudents(values);

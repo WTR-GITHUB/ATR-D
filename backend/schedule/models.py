@@ -136,6 +136,30 @@ class GlobalSchedule(models.Model):
         super().save(*args, **kwargs)
     
     @classmethod
+    def bulk_cancel_activity(cls, global_schedule_id):
+        """
+        Atšaukia veiklą visiems mokiniams, kurie priklauso šiai veiklai (GlobalSchedule slot)
+        CHANGE: Pridėtas naujas metodas veiklos atšaukimui
+        PURPOSE: Grąžina veiklą į 'planned' būseną ir išvalo laikus
+        """
+        from django.utils import timezone
+        
+        # Atnaujina GlobalSchedule plan_status atgal į 'planned' ir išvalo laikus
+        updated_count = cls.objects.filter(
+            id=global_schedule_id,
+            plan_status__in=['in_progress', 'completed']  # Galima atšaukti tik vykstančias arba baigtas veiklas
+        ).update(
+            plan_status='planned',        # Grąžina į suplanuotą būseną
+            started_at=None,             # Išvalo pradžios laiką
+            completed_at=None            # Išvalo pabaigos laiką
+        )
+        
+        return {
+            'updated_count': updated_count,
+            'cancelled_at': timezone.now()
+        }
+
+    @classmethod
     def bulk_start_activity(cls, global_schedule_id):
         """
         Pradeda veiklą visiems mokiniams, kurie priklauso šiai veiklai (GlobalSchedule slot)

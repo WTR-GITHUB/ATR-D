@@ -199,6 +199,35 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         })
     
     @action(detail=True, methods=['post'])
+    def cancel_activity(self, request, pk=None):
+        """
+        CHANGE: Atšaukia veiklą (GlobalSchedule plan_status -> 'planned')
+        PURPOSE: Grąžina veiklą į suplanuotą būseną ir išvalo laikus
+        """
+        schedule = self.get_object()
+        
+        # Tikriname, ar veikla gali būti atšaukta
+        if schedule.plan_status not in ['in_progress', 'completed']:
+            return Response(
+                {"error": "Veikla gali būti atšaukta tik iš 'in_progress' arba 'completed' būsenos"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Atšaukiame veiklą
+        result = GlobalSchedule.bulk_cancel_activity(schedule.id)
+        
+        # Atnaujiname objektą iš duomenų bazės
+        schedule.refresh_from_db()
+        
+        return Response({
+            "message": "Veikla sėkmingai atšaukta",
+            "plan_status": schedule.plan_status,
+            "started_at": schedule.started_at,
+            "completed_at": schedule.completed_at,
+            "result": result
+        })
+    
+    @action(detail=True, methods=['post'])
     def update_status(self, request, pk=None):
         """
         REFAKTORINIMAS: Atnaujina veiklos plan_status

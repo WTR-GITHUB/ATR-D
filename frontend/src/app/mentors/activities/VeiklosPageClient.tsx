@@ -6,19 +6,21 @@
 
 'use client';
 
-import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Calendar, Play, Square, Clock } from 'lucide-react';
-import LessonDetailsPanel from './components/LessonDetailsPanel';
-import WeeklyScheduleCalendar from '@/components/dashboard/WeeklyScheduleCalendar';
+import React, { useState, useRef } from 'react';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import WeeklyScheduleCalendar, { WeeklyScheduleCalendarRef } from './components/WeeklyScheduleCalendar';
+import SelectedActivityCard from './components/SelectedActivityCard';
 import { useWeekInfoContext } from '@/contexts/WeekInfoContext';
 import useSelectedLesson from '@/hooks/useSelectedLesson';
-import { formatDateTime } from '@/lib/localeConfig';
 import api from '@/lib/api';
 
 // Client-side Veiklos page component
 // Handles all interactive functionality
 const VeiklosPageClient = () => {
-  const [isScheduleExpanded, setIsScheduleExpanded] = useState(false);
+  const [isScheduleExpanded, setIsScheduleExpanded] = useState(true); // CHANGE: Default išskleistas
+  
+  // Ref for calendar component to access refetch function
+  const calendarRef = useRef<WeeklyScheduleCalendarRef>(null);
   
   // Use WeekInfo context instead of hook
   const { weekInfo: displayWeekInfo, navigateWeek, goToToday, isLoading: weekLoading } = useWeekInfoContext();
@@ -27,11 +29,7 @@ const VeiklosPageClient = () => {
   const {
     globalScheduleId,
     lessonDetails,
-    allLessonsDetails,
     imuPlans,
-    globalSchedule,
-    isLoading: lessonLoading,
-    error: lessonError,
     selectScheduleItem,
     refreshLessonData
   } = useSelectedLesson();
@@ -42,6 +40,22 @@ const VeiklosPageClient = () => {
   const [activityEndTime, setActivityEndTime] = useState<Date | null>(null);
   const [isActivityActive, setIsActivityActive] = useState(false);
   const [isActivityCompleted, setIsActivityCompleted] = useState(false);
+  
+  // CHANGE: Pridėtas planStatus state realaus laiko atnaujinimui
+  const [planStatus, setPlanStatus] = useState<'planned' | 'in_progress' | 'completed'>('planned');
+
+  // Helper function to refresh calendar data
+  const refreshCalendar = async () => {
+    if (calendarRef.current) {
+      try {
+        // Small delay to ensure backend has processed the changes
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await calendarRef.current.refetch();
+      } catch (error) {
+        console.error('❌ Error refreshing calendar data:', error);
+      }
+    }
+  };
 
   // Veiklos pradžios funkcija
   const handleStartActivity = async () => {
@@ -62,8 +76,10 @@ const VeiklosPageClient = () => {
       }
       setIsActivityActive(true);
       setIsActivityCompleted(false);
+      setPlanStatus('in_progress'); // CHANGE: Atnaujinti planStatus į 'in_progress'
       
       refreshLessonData();
+      await refreshCalendar(); // CHANGE: Atnaujinti kalendorių
     } catch (error) {
       console.error('Klaida pradedant veiklą:', error);
     }
@@ -81,17 +97,46 @@ const VeiklosPageClient = () => {
 
       const response = await api.post(`/schedule/schedules/${globalScheduleId}/end_activity/`);
       
-      const result = response.data;
-      
-      if (result.completed_at) {
-        setActivityEndTime(new Date(result.completed_at));
+      // Nustatyti veiklos pabaigos laiką
+      if (response.data.ended_at) {
+        setActivityEndTime(new Date(response.data.ended_at));
+      } else {
+        setActivityEndTime(new Date()); // Jei backend negrąžina laiko, naudoti dabartinį laiką
       }
+      
       setIsActivityActive(false);
       setIsActivityCompleted(true);
+      setPlanStatus('completed'); // CHANGE: Atnaujinti planStatus į 'completed'
       
       refreshLessonData();
+      await refreshCalendar(); // CHANGE: Atnaujinti kalendorių
     } catch (error) {
       console.error('Klaida baigiant veiklą:', error);
+    }
+  };
+
+  // Veiklos atšaukimas
+  const handleCancelActivity = async () => {
+    if (!globalScheduleId) return;
+    
+    try {
+      if (!api || typeof api.post !== 'function') {
+        console.error('API client is not available');
+        return;
+      }
+
+      await api.post(`/schedule/schedules/${globalScheduleId}/cancel_activity/`);
+      
+      setIsActivityActive(false);
+      setIsActivityCompleted(false);
+      setActivityStartTime(null);
+      setActivityEndTime(null); // CHANGE: Išvalyti pabaigos laiką atšaukus veiklą
+      setPlanStatus('planned'); // CHANGE: Atnaujinti planStatus į 'planned'
+      
+      refreshLessonData();
+      await refreshCalendar(); // CHANGE: Atnaujinti kalendorių
+    } catch (error) {
+      console.error('Klaida atšaukant veiklą:', error);
     }
   };
 
@@ -116,24 +161,26 @@ const VeiklosPageClient = () => {
         if (scheduleData.plan_status === 'in_progress') {
           setIsActivityActive(true);
           setIsActivityCompleted(false);
+          setPlanStatus('in_progress'); // CHANGE: Atnaujinti planStatus
           if (scheduleData.started_at) {
             setActivityStartTime(new Date(scheduleData.started_at));
           }
-          setActivityEndTime(null);
         } else if (scheduleData.plan_status === 'completed') {
           setIsActivityActive(false);
           setIsActivityCompleted(true);
+          setPlanStatus('completed'); // CHANGE: Atnaujinti planStatus
           if (scheduleData.started_at) {
             setActivityStartTime(new Date(scheduleData.started_at));
           }
-          if (scheduleData.completed_at) {
-            setActivityEndTime(new Date(scheduleData.completed_at));
+          if (scheduleData.ended_at) {
+            setActivityEndTime(new Date(scheduleData.ended_at));
           }
         } else {
           setIsActivityActive(false);
           setIsActivityCompleted(false);
+          setPlanStatus('planned'); // CHANGE: Atnaujinti planStatus
           setActivityStartTime(null);
-          setActivityEndTime(null);
+          setActivityEndTime(null); // CHANGE: Išvalyti pabaigos laiką
         }
       } catch (error) {
         console.error('Klaida gaunant GlobalSchedule duomenis:', error);
@@ -163,7 +210,11 @@ const VeiklosPageClient = () => {
 
         {/* Savaitės tvarkaraščio akordeonas */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+          <div 
+            className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer"
+            onClick={() => setIsScheduleExpanded(!isScheduleExpanded)}
+            title={isScheduleExpanded ? "Suskleisti tvarkaraštį" : "Išskleisti tvarkaraštį"}
+          >
             <div className="flex items-center space-x-3 flex-1">
               <Calendar className="h-5 w-5 text-gray-600" />
               <div>
@@ -185,7 +236,10 @@ const VeiklosPageClient = () => {
               {displayWeekInfo && (
                 <>
                   <button
-                    onClick={() => navigateWeek(-1)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Sustabdyti event bubbling
+                      navigateWeek(-1);
+                    }}
                     disabled={weekLoading}
                     className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
                     title="Ankstesnė savaitė"
@@ -194,7 +248,10 @@ const VeiklosPageClient = () => {
                   </button>
                   
                   <button
-                    onClick={() => goToToday()}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Sustabdyti event bubbling
+                      goToToday();
+                    }}
                     disabled={weekLoading}
                     className="px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors disabled:opacity-50"
                     title="Eiti į šiandienos savaitę"
@@ -203,7 +260,10 @@ const VeiklosPageClient = () => {
                   </button>
                   
                   <button
-                    onClick={() => navigateWeek(1)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Sustabdyti event bubbling
+                      navigateWeek(1);
+                    }}
                     disabled={weekLoading}
                     className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
                     title="Kita savaitė"
@@ -213,7 +273,8 @@ const VeiklosPageClient = () => {
                 </>
               )}
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation(); // Sustabdyti event bubbling
                   setIsScheduleExpanded(!isScheduleExpanded);
                 }}
                 className="p-1 text-gray-400 hover:text-gray-600 rounded transition-colors"
@@ -227,6 +288,7 @@ const VeiklosPageClient = () => {
           {isScheduleExpanded && (
             <div className="border-t border-gray-200">
               <WeeklyScheduleCalendar 
+                ref={calendarRef}
                 className="border-0 shadow-none" 
                 showHeader={false}
                 onScheduleItemSelect={selectScheduleItem}
@@ -236,135 +298,27 @@ const VeiklosPageClient = () => {
           )}
         </div>
 
-        {/* Veiklos statuso kortelė */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Clock className="h-5 w-5 text-gray-600" />
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Veiklos statusas</h3>
-                  <p className="text-sm text-gray-600">
-                    {lessonDetails ? (
-                      <span className="flex items-center space-x-2">
-                        <span className="font-medium text-blue-600">
-                          {lessonDetails.subject_name} - {Array.isArray(lessonDetails.levels_names) ? lessonDetails.levels_names[0] || 'N/A' : 'N/A'}
-                        </span>
-                      </span>
-                    ) : (
-                      "Nepasirinkta jokia pamoka"
-                    )}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Veiklos laiko rodymas viduryje */}
-              <div className="flex-1 mx-8">
-                <div className="text-center space-y-2">
-                  {/* 1 eilutė: Veiklos pradžios laikas */}
-                  <div className="text-sm">
-                    {activityStartTime ? (
-                      <span className="text-green-600 font-medium">
-                        Veikla pradėta: {formatDateTime(activityStartTime)}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">Veikla pradėta: -</span>
-                    )}
-                  </div>
-                  
-                  {/* 2 eilutė: Veiklos pabaigos laikas */}
-                  <div className="text-sm">
-                    {activityEndTime ? (
-                      <span className="text-red-600 font-medium">
-                        Veikla baigta: {formatDateTime(activityEndTime)}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">Veikla baigta: -</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3">
-                {/* Veiklos valdymo mygtukai */}
-                <button
-                  onClick={handleStartActivity}
-                  disabled={!lessonDetails || isActivityActive || isActivityCompleted}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
-                    lessonDetails && !isActivityActive && !isActivityCompleted
-                      ? 'bg-green-600 text-white hover:bg-green-700 active:bg-green-800' 
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
-                  title={lessonDetails ? (isActivityActive ? "Veikla jau pradėta" : isActivityCompleted ? "Veikla užbaigta" : "Pradėti veiklą") : "Pirmiausia pasirinkite pamoką"}
-                >
-                  <Play size={16} />
-                  <span>Pradėti veiklą</span>
-                </button>
-                
-                <button
-                  onClick={handleEndActivity}
-                  disabled={!lessonDetails || !isActivityActive || isActivityCompleted}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
-                    lessonDetails && isActivityActive && !isActivityCompleted
-                      ? 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800' 
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
-                  title={lessonDetails ? (isActivityActive && !isActivityCompleted ? "Užbaigti veiklą" : isActivityCompleted ? "Veikla jau užbaigta" : "Pirmiausia pradėkite veiklą") : "Pirmiausia pasirinkite pamoką"}
-                >
-                  <Square size={16} />
-                  <span>Užbaigti veiklą</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Pasirinktos pamokos informacija */}
-        {globalScheduleId && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Pasirinkta pamoka</h2>
-            
-            {lessonLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="mt-2 text-gray-600">Kraunama...</p>
-              </div>
-            ) : lessonError ? (
-              <div className="text-center py-8">
-                <p className="text-red-600">Klaida: {lessonError}</p>
-              </div>
-            ) : lessonDetails ? (
-              <div className="space-y-6">
-                {/* Pamokos detalės */}
-                <LessonDetailsPanel
-                  lessonDetails={lessonDetails}
-                  allLessonsDetails={allLessonsDetails}
-                  imuPlans={imuPlans}
-                  isLoading={lessonLoading}
-                  error={lessonError}
-                  isActivityActive={isActivityActive} // CHANGE: Pridėtas veiklos aktyvumas
-                  activityStartTime={activityStartTime} // CHANGE: Pridėtas veiklos pradžios laikas
-                  planStatus={globalSchedule?.plan_status as "completed" | "planned" | "in_progress" | undefined} // CHANGE: Pridėtas plano statusas
-                  subjectId={globalSchedule?.subject?.id}
-                  globalScheduleId={globalScheduleId}
-                />
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-gray-600">Pasirinkite pamoką iš tvarkaraščio</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Mokinių sąrašas */}
-        {globalScheduleId && lessonDetails && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Mokinių sąrašas</h2>
-            <p className="text-gray-600 mb-4">
-              Pasirinkite pamoką iš viršuje esančio sąrašo, kad pamatytumėte mokinių informaciją
-            </p>
-          </div>
+        {/* Pasirinktos veiklos kortelė - naudojame SelectedActivityCard komponentą */}
+        {lessonDetails && (
+          <SelectedActivityCard
+            globalScheduleId={globalScheduleId}
+            activityInfo={{
+              subject_name: lessonDetails.subject_name,
+              level_name: Array.isArray(lessonDetails.levels_names) ? lessonDetails.levels_names[0] || null : null
+            }}
+            uniqueLessons={imuPlans ? imuPlans.map(plan => ({
+              lessonDetails: lessonDetails,
+              students: [plan]
+            })) : []}
+            activityStartTime={activityStartTime}
+            activityEndTime={activityEndTime}
+            isActivityActive={isActivityActive}
+            isActivityCompleted={isActivityCompleted}
+            planStatus={planStatus} // CHANGE: Naudojame local planStatus state'ą
+            onStartActivity={handleStartActivity}
+            onEndActivity={handleEndActivity}
+            onCancelActivity={handleCancelActivity}
+          />
         )}
       </div>
     </div>

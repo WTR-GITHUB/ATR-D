@@ -8,7 +8,7 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
-import WeeklyScheduleCalendar from './WeeklyScheduleCalendar';
+import WeeklyScheduleCalendar from '@/app/mentors/activities/components/WeeklyScheduleCalendar';
 import { useWeekInfoContext } from '@/contexts/WeekInfoContext';
 
 interface WeeklyScheduleProps {

@@ -1,14 +1,18 @@
-// frontend/src/components/dashboard/WeeklyScheduleCalendar.tsx
+// frontend/src/app/mentors/activities/components/WeeklyScheduleCalendar.tsx
 
 // Savaitės tvarkaraščio komponentas - rodo mentoriaus pamokas pagal savaitę
 // Naudoja duomenis iš GlobalSchedule, Period ir Classroom modelių
 // CHANGE: Sukurtas naujas komponentas, integruotas su backend API, naudoja tikrus duomenis
 // CHANGE: Pamokos detalių modalas atnaujintas - rodomi tik būtini laukai: pavadinimas, tema, dorybės, fokusai, pasiekimo lygiai, BUP kompetencijos
 // CHANGE: Pašalinti console.log pranešimai, kurie rodo pamokų duomenis
+// CHANGE: Atnaujinta spalvų sistema - naudojamos konstantos iš scheduleColors.ts vietoj hash-based spalvų
+// CHANGE: Pašalintas lygio numeris iš dalyko pavadinimo - dabar rodomas tik švarus dalyko pavadinimas
+// CHANGE: Pašalintas lygio pavadinimas (lesson.level.name) iš pamokos kortelės
+// MOVE: Perkeltas iš /frontend/src/components/dashboard/ į /frontend/src/app/mentors/activities/components/
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle, useMemo } from 'react';
 import { Clock, MapPin, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import useWeeklySchedule from '@/hooks/useWeeklySchedule';
 // import useSubjects from '@/hooks/useSubjects';
@@ -16,6 +20,8 @@ import usePeriods from '@/hooks/usePeriods';
 import { useWeekInfoContext } from '@/contexts/WeekInfoContext';
 // CHANGE: Pataisytas import'as - ScheduleItem importuojamas iš useSchedule hook'o
 import { ScheduleItem } from '@/hooks/useSchedule';
+// CHANGE: Pridėtas import'as spalvų konstantoms
+import { getScheduleColors, getScheduleColorClasses, type ScheduleStatus } from '@/constants/scheduleColors';
 
 interface WeeklyScheduleCalendarProps {
   className?: string;
@@ -23,6 +29,11 @@ interface WeeklyScheduleCalendarProps {
   onWeekChange?: (weekInfo: Record<string, unknown>) => void; // Callback savaitės informacijai perduoti į parent
   onScheduleItemSelect?: (item: ScheduleItem | null) => void; // Callback pamokos pasirinkimui
   selectedScheduleId?: number | null; // Pasirinktos pamokos ID
+}
+
+// Ref interface for exposing refetch function
+export interface WeeklyScheduleCalendarRef {
+  refetch: () => Promise<void>;
 }
 
 // Savaitės dienos (horizontal) - įskaitant savaitgalius
@@ -42,30 +53,26 @@ const LessonCard: React.FC<{
   isSelected?: boolean;
   onClick?: () => void;
 }> = ({ lesson, isSelected = false, onClick }) => {
-  const getSubjectColor = (subject: string) => {
-    // Spalvų schema pagal dalykų pavadinimus
-    const hash = subject.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    
-    const colors = [
-      'bg-blue-500 border-blue-600',
-      'bg-purple-500 border-purple-600',
-      'bg-green-500 border-green-600',
-      'bg-red-500 border-red-600',
-      'bg-yellow-500 border-yellow-600',
-      'bg-indigo-500 border-indigo-600',
-      'bg-pink-500 border-pink-600',
-      'bg-teal-500 border-teal-600'
-    ];
-    
-    return colors[Math.abs(hash) % colors.length];
+  // CHANGE: Naudojamos spalvų konstantos iš scheduleColors.ts
+  // Gauti pamokos statusą (pagal nutylėjimą 'planned' jei nėra statuso)
+  // CHANGE: Pridėta logika IMUPlan tikrinimui - jei nėra IMUPlan duomenų, naudoti raudoną spalvą
+  // Tikriname ar yra IMUPlan duomenų - naudojame has_imu_plan lauką iš API
+  const hasImuPlan = lesson.has_imu_plan; // Tikriname ar yra IMUPlan duomenų
+  const lessonStatus: ScheduleStatus = hasImuPlan ? (lesson.plan_status || 'planned') : 'no_imu_plan';
+  const colorClasses = getScheduleColorClasses(lessonStatus);
+  const colors = getScheduleColors(lessonStatus);
+  
+  // CHANGE: Pašaliname lygio numerį iš dalyko pavadinimo
+  // Funkcija, kuri pašalina skaičių iš dalyko pavadinimo pabaigos
+  const getCleanSubjectName = (subjectName: string): string => {
+    // Pašaliname skaičių iš pavadinimo pabaigos (pvz., "Dalykas 4" -> "Dalykas")
+    return subjectName.replace(/\s+\d+$/, '');
   };
+  
 
   return (
     <div 
-      className={`${getSubjectColor(lesson.subject.name)} text-white rounded-lg p-3 shadow-md hover:shadow-lg transition-all cursor-pointer border-l-4 w-full h-full flex flex-col justify-between relative ${
+      className={`${colorClasses} rounded-lg p-3 shadow-md hover:shadow-lg transition-all cursor-pointer border-l-4 w-full h-full flex flex-col justify-between relative ${
         isSelected ? 'ring-2 ring-yellow-400 ring-offset-2' : ''
       }`}
       onClick={onClick}
@@ -78,15 +85,14 @@ const LessonCard: React.FC<{
       )}
       
       <div className="space-y-1">
-        {/* Dalyko pavadinimas ir lygis */}
+        {/* Dalyko pavadinimas */}
         <div>
-          <h3 className="font-semibold text-sm leading-tight">{lesson.subject.name}</h3>
-          <p className="text-xs opacity-90">{lesson.level.name}</p>
+          <h3 className={`font-semibold text-sm leading-tight ${colors.text}`}>{getCleanSubjectName(lesson.subject.name)}</h3>
         </div>
       </div>
       
       {/* Papildoma informacija apačioje */}
-      <div className="flex items-center justify-between text-xs opacity-80 mt-2">
+      <div className={`flex items-center justify-between text-xs opacity-80 mt-2 ${colors.text}`}>
         <div className="flex items-center space-x-1">
           <MapPin size={10} />
           <span>{lesson.classroom.name}</span>
@@ -100,13 +106,13 @@ const LessonCard: React.FC<{
   );
 };
 
-const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({ 
+const WeeklyScheduleCalendar = forwardRef<WeeklyScheduleCalendarRef, WeeklyScheduleCalendarProps>(({ 
   className = '', 
   showHeader = true,
   onWeekChange,
   onScheduleItemSelect,
   selectedScheduleId
-}) => {
+}, ref) => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   // Pašalinta vietinė selectedLesson būsena - naudojame props
   
@@ -120,6 +126,14 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
   const weekInfo = contextWeekInfo.weekInfo;
   
   const weekDates = weekInfo.weekDates;
+  
+  // Memoize date formatting to prevent hydration mismatches
+  const formattedWeekDates = useMemo(() => {
+    return weekDates.map(date => ({
+      day: date.getDate().toString().padStart(2, '0'),
+      month: (date.getMonth() + 1).toString().padStart(2, '0')
+    }));
+  }, [weekDates]);
   
   // Perduodame savaitės informaciją į parent komponentą
   useEffect(() => {
@@ -135,10 +149,16 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
   // Gauname savaitės tvarkaraščio duomenis
   const mondayDate = weekDates[0].toISOString().split('T')[0];
   
-  const { scheduleItems: allScheduleItems, isLoading, error } = useWeeklySchedule({
+  const { scheduleItems: allScheduleItems, isLoading, error, refetch } = useWeeklySchedule({
     weekStartDate: mondayDate,
     enabled: true
   });
+
+  // Expose refetch function to parent component via ref
+  useImperativeHandle(ref, () => ({
+    refetch
+  }), [refetch]);
+  
   
 
   // Gauti pamokos objektą pagal dieną ir laiką
@@ -260,7 +280,7 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
               }`}>
                 <span className="text-sm font-semibold">{day.short}</span>
                 <span className="text-xs opacity-80">
-                  {weekDates[dayIndex].getDate().toString().padStart(2, '0')}-{(weekDates[dayIndex].getMonth() + 1).toString().padStart(2, '0')}
+                  {formattedWeekDates[dayIndex]?.day}-{formattedWeekDates[dayIndex]?.month}
                 </span>
               </div>
             ))}
@@ -318,6 +338,9 @@ const WeeklyScheduleCalendar: React.FC<WeeklyScheduleCalendarProps> = ({
       {/* Pašalinta pasirinktos pamokos informacijos kortelė - naudojama activities puslapyje */}
     </div>
   );
-};
+});
+
+// Add display name for debugging
+WeeklyScheduleCalendar.displayName = 'WeeklyScheduleCalendar';
 
 export default WeeklyScheduleCalendar;

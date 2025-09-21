@@ -1,7 +1,7 @@
 // frontend/src/constants/scheduleColors.ts
 
 // Spalvų konstantos A-DIENYNAS tvarkaraščio komponentams
-// Naudojamos WeeklyScheduleCalendar, LessonCard ir kituose tvarkaraščio komponentuose
+// Naudojamos WeeklyScheduleCalendar (perkeltas į /app/mentors/activities/components/), LessonCard ir kituose tvarkaraščio komponentuose
 // Spalvos nustatomos pagal GlobalSchedule.plan_status lauką
 
 /**
@@ -67,6 +67,27 @@ export const SCHEDULE_STATUS_COLORS = {
     hex: {
       background: '#e5e7eb',         // Pilko fono HEX kodas
       border: '#e5e7eb',             // Pilko rėmelio HEX kodas
+      text: '#000000'                // Juodo teksto HEX kodas
+    }
+  },
+
+  /**
+   * NĖRA IMUPLAN STATUSAS (no_imu_plan)
+   * Naudojama: Kai nėra jokių IMUPlan įrašų tame slote
+   * Vizualinis stilius: Baltas fonas su raudonu rėmeliu - rodo, kad trūksta IMUPlan duomenų
+   * Spalvų kodai:
+   * - Fono spalva: #ffffff (balta)
+   * - Rėmelio spalva: #de5d83 (blush-200)
+   * - Teksto spalva: #000000 (juoda)
+   */
+  no_imu_plan: {
+    background: 'bg-white',           // Balto fono klasė
+    border: 'border-[#de5d83]',       // Raudono rėmelio klasė (blush-200)
+    text: 'text-black',              // Juodo teksto klasė
+    description: 'Nėra IMUPlan',     // Statuso aprašymas lietuvių kalba
+    hex: {
+      background: '#ffffff',         // Balto fono HEX kodas
+      border: '#de5d83',             // Raudono rėmelio HEX kodas (blush-200)
       text: '#000000'                // Juodo teksto HEX kodas
     }
   }
@@ -136,7 +157,7 @@ export const getScheduleStatusDescription = (status: ScheduleStatus): string => 
 
 /**
  * Spalvų konstantos naudojamos:
- * 1. WeeklyScheduleCalendar.tsx - LessonCard komponente
+ * 1. WeeklyScheduleCalendar.tsx (/app/mentors/activities/components/) - LessonCard komponente
  * 2. StudentScheduleCalendar.tsx - studentų tvarkaraštyje
  * 3. VeiklosPageClient.tsx - mentorių veiklų puslapyje
  * 4. Kituose tvarkaraščio komponentuose

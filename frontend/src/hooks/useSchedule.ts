@@ -43,6 +43,8 @@ export interface ScheduleItem {
     email: string;
   };
   plan_status?: 'completed' | 'planned' | 'in_progress'; // CHANGE: Pridėtas plan_status property su specifiniu tipu
+  // CHANGE: Pridėti IMUPlan tikrinimo laukas
+  has_imu_plan: boolean;
 }
 
 // CHANGE: Pridėti trūkstami tipai iš activities/types.ts

@@ -70,8 +70,8 @@ const StudentRow: React.FC<StudentRowProps> = ({
   // CHANGE: Gaunome prisijungusio vartotojo duomenis mentorId nustatymui
   const { user } = useAuth();
   
-  // CHANGE: Nustatyti ar eilutė disabled
-  const isDisabled = planStatus === 'planned';
+  // CHANGE: Nustatyti ar eilutė disabled - disabled kai planned arba completed
+  const isDisabled = planStatus === 'planned' || planStatus === 'completed';
   
   // CHANGE: Pašalintas individual API hook'as, naudojame tik bulk API
   

@@ -78,17 +78,17 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
 
   // CHANGE: Mokinių pridėjimo funkcionalumas su nauju endpoint'u
   const handleStudentsAdded = async (newStudents: UserType[]) => {
-    if (!globalScheduleId) return;
+    if (!globalScheduleId) {
+      return;
+    }
 
     try {
       // Naudoti naują endpoint'ą mokinių pridėjimui
-    const response = await api.post('/plans/imu-plans/add-students-to-lesson/', {
-      global_schedule_id: globalScheduleId,
-      student_ids: newStudents.map(student => student.id),
-      lesson_id: lesson.id  // CHANGE: Pridėtas pamokos ID iš props
-    });
-
-      console.log('Mokinių pridėjimo atsakas:', response.data);
+      await api.post('/plans/imu-plans/add-students-to-lesson/', {
+        global_schedule_id: globalScheduleId,
+        student_ids: newStudents.map(student => student.id),
+        lesson_id: lesson.id
+      });
 
       // Atnaujinti students state su naujais mokiniais
       const newStudentObjects: Student[] = newStudents.map(student => ({
@@ -110,7 +110,9 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
     } catch (error) {
       console.error('Klaida pridedant mokinius:', error);
       // Rodyti klaidos pranešimą vartotojui
-      alert('Nepavyko pridėti mokinių. Patikrinkite, ar mokiniai dar nėra pridėti į šią pamoką.');
+      const errorMessage = (error as { response?: { data?: { non_field_errors?: string[] } } })?.response?.data?.non_field_errors?.[0] || 
+                          'Nepavyko pridėti mokinių. Patikrinkite, ar mokiniai dar nėra pridėti į šią pamoką.';
+      alert(errorMessage);
     }
   };
   // Pagalbinė funkcija JSON string'o parse'inimui
@@ -207,8 +209,7 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
         <Accordion defaultOpen={[]} className="mb-8">
           <AccordionItem
             id="lesson-info"
-            title="Pamokos informacija"
-            icon={<BookOpen size={18} className="text-gray-600" />}
+            title={lesson.title || "Pamokos informacija"} // CHANGE: Rodo tikrą pamokos pavadinimą iš backend
             defaultOpen={false} // CHANGE: Pakeista į false - akordeonas pagal nutylėjimą suskleistas
             largeContent={true} // CHANGE: Pridėtas largeContent prop'as didesniam turiniui
             titleClassName="text-lg font-semibold text-gray-900" // CHANGE: Pridėtas custom stilius, kad atitiktų "Mokinių sąrašas" stilių
@@ -377,39 +378,19 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
           <div className="mt-8"></div>
         )}
 
-        {/* 5. Mokinių sąrašas su antrašte ir statistikomis */}
+        {/* CHANGE: Mokinių sąrašas su StudentsList komponentu - pašalinta dubliavimo antraštė */}
         {studentsForThisLesson.length > 0 && (
           <div>
-            {/* Mokinių sąrašo antraštė su statistikomis - pagal paveiksliuką */}
-            <div className="bg-white rounded-lg border border-gray-200 mb-4">
-              <div className="p-4 border-b border-gray-200">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Mokinių sąrašas
-                    </h3>
-                    <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
-                      <span className="text-green-600">Dalyvavo: {studentsForThisLesson.filter(s => s.attendance_status === 'present').length}</span>
-                      <span className="text-red-600">Nedalyvavo: {studentsForThisLesson.filter(s => s.attendance_status === 'absent').length}</span>
-                    </div>
-                  </div>
-
-                  {/* CHANGE: Pašalintas "Pridėti mokinį" mygtukas - dabar yra StudentsList komponente */}
-                </div>
-              </div>
-              
-              {/* CHANGE: Mokinių sąrašas su StudentsList komponentu */}
-              <div className="p-4">
-                <StudentsList
-                  students={students}
-                  onAttendanceChange={(studentId, status) => handleStudentStatusChange(studentId, status as string)}
-                  onStudentsAdded={handleStudentsAdded}
-                  showAddButton={true}
-                  isActivityActive={isActivityActive} // CHANGE: Perduodamas veiklos aktyvumas
-                  planStatus={planStatus} // CHANGE: Perduodamas plano statusas
-                />
-              </div>
-            </div>
+            <StudentsList
+              students={students}
+              onAttendanceChange={(studentId, status) => handleStudentStatusChange(studentId, status as string)}
+              onStudentsAdded={handleStudentsAdded}
+              showAddButton={true}
+              isActivityActive={isActivityActive} // CHANGE: Perduodamas veiklos aktyvumas
+              planStatus={planStatus} // CHANGE: Perduodamas plano statusas
+              globalScheduleId={globalScheduleId} // CHANGE: Perduodamas globalScheduleId modal filtravimui
+              lessonId={lesson.id} // CHANGE: Perduodamas lessonId modal filtravimui
+            />
           </div>
         )}
       </div>

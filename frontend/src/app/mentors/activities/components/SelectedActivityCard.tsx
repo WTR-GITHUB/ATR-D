@@ -7,7 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Play, Square, Recycle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, Square, RefreshCcw, ChevronDown, ChevronUp } from 'lucide-react';
 import { LessonDetails, IMUPlan } from '../types';
 import LessonInfoCard from './LessonInfoCard';
 import { plansAPI, curriculumAPI } from '@/lib/api';
@@ -15,7 +15,7 @@ import { plansAPI, curriculumAPI } from '@/lib/api';
 // TypeScript interface komponento props'ams
 // CHANGE: Interface skirtas kalendoriaus pasirinktos veiklos duomenims
 interface SelectedActivityCardProps {
-  globalScheduleId: number | null;
+  globalScheduleId: number | undefined;
   // CHANGE: Pagrindinė veiklos informacija (dalykas, lygis)
   activityInfo: {
     subject_name?: string;
@@ -27,6 +27,7 @@ interface SelectedActivityCardProps {
     students: IMUPlan[];
   }[];
   activityStartTime: Date | null;
+  activityEndTime: Date | null;
   isActivityActive: boolean;
   isActivityCompleted: boolean;
   // CHANGE: Pridėtas plan_status iš GlobalSchedule modelio
@@ -46,6 +47,7 @@ const SelectedActivityCard: React.FC<SelectedActivityCardProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   uniqueLessons: propUniqueLessons, // CHANGE: Pervadintas, kad nesikirstų su state
   activityStartTime,
+  activityEndTime,
   isActivityActive,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isActivityCompleted,
@@ -65,7 +67,7 @@ const SelectedActivityCard: React.FC<SelectedActivityCardProps> = ({
   const [isLoadingLessons, setIsLoadingLessons] = useState(false);
 
   // CHANGE: Funkcija tikrų pamokos duomenų gavimui pasirinktai veiklai
-  const fetchRealLessonsForSelectedActivity = async (globalScheduleId: number): Promise<{
+  const fetchRealLessonsForSelectedActivity = async (globalScheduleId: number | undefined): Promise<{
     lessonDetails: {
       id: number;
       title: string;
@@ -95,6 +97,11 @@ const SelectedActivityCard: React.FC<SelectedActivityCardProps> = ({
     students: IMUPlan[];
   }[]> => {
     try {
+      // Patikrinti ar globalScheduleId yra nurodytas
+      if (!globalScheduleId) {
+        return [];
+      }
+      
       // Gauti IMU planus šiai veiklai
       const imuPlansResponse = await plansAPI.imuPlans.getAll({ global_schedule: globalScheduleId });
       const imuPlans = Array.isArray(imuPlansResponse.data) ? imuPlansResponse.data : (imuPlansResponse.data.results || []);
@@ -248,6 +255,13 @@ const SelectedActivityCard: React.FC<SelectedActivityCardProps> = ({
     loadLessons();
   }, [globalScheduleId]);
   
+  // CHANGE: Loading būsenų valdymas mygtukams
+  const [buttonLoading, setButtonLoading] = useState({
+    start: false,
+    end: false,
+    cancel: false
+  });
+
   // CHANGE: Mygtukų logika pagal plan_status vietoj isActivityActive/isActivityCompleted
   const getButtonStates = () => {
     switch (planStatus) {
@@ -290,6 +304,41 @@ const SelectedActivityCard: React.FC<SelectedActivityCardProps> = ({
     }
   };
 
+  // CHANGE: Wrapper funkcijos su loading state
+  const handleStartActivity = async () => {
+    setButtonLoading(prev => ({ ...prev, start: true }));
+    try {
+      await onStartActivity();
+    } catch (error) {
+      console.error('❌ SelectedActivityCard: Klaida pradedant veiklą:', error);
+    } finally {
+      setButtonLoading(prev => ({ ...prev, start: false }));
+    }
+  };
+
+  const handleEndActivity = async () => {
+    setButtonLoading(prev => ({ ...prev, end: true }));
+    try {
+      await onEndActivity();
+    } catch (error) {
+      console.error('❌ SelectedActivityCard: Klaida baigiant veiklą:', error);
+    } finally {
+      setButtonLoading(prev => ({ ...prev, end: false }));
+    }
+  };
+
+  const handleCancelActivity = async () => {
+    setButtonLoading(prev => ({ ...prev, cancel: true }));
+    try {
+      await onCancelActivity();
+    } catch (error) {
+      console.error('❌ SelectedActivityCard: Klaida atšaukant veiklą:', error);
+    } finally {
+      setButtonLoading(prev => ({ ...prev, cancel: false }));
+    }
+  };
+
+
   const buttonStates = getButtonStates();
   
   return (
@@ -306,72 +355,97 @@ const SelectedActivityCard: React.FC<SelectedActivityCardProps> = ({
             <h3 className="text-xl font-semibold text-gray-900">
               {activityInfo?.subject_name || 'Pasirinktos veiklos statusas'}
             </h3>
-            {/* CHANGE: Rodo veiklos pradžios datą */}
+            {/* CHANGE: Rodo veiklos pradžios ir pabaigos datas */}
             {activityStartTime && (
-              <p className="text-sm text-gray-600 mt-1">
-                <span className="font-medium text-gray-900">
-                  Veikla pradėta: 
-                </span>
-                <span className="font-medium text-blue-600">
-                  {' '}{activityStartTime.toISOString().split('T')[0]}
-                </span>
-              </p>
+              <div className="text-sm text-gray-600 mt-1 space-y-1">
+                <p>
+                  <span className="font-medium text-gray-900">
+                    Veikla pradėta: 
+                  </span>
+                  <span className="font-medium text-blue-600">
+                    {' '}{activityStartTime.toISOString().split('T')[0]}
+                  </span>
+                </p>
+                {activityEndTime && (
+                  <p>
+                    <span className="font-medium text-gray-900">
+                      Veikla užbaigta: 
+                    </span>
+                    <span className="font-medium text-green-600">
+                      {' '}{activityEndTime.toISOString().split('T')[0]}
+                    </span>
+                  </p>
+                )}
+              </div>
             )}
           </div>
         </div>
         
         {/* Viduryje - valdymo mygtukai */}
         <div className="flex items-center space-x-3">
-          {/* Veiklos pradžios mygtukas */}
+          {/* CHANGE: Veiklos pradžios mygtukas su loading state */}
           <button
             onClick={(e) => {
               e.stopPropagation(); // Sustabdyti event bubbling
-              onStartActivity();
+              handleStartActivity();
             }}
-            disabled={!activityInfo || !buttonStates.startEnabled}
+            disabled={!activityInfo || !buttonStates.startEnabled || buttonLoading.start}
             className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
-              activityInfo && buttonStates.startEnabled
+              activityInfo && buttonStates.startEnabled && !buttonLoading.start
                 ? 'bg-green-600 text-white hover:bg-green-700 active:bg-green-800' 
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
             title={activityInfo ? buttonStates.startTitle : "Pirmiausia pasirinkite veiklą kalendoriuje"}
           >
-            <Play size={16} />
+            {buttonLoading.start ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            ) : (
+              <Play size={16} />
+            )}
           </button>
           
-          {/* Veiklos pabaigos mygtukas */}
+          {/* CHANGE: Veiklos pabaigos mygtukas su loading state */}
           <button
             onClick={(e) => {
               e.stopPropagation(); // Sustabdyti event bubbling
-              onEndActivity();
+              handleEndActivity();
             }}
-            disabled={!activityInfo || !buttonStates.endEnabled}
+            disabled={!activityInfo || !buttonStates.endEnabled || buttonLoading.end}
             className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
-              activityInfo && buttonStates.endEnabled
+              activityInfo && buttonStates.endEnabled && !buttonLoading.end
                 ? 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
             title={activityInfo ? buttonStates.endTitle : "Pirmiausia pasirinkite veiklą kalendoriuje"}
           >
-            <Square size={16} />
+            {buttonLoading.end ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            ) : (
+              <Square size={16} />
+            )}
           </button>
           
-          {/* CHANGE: Veiklos atšaukimo mygtukas */}
+          {/* CHANGE: Veiklos atšaukimo mygtukas su loading state */}
           <button
             onClick={(e) => {
               e.stopPropagation(); // Sustabdyti event bubbling
-              onCancelActivity();
+              handleCancelActivity();
             }}
-            disabled={!activityInfo || !buttonStates.cancelEnabled}
+            disabled={!activityInfo || !buttonStates.cancelEnabled || buttonLoading.cancel}
             className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center space-x-2 ${
-              activityInfo && buttonStates.cancelEnabled
+              activityInfo && buttonStates.cancelEnabled && !buttonLoading.cancel
                 ? 'bg-green-600 text-white hover:bg-green-700 active:bg-green-800'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
             }`}
             title={activityInfo ? buttonStates.cancelTitle : "Pirmiausia pasirinkite veiklą kalendoriuje"}
           >
-            <Recycle size={16} />
+            {buttonLoading.cancel ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            ) : (
+              <RefreshCcw size={16} />
+            )}
           </button>
+          
         </div>
         
         {/* Dešinėje - chevron ikona */}
@@ -398,6 +472,8 @@ const SelectedActivityCard: React.FC<SelectedActivityCardProps> = ({
                   hideHeader={true} // CHANGE: Tik accordion be header'io
                   isActivityActive={isActivityActive}
                   activityStartTime={activityStartTime}
+                  planStatus={planStatus} // CHANGE: Pridėtas planStatus prop'as
+                  globalScheduleId={globalScheduleId} // CHANGE: Pridėtas globalScheduleId prop'as
                 />
               ))}
             </div>
