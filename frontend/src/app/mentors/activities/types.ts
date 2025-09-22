@@ -126,6 +126,7 @@ export interface LessonDetails {
   aukstesnysis: string; // 100% lygis
   competency_atcheve_name: string[];
   competency_atcheves: number[];
+  competency_atcheve_details: { id: number; competency_name: string; virtues: string[]; todos: string; }[];
   mentor_name: string;
   created_at: string;
   updated_at: string;

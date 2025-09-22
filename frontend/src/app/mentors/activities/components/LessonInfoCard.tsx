@@ -6,6 +6,7 @@
 // CHANGE: Patobulinta su spalvotais ikonomis, pagerintu layoutu ir modernumu dizainu pagal ddd failo pavyzdį
 // CHANGE: Pašalintas StudentStats komponentas - statistikos nereikalingos
 // CHANGE: Integruotas vienas bendras akordeono komponentas su visais elementais viduje
+// CHANGE: Gebėjimai rodomi "code: name" formatu pagal backend Skill modelį
 
 import React, { useEffect, useState } from 'react';
 import { 
@@ -29,6 +30,7 @@ interface JsonObject {
   id?: number;
   name?: string;
   title?: string;
+  code?: string;
 }
 
 interface LessonInfoCardProps {
@@ -299,12 +301,12 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
                     Gebėjimai
                   </h3>
                   <div className="space-y-2">
-                    {/* CHANGE: Dabar rodomi gebėjimų pavadinimai vietoj ID */}
+                    {/* CHANGE: Gebėjimai rodomi "code: name" formatu pagal backend Skill modelį */}
                     {lesson.skills_list.map((skill, index) => (
                       <div key={index} className="p-3 bg-purple-100 rounded-lg border border-purple-200">
                         <span className="text-purple-800 text-sm font-medium">
                           {typeof skill === 'object' && skill ? 
-                            (skill as JsonObject).name || (skill as JsonObject).title || `Skill ${(skill as JsonObject).id}` : 
+                            `${(skill as JsonObject).code || 'N/A'}: ${(skill as JsonObject).name || (skill as JsonObject).title || `Skill ${(skill as JsonObject).id}`}` : 
                             String(skill)}
                         </span>
                       </div>
@@ -314,20 +316,71 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
               )}
 
               {/* BUP Kompetencijos */}
-              {lesson.competency_atcheve_name && lesson.competency_atcheve_name.length > 0 && (
+              {lesson.competency_atcheve_details && lesson.competency_atcheve_details.length > 0 && (
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
                     <Zap size={18} className="mr-2 text-indigo-600" />
                     BUP Kompetencijos
                   </h3>
-                  <div className="space-y-2">
-                    {lesson.competency_atcheve_name.map((competency, index) => (
-                      <div key={index} className="p-3 bg-indigo-100 rounded-lg border border-indigo-200">
-                        <span className="text-indigo-800 text-sm font-medium">
-                          {typeof competency === 'object' && competency ? 
-                            (competency as JsonObject).name || (competency as JsonObject).title || `Competency ${(competency as JsonObject).id}` : 
-                            String(competency)}
-                        </span>
+                  <div className="space-y-4">
+                    {lesson.competency_atcheve_details.map((competency, index) => (
+                      <div key={index} className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                        {/* Kompetencija */}
+                        <div className="mb-3">
+                          <span className="text-sm font-medium text-indigo-600">Kompetencija:</span>
+                          <p className="text-indigo-800 font-medium mt-1">
+                            {competency.competency_name}
+                          </p>
+                        </div>
+                        
+                        {/* Dorybės */}
+                        {competency.virtues && competency.virtues.length > 0 && (
+                          <div className="mb-3">
+                            <span className="text-sm font-medium text-indigo-600">Dorybė:</span>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {competency.virtues.map((virtue, virtueIndex) => (
+                                <span 
+                                  key={virtueIndex}
+                                  className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium"
+                                >
+                                  {virtue}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Veiksmai */}
+                        {competency.todos && competency.todos.trim() && (
+                          <div>
+                            <span className="text-sm font-medium text-indigo-600">Veiksmai:</span>
+                            <div className="mt-1">
+                              {(() => {
+                                try {
+                                  // Bandome parse'inti kaip JSON
+                                  const todosArray = JSON.parse(competency.todos);
+                                  if (Array.isArray(todosArray)) {
+                                    return todosArray.filter(todo => todo && todo.trim()).map((todo, todoIndex) => (
+                                      <div key={todoIndex} className="flex items-start space-x-2 text-sm text-indigo-700">
+                                        <span className="text-indigo-500 mt-0.5">•</span>
+                                        <span>{String(todo).trim()}</span>
+                                      </div>
+                                    ));
+                                  }
+                                } catch (e) {
+                                  // Jei JSON parse nepavyksta, bandome split'inti kaip paprastą tekstą
+                                  return competency.todos.split('\n').filter(todo => todo.trim()).map((todo, todoIndex) => (
+                                    <div key={todoIndex} className="flex items-start space-x-2 text-sm text-indigo-700">
+                                      <span className="text-indigo-500 mt-0.5">•</span>
+                                      <span>{todo.trim()}</span>
+                                    </div>
+                                  ));
+                                }
+                                return null;
+                              })()}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

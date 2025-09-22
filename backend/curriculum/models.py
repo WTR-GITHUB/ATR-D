@@ -74,7 +74,7 @@ class Skill(models.Model):
     """
     Gebėjimų modelis - mokinių gebėjimai ir įgūdžiai
     """
-    code = models.CharField(max_length=50, unique=True, verbose_name="Sutrumpintas kodas", null=True, blank=True)
+    code = models.CharField(max_length=50, verbose_name="Sutrumpintas kodas", null=True, blank=True)
     name = models.CharField(max_length=255, verbose_name="Pavadinimas")
     description = models.TextField(blank=True, verbose_name="Aprašymas")
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, verbose_name="Dalykas", null=True, blank=True)

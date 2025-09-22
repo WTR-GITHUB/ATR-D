@@ -151,6 +151,8 @@ const SelectedActivityCard: React.FC<SelectedActivityCardProps> = ({
             const lessonResponse = await curriculumAPI.lessons.getById(lessonData.lessonId);
             const lessonDetails = lessonResponse.data;
             
+            // DEBUG: Patikrinti, kas grąžinama iš API
+            
             return {
               lessonDetails: {
                 id: lessonDetails.id,
@@ -168,18 +170,10 @@ const SelectedActivityCard: React.FC<SelectedActivityCardProps> = ({
                 bazinis: lessonDetails.bazinis || "74%", 
                 pagrindinis: lessonDetails.pagrindinis || "84%",
                 aukstesnysis: lessonDetails.aukstesnysis || "100%",
-                skills_list: lessonDetails.skills?.map((skill: { id: number; code: string; name: string }) => ({
-                  id: skill.id,
-                  code: skill.code,
-                  name: skill.name
-                })) || [],
-                competency_atcheve_details: lessonDetails.competency_atcheves?.map((comp: { id: number; competency_name: string; virtues: string[]; todos: string }) => ({
-                  id: comp.id,
-                  competency_name: comp.competency_name,
-                  virtues: comp.virtues || [],
-                  todos: comp.todos || ""
-                })) || [],
-                competency_atcheve_name: lessonDetails.competency_atcheves?.map((comp: { competency_name: string }) => comp.competency_name) || [],
+                // FIXED: Naudoti teisingus laukus iš API
+                skills_list: lessonDetails.skills_list || [],
+                competency_atcheve_details: lessonDetails.competency_atcheve_details || [],
+                competency_atcheve_name: lessonDetails.competency_atcheve_name || [],
                 competency_atcheves: lessonDetails.competency_atcheves || [],
                 focus_list: lessonDetails.focus ? JSON.parse(lessonDetails.focus) : [],
                 virtues_names: lessonDetails.virtues?.map((virtue: { name: string }) => virtue.name) || [],
@@ -227,10 +221,10 @@ const SelectedActivityCard: React.FC<SelectedActivityCardProps> = ({
       
       return lessonsWithDetails;
     } catch (error) {
-      console.error('❌ SelectedActivityCard: Klaida gaunant tikrus pamokos duomenis:', error);
+      console.error('❌ SelectedActivityCard: Klaida gaunant pamokos duomenis:', error);
       return [];
     }
-  };
+  };;
 
   // CHANGE: useEffect duomenų gavimui pasirinktos veiklos
   useEffect(() => {

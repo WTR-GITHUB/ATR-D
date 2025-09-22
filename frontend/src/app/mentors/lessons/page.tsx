@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { ReactDataTable } from '@/components/DataTable';
 import { lessonsAPI } from '@/lib/api';
-import { BookOpen, Calendar, Users, Plus, Edit, Trash2 } from 'lucide-react';
+import { BookOpen, Calendar, Users, Plus, Edit, Trash2, Copy } from 'lucide-react';
 import Link from 'next/link';
 
 import { Lesson } from '@/lib/types';
@@ -34,6 +34,11 @@ export default function MentorLessonsPage() {
         alert('Nepavyko ištrinti pamokos');
       }
     }
+  };
+
+  const handleCopy = (lessonId: number) => {
+    // Navigate to copy page
+    window.location.href = `/mentors/lessons/copy/${lessonId}`;
   };
 
   useEffect(() => {
@@ -182,6 +187,13 @@ export default function MentorLessonsPage() {
                   title="Redaguoti"
                 >
                   <Edit className="w-5 h-5" />
+                </button>
+                <button 
+                  onClick={() => handleCopy(lesson.id)} 
+                  className="p-1 text-green-600 hover:text-green-800 hover:bg-green-50 rounded transition-colors" 
+                  title="Kopijuoti pamoką"
+                >
+                  <Copy className="w-5 h-5" />
                 </button>
                 <button 
                   onClick={() => handleDelete(lesson.id)} 

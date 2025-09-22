@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Plus } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 
 interface DynamicListProps {
   label: string;
@@ -88,8 +88,8 @@ export default function DynamicList({
           disabled={!newValue.trim()}
           className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center space-x-1"
         >
-          <Plus className="w-4 h-4" />
-          <span>Pridėti</span>
+          <Check className="w-4 h-4" />
+          <span>Tvirtinti</span>
         </button>
       </div>
       

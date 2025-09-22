@@ -265,7 +265,12 @@ const ReactDataTable: React.FC<ReactDataTableProps> = ({
                       key={colIndex}
                       className="border border-gray-200 px-4 py-3 text-sm text-gray-900"
                     >
-                      {column.render ? column.render(row[column.data], row) : String(row[column.data] || '')}
+                      {column.render ? column.render(row[column.data], row) : (
+                        // Patikrinti ar reikšmė yra React elementas
+                        React.isValidElement(row[column.data]) 
+                          ? (row[column.data] as React.ReactNode)
+                          : String(row[column.data] || '')
+                      )}
                     </td>
                   ))}
                 </tr>

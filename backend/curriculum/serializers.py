@@ -125,6 +125,7 @@ class LessonSerializer(serializers.ModelSerializer):
     aukstesnysis = serializers.CharField(required=False, allow_blank=True)
     # Kompetencijos pasiekimai
     competency_atcheve_name = serializers.SerializerMethodField()
+    competency_atcheve_details = serializers.SerializerMethodField()
     competency_atcheves = serializers.PrimaryKeyRelatedField(many=True, queryset=CompetencyAtcheve.objects.all(), required=False)
     # --- PRIDĖTA ---
     virtues = serializers.PrimaryKeyRelatedField(many=True, queryset=Virtue.objects.all(), required=False)
@@ -143,7 +144,7 @@ class LessonSerializer(serializers.ModelSerializer):
             'mentor_name', 'subject_name', 'topic_name',
             'levels_names', 'objectives_list', 'components_list',
             'skills_list', 'virtues_names',
-            'focus_list', 'competency_atcheve_name'
+            'focus_list', 'competency_atcheve_name', 'competency_atcheve_details'
         ]
         read_only_fields = ('created_at', 'updated_at')
 
@@ -167,9 +168,9 @@ class LessonSerializer(serializers.ModelSerializer):
         return []
 
     def get_skills_list(self, obj):
-        # CHANGE: Grąžiname gebėjimų ID vietoj pavadinimų
-        # Frontend'e MultiSelect komponentas tikisi gauti ID masyvą
-        return [skill.id for skill in obj.skills.all()]
+        # CHANGE: Grąžiname pilnus gebėjimų objektus su code ir name laukais
+        # Frontend'e LessonInfoCard komponentas tikisi gauti objektus su code ir name
+        return [{'id': skill.id, 'code': skill.code, 'name': skill.name} for skill in obj.skills.all()]
 
     def get_virtues_names(self, obj):
         return [virtue.name for virtue in obj.virtues.all()]
@@ -184,6 +185,18 @@ class LessonSerializer(serializers.ModelSerializer):
 
     def get_competency_atcheve_name(self, obj):
         return [f"{atcheve.competency.name} - {', '.join([v.name for v in atcheve.virtues.all()])}" for atcheve in obj.competency_atcheves.all()]
+    
+    def get_competency_atcheve_details(self, obj):
+        """Grąžina pilnus competency_atcheve duomenis su competency_name, virtues ir todos"""
+        return [
+            {
+                'id': atcheve.id,
+                'competency_name': atcheve.competency.name,
+                'virtues': [v.name for v in atcheve.virtues.all()],
+                'todos': atcheve.todos or ''
+            }
+            for atcheve in obj.competency_atcheves.all()
+        ]
 
     def create(self, validated_data):
         """
