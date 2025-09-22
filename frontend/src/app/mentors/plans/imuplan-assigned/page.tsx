@@ -11,7 +11,7 @@ import React, { useState, useEffect } from 'react';
 import { ReactDataTable } from '@/components/DataTable';
 import Button from '@/components/ui/Button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
-import { GraduationCap, BookOpen, Calendar, Users, ArrowLeft, Filter } from 'lucide-react';
+import { GraduationCap, BookOpen, Calendar, Users, ArrowLeft, Filter, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
 
 // Interface for IMU plan data
@@ -105,6 +105,32 @@ export default function IMUPlanAssignedPage() {
       firstName: nameParts[0] || '-',
       lastName: nameParts.length > 1 ? nameParts.slice(1).join(' ') : '-'
     };
+  };
+
+  // Delete IMU plan function
+  const handleDeletePlan = async (planId: number) => {
+    // Patvirtinimo modalas
+    const confirmed = window.confirm(
+      'Ar tikrai norite ištrinti šį ugdymo planą? Šis veiksmas negrįžtamas.'
+    );
+    
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      // Ištrinti IMU planą per API
+      await api.delete(`/plans/imu-plans/${planId}/`);
+      
+      // Atnaujinti plans state - pašalinti ištrintą planą
+      setPlans(prevPlans => prevPlans.filter(plan => plan.id !== planId));
+      setFilteredPlans(prevFiltered => prevFiltered.filter(plan => plan.id !== planId));
+      
+      console.log('IMU planas sėkmingai ištrintas');
+    } catch (error) {
+      console.error('Klaida trinant IMU planą:', error);
+      alert('Įvyko klaida trinant ugdymo planą. Bandykite dar kartą.');
+    }
   };
 
   if (isLoading) {
@@ -241,7 +267,20 @@ export default function IMUPlanAssignedPage() {
             { title: 'Lygis', data: 'level_name' },
             { title: 'Vardas', data: 'first_name' },
             { title: 'Pavardė', data: 'last_name' },
-            { title: 'Pavadinimas', data: 'lesson_title' }
+            { title: 'Pavadinimas', data: 'lesson_title' },
+            { 
+              title: 'Veiksmai', 
+              data: 'id', // Naudojame id lauką kaip data, bet render funkcijoje gausime visą row objektą
+              render: (data: any, row: any) => (
+                <button
+                  onClick={() => handleDeletePlan(row.id)}
+                  className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Ištrinti ugdymo planą"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )
+            }
           ]}
           title=""
           itemsPerPage={100}
