@@ -367,7 +367,7 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
                                       </div>
                                     ));
                                   }
-                                } catch (e) {
+                                } catch {
                                   // Jei JSON parse nepavyksta, bandome split'inti kaip paprastą tekstą
                                   return competency.todos.split('\n').filter(todo => todo.trim()).map((todo, todoIndex) => (
                                     <div key={todoIndex} className="flex items-start space-x-2 text-sm text-indigo-700">
