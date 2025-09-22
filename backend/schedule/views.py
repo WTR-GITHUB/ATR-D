@@ -388,3 +388,83 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
                 {'error': f'Klaida gaunant pamokos ID: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    @action(detail=False, methods=['get'], url_path='student-schedule')
+    def student_schedule(self, request):
+        """
+        Grąžina studento tvarkaraštį pagal jo subject levels
+        CHANGE: Sukurtas naujas endpoint studento tvarkaraščio duomenims gauti
+        PURPOSE: Filtruoja GlobalSchedule pagal studento StudentSubjectLevel duomenis
+        """
+        from datetime import datetime, timedelta
+        from crm.models import StudentSubjectLevel
+        
+        student = request.user
+        week_start = request.query_params.get('week_start')  # YYYY-MM-DD formatas (pirmadienio data)
+        
+        # Tikriname, ar vartotojas yra studentas
+        current_role = request.headers.get('X-Current-Role')
+        if not current_role:
+            current_role = getattr(student, 'default_role', None)
+        
+        if current_role != 'student':
+            return Response(
+                {"error": "Tik studentai gali gauti savo tvarkaraštį"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        if not week_start:
+            return Response(
+                {"error": "Būtina nurodyti week_start parametrą (YYYY-MM-DD formatas)"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            # Konvertuojame week_start į datą
+            start_date = datetime.strptime(week_start, '%Y-%m-%d').date()
+            end_date = start_date + timedelta(days=6)  # Savaitė = 7 dienos
+        except ValueError:
+            return Response(
+                {"error": "Netinkamas savaitės datos formatas. Naudokite YYYY-MM-DD"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Gauti studento subject levels
+        student_levels = StudentSubjectLevel.objects.filter(student=student).select_related('subject', 'level')
+        
+        if not student_levels.exists():
+            return Response({
+                "student_id": student.id,
+                "student_name": f"{student.first_name} {student.last_name}".strip() or student.username,
+                "week_start": week_start,
+                "week_end": end_date.strftime('%Y-%m-%d'),
+                "count": 0,
+                "message": "Studentas neturi priskirtų dalykų ir lygių",
+                "results": []
+            })
+        
+        # Filtruoti GlobalSchedule pagal studento subject levels
+        queryset = GlobalSchedule.objects.filter(
+            subject__in=[sl.subject for sl in student_levels],
+            level__in=[sl.level for sl in student_levels],
+            date__range=[start_date, end_date]
+        ).select_related(
+            'period', 'classroom', 'subject', 'level', 'user'
+        ).order_by('date', 'period__starttime')
+        
+        serializer = self.get_serializer(queryset, many=True)
+        
+        return Response({
+            "student_id": student.id,
+            "student_name": f"{student.first_name} {student.last_name}".strip() or student.username,
+            "week_start": week_start,
+            "week_end": end_date.strftime('%Y-%m-%d'),
+            "count": queryset.count(),
+            "student_subject_levels": [
+                {
+                    "subject": sl.subject.name,
+                    "level": sl.level.name
+                } for sl in student_levels
+            ],
+            "results": serializer.data
+        })

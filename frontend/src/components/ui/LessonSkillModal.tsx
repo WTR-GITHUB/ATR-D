@@ -7,6 +7,9 @@ import Button from './Button';
 import Input from './Input';
 import { skillsAPI } from '@/lib/api';
 import { Skill } from '@/lib/types';
+import { useModals } from '@/hooks/useModals';
+import ConfirmationModal from './ConfirmationModal';
+import NotificationModal from './NotificationModal';
 
 interface LessonSkillModalProps {
   isOpen: boolean;
@@ -37,6 +40,18 @@ export default function LessonSkillModal({
     name: '',
     description: ''
   });
+
+  // Modal hooks
+  const {
+    confirmationModal,
+    showConfirmation,
+    closeConfirmation,
+    notificationModal,
+    closeNotification,
+    showSuccess,
+    showError,
+    showWarning
+  } = useModals();
 
   // Load skills when modal opens
   useEffect(() => {
@@ -85,7 +100,7 @@ export default function LessonSkillModal({
     try {
       // Validate required fields
       if (!skillFormData.subject || !skillFormData.code || !skillFormData.name) {
-        alert('Prašome užpildyti visus privalomus laukus');
+        showWarning('Prašome užpildyti visus privalomus laukus');
         return;
       }
 
@@ -113,31 +128,38 @@ export default function LessonSkillModal({
       // Notify parent component
       onSkillCreated();
       
-      alert('Gebėjimas sėkmingai sukurtas');
+      showSuccess('Gebėjimas sėkmingai sukurtas');
     } catch (error) {
       console.error('Error creating skill:', error);
-      alert('Nepavyko sukurti gebėjimo');
+      showError('Nepavyko sukurti gebėjimo');
     }
   };
 
-  const handleDeleteSkill = async (skillId: number) => {
-    if (!confirm('Ar tikrai norite ištrinti šį gebėjimą?')) {
-      return;
-    }
-
-    try {
-      await skillsAPI.delete(skillId);
-      await loadSkills();
-      
-      // Update filtered skills after deletion
-      const updatedSkills = skills.filter(skill => skill.id !== skillId);
-      setFilteredSkills(updatedSkills);
-      
-      alert('Gebėjimas sėkmingai ištrintas');
-    } catch (error) {
-      console.error('Error deleting skill:', error);
-      alert('Nepavyko ištrinti gebėjimo');
-    }
+  const handleDeleteSkill = (skillId: number) => {
+    showConfirmation(
+      {
+        title: 'Ištrinti gebėjimą',
+        message: 'Ar tikrai norite ištrinti šį gebėjimą?',
+        confirmText: 'Ištrinti',
+        cancelText: 'Atšaukti',
+        type: 'danger'
+      },
+      async () => {
+        try {
+          await skillsAPI.delete(skillId);
+          await loadSkills();
+          
+          // Update filtered skills after deletion
+          const updatedSkills = skills.filter(skill => skill.id !== skillId);
+          setFilteredSkills(updatedSkills);
+          
+          showSuccess('Gebėjimas sėkmingai ištrintas');
+        } catch (error) {
+          console.error('Error deleting skill:', error);
+          showError('Nepavyko ištrinti gebėjimo');
+        }
+      }
+    );
   };
 
   if (!isOpen) return null;
@@ -328,6 +350,29 @@ export default function LessonSkillModal({
           </Button>
         </div>
       </div>
+
+      {/* Modal Components */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={closeConfirmation}
+        onConfirm={confirmationModal.onConfirm || (() => {})}
+        title={confirmationModal.options.title}
+        message={confirmationModal.options.message}
+        confirmText={confirmationModal.options.confirmText}
+        cancelText={confirmationModal.options.cancelText}
+        type={confirmationModal.options.type}
+        isLoading={confirmationModal.isLoading}
+      />
+
+      <NotificationModal
+        isOpen={notificationModal.isOpen}
+        onClose={closeNotification}
+        title={notificationModal.options.title}
+        message={notificationModal.options.message}
+        type={notificationModal.options.type}
+        autoClose={notificationModal.options.autoClose}
+        autoCloseDelay={notificationModal.options.autoCloseDelay}
+      />
     </div>
   );
 }

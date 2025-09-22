@@ -28,6 +28,9 @@ import {
 } from 'lucide-react';
 import { Violation } from '@/lib/types';
 import { formatDate } from '@/lib/localeConfig';
+import { useModals } from '@/hooks/useModals';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import NotificationModal from '@/components/ui/NotificationModal';
 
 // Client-side Student Details page component
 // Handles all interactive functionality
@@ -50,6 +53,17 @@ const StudentDetailsPageClient = () => {
   const [isTodoModalOpen, setIsTodoModalOpen] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [selectedViolationForTodos, setSelectedViolationForTodos] = useState<Violation | null>(null);
+
+  // Modal hooks
+  const {
+    confirmationModal,
+    showConfirmation,
+    closeConfirmation,
+    notificationModal,
+    closeNotification,
+    showSuccess,
+    showError
+  } = useModals();
   
   // Categories state (currently unused but kept for future functionality)
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -141,22 +155,32 @@ const StudentDetailsPageClient = () => {
   };
 
   // Handle IMU plan deletion
-  const handleDeleteIMUPlan = async (planId: number) => {
-    if (!confirm('Ar tikrai norite ištrinti šį ugdymo planą?')) return;
-    
-    try {
-      setIsDeletingPlan(planId);
-      await api.delete(`/plans/imu-plans/${planId}/`);
-      setImuPlans(prev => prev.filter(plan => plan.id !== planId));
-      
-      // Atnaujinti tvarkaraštį - pakeisti key, kad komponentas atsinaujintų
-      setScheduleRefreshKey(prev => prev + 1);
-    } catch (err) {
-      console.error('Error deleting IMU plan:', err);
-      alert('Nepavyko ištrinti ugdymo plano');
-    } finally {
-      setIsDeletingPlan(null);
-    }
+  const handleDeleteIMUPlan = (planId: number) => {
+    showConfirmation(
+      {
+        title: 'Ištrinti ugdymo planą',
+        message: 'Ar tikrai norite ištrinti šį ugdymo planą?',
+        confirmText: 'Ištrinti',
+        cancelText: 'Atšaukti',
+        type: 'danger'
+      },
+      async () => {
+        try {
+          setIsDeletingPlan(planId);
+          await api.delete(`/plans/imu-plans/${planId}/`);
+          setImuPlans(prev => prev.filter(plan => plan.id !== planId));
+          
+          // Atnaujinti tvarkaraštį - pakeisti key, kad komponentas atsinaujintų
+          setScheduleRefreshKey(prev => prev + 1);
+          showSuccess('Ugdymo planas sėkmingai ištrintas');
+        } catch (err) {
+          console.error('Error deleting IMU plan:', err);
+          showError('Nepavyko ištrinti ugdymo plano');
+        } finally {
+          setIsDeletingPlan(null);
+        }
+      }
+    );
   };
 
   // Handle todo completion
@@ -570,6 +594,29 @@ const StudentDetailsPageClient = () => {
           onClose={handleTodoModalClose}
         />
       )} */}
+
+      {/* Modal Components */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={closeConfirmation}
+        onConfirm={confirmationModal.onConfirm || (() => {})}
+        title={confirmationModal.options.title}
+        message={confirmationModal.options.message}
+        confirmText={confirmationModal.options.confirmText}
+        cancelText={confirmationModal.options.cancelText}
+        type={confirmationModal.options.type}
+        isLoading={confirmationModal.isLoading}
+      />
+
+      <NotificationModal
+        isOpen={notificationModal.isOpen}
+        onClose={closeNotification}
+        title={notificationModal.options.title}
+        message={notificationModal.options.message}
+        type={notificationModal.options.type}
+        autoClose={notificationModal.options.autoClose}
+        autoCloseDelay={notificationModal.options.autoCloseDelay}
+      />
     </div>
   );
 };

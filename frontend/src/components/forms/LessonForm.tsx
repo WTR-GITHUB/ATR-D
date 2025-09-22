@@ -21,6 +21,9 @@ import {
   mentorSubjectsAPI 
 } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import { useModals } from '@/hooks/useModals';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import NotificationModal from '@/components/ui/NotificationModal';
 
 // Form data interface
 export interface LessonFormData {
@@ -60,6 +63,16 @@ export default function LessonForm({
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingLesson, setIsLoadingLesson] = useState(mode !== 'create');
+
+  // Modal hooks
+  const {
+    confirmationModal,
+    closeConfirmation,
+    notificationModal,
+    closeNotification,
+    showError,
+    showWarning
+  } = useModals();
   
   // Dropdown data
   const [subjects, setSubjects] = useState<{ id: number; subject_name: string; name: string; description: string; mentor_subject_id: number }[]>([]);
@@ -163,14 +176,14 @@ export default function LessonForm({
         setFormData(formDataToSet);
       } catch (error) {
         console.error('Error loading lesson data:', error);
-        alert('Nepavyko užkrauti pamokos duomenų');
+        showError('Nepavyko užkrauti pamokos duomenų');
       } finally {
         setIsLoadingLesson(false);
       }
     };
 
     loadLessonData();
-  }, [mode, lessonId, virtues, levels]);
+  }, [mode, lessonId, virtues, levels, showError]);
 
   // Apply initial data if provided
   useEffect(() => {
@@ -215,37 +228,37 @@ export default function LessonForm({
     
     // Validate required fields
     if (!formData.subject) {
-      alert('Prašome pasirinkti dalyką');
+      showWarning('Prašome pasirinkti dalyką');
       return;
     }
     
     if (!formData.title || formData.title.trim() === '') {
-      alert('Prašome įvesti pamokos pavadinimą');
+      showWarning('Prašome įvesti pamokos pavadinimą');
       return;
     }
     
     // Validate arrays
     if (!Array.isArray(formData.skills)) {
       console.error('Skills is not an array:', formData.skills);
-      alert('Klaida: gebėjimų duomenys neteisingi');
+      showError('Klaida: gebėjimų duomenys neteisingi');
       return;
     }
     
     if (!Array.isArray(formData.virtues)) {
       console.error('Virtues is not an array:', formData.virtues);
-      alert('Klaida: dorybių duomenys neteisingi');
+      showError('Klaida: dorybių duomenys neteisingi');
       return;
     }
     
     if (!Array.isArray(formData.levels)) {
       console.error('Levels is not an array:', formData.levels);
-      alert('Klaida: lygių duomenys neteisingi');
+      showError('Klaida: lygių duomenys neteisingi');
       return;
     }
     
     if (!Array.isArray(formData.competency_atcheve)) {
       console.error('Competency atcheve is not an array:', formData.competency_atcheve);
-      alert('Klaida: kompetencijų duomenys neteisingi');
+      showError('Klaida: kompetencijų duomenys neteisingi');
       return;
     }
     
@@ -322,17 +335,17 @@ export default function LessonForm({
         // Check for specific field errors
         if (errorData.skills) {
           console.error('Skills error:', errorData.skills);
-          alert(`Klaida su gebėjimais: ${JSON.stringify(errorData.skills)}`);
+          showError(`Klaida su gebėjimais: ${JSON.stringify(errorData.skills)}`);
         } else if (errorData.non_field_errors) {
           const errors = Array.isArray(errorData.non_field_errors) 
             ? (errorData.non_field_errors as string[]).join(', ')
             : String(errorData.non_field_errors);
-          alert(`Bendroji klaida: ${errors}`);
+          showError(`Bendroji klaida: ${errors}`);
         } else {
-          alert(`Nepavyko išsaugoti pamokos. Klaida: ${JSON.stringify(errorData)}`);
+          showError(`Nepavyko išsaugoti pamokos. Klaida: ${JSON.stringify(errorData)}`);
         }
       } else {
-        alert('Nepavyko išsaugoti pamokos');
+        showError('Nepavyko išsaugoti pamokos');
       }
     } finally {
       setIsLoading(false);
@@ -699,6 +712,29 @@ export default function LessonForm({
         onClose={() => setIsCompetencyAtcheveModalOpen(false)}
         onCompetencyCreated={handleCompetencyCreated}
         subjects={subjects}
+      />
+
+      {/* Modal Components */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={closeConfirmation}
+        onConfirm={confirmationModal.onConfirm || (() => {})}
+        title={confirmationModal.options.title}
+        message={confirmationModal.options.message}
+        confirmText={confirmationModal.options.confirmText}
+        cancelText={confirmationModal.options.cancelText}
+        type={confirmationModal.options.type}
+        isLoading={confirmationModal.isLoading}
+      />
+
+      <NotificationModal
+        isOpen={notificationModal.isOpen}
+        onClose={closeNotification}
+        title={notificationModal.options.title}
+        message={notificationModal.options.message}
+        type={notificationModal.options.type}
+        autoClose={notificationModal.options.autoClose}
+        autoCloseDelay={notificationModal.options.autoCloseDelay}
       />
 
     </div>

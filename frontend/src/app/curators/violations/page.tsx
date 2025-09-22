@@ -16,8 +16,7 @@ import {
   BarChart3, 
   CheckCircle, 
   Clock, 
-  TrendingUp,
-  ArrowLeft
+  TrendingUp
 } from 'lucide-react';
 import Link from 'next/link';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -122,7 +121,7 @@ export default function CuratorViolationsPage() {
           <p className="font-semibold mb-2">{label}</p>
           {payload.map((entry: { dataKey: string; value: number; color: string }, index: number) => (
             <p key={index} style={{ color: entry.color }}>
-              {`${entry.dataKey === 'completed' ? 'Išpirkta' : 'Neišpirkta'}: ${entry.value}`}
+              {`${entry.dataKey === 'completed' ? 'Atlikta' : 'Neatlikta'}: ${entry.value}`}
             </p>
           ))}
         </div>
@@ -171,36 +170,6 @@ export default function CuratorViolationsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <Link 
-                href="/curators"
-                className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5 mr-2" />
-                Atgal į kuratorių panelę
-              </Link>
-              <div className="h-6 w-px bg-gray-300"></div>
-              <h1 className="text-2xl font-bold text-gray-900">Skolų valdymas</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <select 
-                className="p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500"
-                value={selectedPeriod}
-                onChange={(e) => setSelectedPeriod(e.target.value)}
-              >
-                <option value="week">Šią savaitę</option>
-                <option value="month">Šį mėnesį</option>
-                <option value="quarter">Šį ketvirtį</option>
-                <option value="year">Šiais metais</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -208,7 +177,19 @@ export default function CuratorViolationsPage() {
           {/* Quick Actions */}
           <Card>
             <CardHeader>
-              <CardTitle>Greitos veiklos</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Greitos veiklos</CardTitle>
+                <select 
+                  className="p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500"
+                  value={selectedPeriod}
+                  onChange={(e) => setSelectedPeriod(e.target.value)}
+                >
+                  <option value="week">Šią savaitę</option>
+                  <option value="month">Šį mėnesį</option>
+                  <option value="quarter">Šį ketvirtį</option>
+                  <option value="year">Šiais metais</option>
+                </select>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -219,7 +200,7 @@ export default function CuratorViolationsPage() {
                 >
                   <div className="flex items-center space-x-3">
                     <Plus className="w-5 h-5 text-blue-600" />
-                    <span className="text-sm font-medium">Skirti skolą</span>
+                    <span className="text-sm font-medium">Sukurti įrašą</span>
                   </div>
                 </button>
                 
@@ -228,7 +209,7 @@ export default function CuratorViolationsPage() {
                   <button className="text-left p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors w-full">
                     <div className="flex items-center space-x-3">
                       <Settings className="w-5 h-5 text-green-600" />
-                      <span className="text-sm font-medium">Skolų valdymas</span>
+                      <span className="text-sm font-medium">Valdyti patirtį</span>
                     </div>
                   </button>
                 </Link>
@@ -253,7 +234,7 @@ export default function CuratorViolationsPage() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Viso pažeidimų</p>
+                      <p className="text-sm font-medium text-gray-600">Viso įrašų</p>
                       <p className="text-3xl font-bold text-gray-900">{stats.total_violations}</p>
                     </div>
                     <div className="p-3 bg-red-100 rounded-full">
@@ -267,7 +248,7 @@ export default function CuratorViolationsPage() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Išpirkta</p>
+                      <p className="text-sm font-medium text-gray-600">Atlikta</p>
                       <p className="text-3xl font-bold text-green-600">{stats.completed_violations}</p>
                     </div>
                     <div className="p-3 bg-green-100 rounded-full">
@@ -281,7 +262,7 @@ export default function CuratorViolationsPage() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Neišpirkta</p>
+                      <p className="text-sm font-medium text-gray-600">Neatlikta</p>
                       <p className="text-3xl font-bold text-orange-600">{stats.pending_violations}</p>
                     </div>
                     <div className="p-3 bg-orange-100 rounded-full">
@@ -295,7 +276,7 @@ export default function CuratorViolationsPage() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Išpirkimo rodiklis</p>
+                      <p className="text-sm font-medium text-gray-600">Atlikimo rodiklis</p>
                       <p className="text-3xl font-bold text-blue-600">{(() => {
                         // Patikrinam ar completion_rate egzistuoja ir yra validus
                         const rate = stats.completion_rate;
@@ -327,7 +308,7 @@ export default function CuratorViolationsPage() {
               {/* Pie Chart */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Pažeidimų pasiskirstymas pagal kategorijas</CardTitle>
+                  <CardTitle>Patirčių pasiskirstymas pagal kategorijas</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
@@ -370,7 +351,7 @@ export default function CuratorViolationsPage() {
               {/* Bar Chart */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Išpirkimo statistika pagal kategorijas</CardTitle>
+                  <CardTitle>Atlikimo statistika pagal kategorijas</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
@@ -386,8 +367,8 @@ export default function CuratorViolationsPage() {
                       <YAxis />
                       <Tooltip content={<BarTooltip />} />
                       <Legend />
-                      <Bar dataKey="completed" stackId="a" fill="#22c55e" name="Išpirkta" />
-                      <Bar dataKey="pending" stackId="a" fill="#f97316" name="Neišpirkta" />
+                      <Bar dataKey="completed" stackId="a" fill="#22c55e" name="Atlikta" />
+                      <Bar dataKey="pending" stackId="a" fill="#f97316" name="Neatlikta" />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -410,16 +391,16 @@ export default function CuratorViolationsPage() {
                           Kategorija
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Viso pažeidimų
+                          Viso įrašų
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Išpirkta
+                          Atlikta
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Neišpirkta
+                          Neatlikta
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Išpirkimo %
+                          Atlikimo %
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Mokestis (€)

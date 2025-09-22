@@ -1,10 +1,14 @@
-// frontend/src/app/dashboard/students/page.tsx
+// /home/master/DIENYNAS/frontend/src/app/students/dashboard/page.tsx
+// Studentų dashboard puslapis su savaitės tvarkaraščiu
+// CHANGE: Pašalintas Welcome Section, pridėtas StudentWeeklyScheduleCalendar komponentas
+
 'use client';
 
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { BookOpen, Users, TrendingUp, Calendar, Award } from 'lucide-react';
+import StudentWeeklyScheduleCalendar from '../components/StudentWeeklyScheduleCalendar';
 
 export default function StudentsDashboardPage() {
   const { user } = useAuth();
@@ -69,28 +73,8 @@ export default function StudentsDashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-orange-600 to-orange-800 rounded-lg shadow p-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">
-              Sveiki, {user?.first_name} {user?.last_name}!
-            </h1>
-            <p className="text-orange-100 mt-2 text-lg">
-              🎒 STUDENTO VALDYMO CENTRAS
-            </p>
-            <p className="text-orange-200 text-sm mt-1">
-              {new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })}
-            </p>
-          </div>
-          <div className="text-right">
-            <div className="bg-white/20 rounded-lg p-3">
-              <Users className="w-8 h-8 text-white" />
-            </div>
-            <p className="text-xs text-orange-200 mt-1">Student</p>
-          </div>
-        </div>
-      </div>
+      {/* Weekly Schedule Calendar */}
+      <StudentWeeklyScheduleCalendar />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

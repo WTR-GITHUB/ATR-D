@@ -7,6 +7,9 @@ import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { ReactDataTable } from '@/components/DataTable';
 import { GraduationCap, BookOpen, Plus, Users, Edit, Trash2, Eye, X } from 'lucide-react';
 import api from '@/lib/api';
+import { useModals } from '@/hooks/useModals';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import NotificationModal from '@/components/ui/NotificationModal';
 
 // Interface'ai duomenų tipams
 interface LessonSequence {
@@ -40,6 +43,17 @@ export default function MentorPlansPage() {
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<LessonSequence | null>(null);
+
+  // Modal hooks
+  const {
+    confirmationModal,
+    showConfirmation,
+    closeConfirmation,
+    notificationModal,
+    closeNotification,
+    showSuccess,
+    showError
+  } = useModals();
 
   // Gauname ugdymo planus iš API
   useEffect(() => {
@@ -80,16 +94,27 @@ export default function MentorPlansPage() {
   };
 
   // Ištrina ugdymo planą
-  const handleDeletePlan = async (planId: number) => {
-    if (confirm('Ar tikrai norite ištrinti šį ugdymo planą?')) {
-      try {
-        await api.delete(`/plans/sequences/${planId}/`);
-        setPlans(prev => prev.filter(plan => plan.id !== planId));
-      } catch (error: unknown) {
-        console.error('Klaida trinant planą:', error);
-        alert('Įvyko klaida trinant planą');
+  const handleDeletePlan = (planId: number) => {
+    showConfirmation(
+      {
+        title: 'Ištrinti ugdymo planą',
+        message: 'Ar tikrai norite ištrinti šį ugdymo planą?',
+        confirmText: 'Ištrinti',
+        cancelText: 'Atšaukti',
+        type: 'danger'
+      },
+      async () => {
+        try {
+          await api.delete(`/plans/sequences/${planId}/`);
+          setPlans(prev => prev.filter(plan => plan.id !== planId));
+          showSuccess('Ugdymo planas sėkmingai ištrintas');
+        } catch (error: unknown) {
+          console.error('Klaida trinant planą:', error);
+          showError('Nepavyko ištrinti ugdymo plano');
+          throw error; // Re-throw to keep modal open
+        }
       }
-    }
+    );
   };
 
   // Uždaro modalą
@@ -319,6 +344,29 @@ export default function MentorPlansPage() {
           </div>
         </div>
       )}
+
+      {/* Modal Components */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={closeConfirmation}
+        onConfirm={confirmationModal.onConfirm || (() => {})}
+        title={confirmationModal.options.title}
+        message={confirmationModal.options.message}
+        confirmText={confirmationModal.options.confirmText}
+        cancelText={confirmationModal.options.cancelText}
+        type={confirmationModal.options.type}
+        isLoading={confirmationModal.isLoading}
+      />
+
+      <NotificationModal
+        isOpen={notificationModal.isOpen}
+        onClose={closeNotification}
+        title={notificationModal.options.title}
+        message={notificationModal.options.message}
+        type={notificationModal.options.type}
+        autoClose={notificationModal.options.autoClose}
+        autoCloseDelay={notificationModal.options.autoCloseDelay}
+      />
     </div>
   );
 }

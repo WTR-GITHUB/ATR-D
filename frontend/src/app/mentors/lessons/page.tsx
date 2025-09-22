@@ -10,6 +10,9 @@ import { BookOpen, Calendar, Users, Plus, Edit, Trash2, Copy } from 'lucide-reac
 import Link from 'next/link';
 
 import { Lesson } from '@/lib/types';
+import { useModals } from '@/hooks/useModals';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import NotificationModal from '@/components/ui/NotificationModal';
 
 export default function MentorLessonsPage() {
   useAuth();
@@ -17,23 +20,45 @@ export default function MentorLessonsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Modal hooks
+  const {
+    confirmationModal,
+    showConfirmation,
+    closeConfirmation,
+    notificationModal,
+    closeNotification,
+    showSuccess,
+    showError
+  } = useModals();
+
   const handleEdit = (lessonId: number) => {
     // Navigate to edit page
     window.location.href = `/mentors/lessons/edit/${lessonId}`;
   };
 
-  const handleDelete = async (lessonId: number) => {
-    if (confirm('Ar tikrai norite ištrinti šią pamoką?')) {
-      try {
-        await lessonsAPI.delete(lessonId);
-        // Refresh the list
-        const response = await lessonsAPI.getAll();
-        setLessons(response.data);
-      } catch (error) {
-        console.error('Error deleting lesson:', error);
-        alert('Nepavyko ištrinti pamokos');
+  const handleDelete = (lessonId: number) => {
+    showConfirmation(
+      {
+        title: 'Ištrinti pamoką',
+        message: 'Ar tikrai norite ištrinti šią pamoką?',
+        confirmText: 'Ištrinti',
+        cancelText: 'Atšaukti',
+        type: 'danger'
+      },
+      async () => {
+        try {
+          await lessonsAPI.delete(lessonId);
+          // Refresh the list
+          const response = await lessonsAPI.getAll();
+          setLessons(response.data);
+          showSuccess('Pamoka sėkmingai ištrinta');
+        } catch (error) {
+          console.error('Error deleting lesson:', error);
+          showError('Nepavyko ištrinti pamokos');
+          throw error; // Re-throw to keep modal open
+        }
       }
-    }
+    );
   };
 
   const handleCopy = (lessonId: number) => {
@@ -218,6 +243,29 @@ export default function MentorLessonsPage() {
           filterableColumns={['subject_name', 'title', 'topic_name', 'levels_names']}
         />
       )}
+
+      {/* Modal Components */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={closeConfirmation}
+        onConfirm={confirmationModal.onConfirm || (() => {})}
+        title={confirmationModal.options.title}
+        message={confirmationModal.options.message}
+        confirmText={confirmationModal.options.confirmText}
+        cancelText={confirmationModal.options.cancelText}
+        type={confirmationModal.options.type}
+        isLoading={confirmationModal.isLoading}
+      />
+
+      <NotificationModal
+        isOpen={notificationModal.isOpen}
+        onClose={closeNotification}
+        title={notificationModal.options.title}
+        message={notificationModal.options.message}
+        type={notificationModal.options.type}
+        autoClose={notificationModal.options.autoClose}
+        autoCloseDelay={notificationModal.options.autoCloseDelay}
+      />
     </div>
   );
 } 

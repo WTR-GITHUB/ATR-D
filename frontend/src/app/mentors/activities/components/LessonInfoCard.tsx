@@ -24,6 +24,9 @@ import { User as UserType } from '@/lib/types';
 import api from '@/lib/api';
 import { Accordion, AccordionItem } from '@/components/ui/Accordion';
 import { useBulkAttendanceStats } from '@/hooks/useCurriculum';
+import { useModals } from '@/hooks/useModals';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import NotificationModal from '@/components/ui/NotificationModal';
 
 // CHANGE: Pridėti tipai objektams iš JSON
 interface JsonObject {
@@ -56,6 +59,15 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
 }) => {
   // CHANGE: State valdymas mokinių pridėjimui
   const [students, setStudents] = useState<Student[]>([]);
+
+  // Modal hooks
+  const {
+    confirmationModal,
+    closeConfirmation,
+    notificationModal,
+    closeNotification,
+    showError
+  } = useModals();
 
   // CHANGE: Atnaujinti students state kai keičiasi studentsForThisLesson
   useEffect(() => {
@@ -114,7 +126,7 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
       // Rodyti klaidos pranešimą vartotojui
       const errorMessage = (error as { response?: { data?: { non_field_errors?: string[] } } })?.response?.data?.non_field_errors?.[0] || 
                           'Nepavyko pridėti mokinių. Patikrinkite, ar mokiniai dar nėra pridėti į šią pamoką.';
-      alert(errorMessage);
+      showError(errorMessage);
     }
   };
   // Pagalbinė funkcija JSON string'o parse'inimui
@@ -447,6 +459,29 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
           </div>
         )}
       </div>
+
+      {/* Modal Components */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={closeConfirmation}
+        onConfirm={confirmationModal.onConfirm || (() => {})}
+        title={confirmationModal.options.title}
+        message={confirmationModal.options.message}
+        confirmText={confirmationModal.options.confirmText}
+        cancelText={confirmationModal.options.cancelText}
+        type={confirmationModal.options.type}
+        isLoading={confirmationModal.isLoading}
+      />
+
+      <NotificationModal
+        isOpen={notificationModal.isOpen}
+        onClose={closeNotification}
+        title={notificationModal.options.title}
+        message={notificationModal.options.message}
+        type={notificationModal.options.type}
+        autoClose={notificationModal.options.autoClose}
+        autoCloseDelay={notificationModal.options.autoCloseDelay}
+      />
     </div>
   );
 };

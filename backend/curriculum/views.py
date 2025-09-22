@@ -1,7 +1,8 @@
 # /backend/curriculum/views.py
 from django.shortcuts import render
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 from .models import Subject, Level, Objective, Component, Skill, Competency, Virtue, CompetencyAtcheve, Lesson
 from .serializers import (
     SubjectSerializer, LevelSerializer, ObjectiveSerializer, ComponentSerializer,
@@ -138,3 +139,12 @@ class LessonViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(mentor=self.request.user)
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Soft delete - pažymime pamoką kaip ištrintą
+        """
+        instance = self.get_object()
+        # Naudojame modelio soft delete metodą
+        instance.delete()  # Tai iškviečia modelio delete() metodą, kuris daro soft delete
+        return Response(status=status.HTTP_204_NO_CONTENT)

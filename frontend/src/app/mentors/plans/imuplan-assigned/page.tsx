@@ -13,6 +13,9 @@ import Button from '@/components/ui/Button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import { GraduationCap, BookOpen, Calendar, Users, ArrowLeft, Filter, Trash2 } from 'lucide-react';
 import api from '@/lib/api';
+import { useModals } from '@/hooks/useModals';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import NotificationModal from '@/components/ui/NotificationModal';
 
 // Interface for IMU plan data
 interface IMUPlan {
@@ -43,6 +46,17 @@ export default function IMUPlanAssignedPage() {
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Modal hooks
+  const {
+    confirmationModal,
+    showConfirmation,
+    closeConfirmation,
+    notificationModal,
+    closeNotification,
+    showSuccess,
+    showError
+  } = useModals();
 
   // Fetch subjects from API
   useEffect(() => {
@@ -108,29 +122,31 @@ export default function IMUPlanAssignedPage() {
   };
 
   // Delete IMU plan function
-  const handleDeletePlan = async (planId: number) => {
-    // Patvirtinimo modalas
-    const confirmed = window.confirm(
-      'Ar tikrai norite ištrinti šį ugdymo planą? Šis veiksmas negrįžtamas.'
+  const handleDeletePlan = (planId: number) => {
+    showConfirmation(
+      {
+        title: 'Ištrinti ugdymo planą',
+        message: 'Ar tikrai norite ištrinti šį ugdymo planą? Šis veiksmas negrįžtamas.',
+        confirmText: 'Ištrinti',
+        cancelText: 'Atšaukti',
+        type: 'danger'
+      },
+      async () => {
+        try {
+          // Ištrinti IMU planą per API
+          await api.delete(`/plans/imu-plans/${planId}/`);
+          
+          // Atnaujinti plans state - pašalinti ištrintą planą
+          setPlans(prevPlans => prevPlans.filter(plan => plan.id !== planId));
+          setFilteredPlans(prevFiltered => prevFiltered.filter(plan => plan.id !== planId));
+          
+          showSuccess('IMU planas sėkmingai ištrintas');
+        } catch (error) {
+          console.error('Klaida trinant IMU planą:', error);
+          showError('Įvyko klaida trinant ugdymo planą. Bandykite dar kartą.');
+        }
+      }
     );
-    
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      // Ištrinti IMU planą per API
-      await api.delete(`/plans/imu-plans/${planId}/`);
-      
-      // Atnaujinti plans state - pašalinti ištrintą planą
-      setPlans(prevPlans => prevPlans.filter(plan => plan.id !== planId));
-      setFilteredPlans(prevFiltered => prevFiltered.filter(plan => plan.id !== planId));
-      
-      console.log('IMU planas sėkmingai ištrintas');
-    } catch (error) {
-      console.error('Klaida trinant IMU planą:', error);
-      alert('Įvyko klaida trinant ugdymo planą. Bandykite dar kartą.');
-    }
   };
 
   if (isLoading) {
@@ -271,9 +287,9 @@ export default function IMUPlanAssignedPage() {
             { 
               title: 'Veiksmai', 
               data: 'id', // Naudojame id lauką kaip data, bet render funkcijoje gausime visą row objektą
-              render: (data: any, row: any) => (
+              render: (data: unknown, row: unknown) => (
                 <button
-                  onClick={() => handleDeletePlan(row.id)}
+                  onClick={() => handleDeletePlan((row as IMUPlan).id)}
                   className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
                   title="Ištrinti ugdymo planą"
                 >
@@ -311,6 +327,29 @@ export default function IMUPlanAssignedPage() {
           }
         />
       )}
+
+      {/* Modal Components */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={closeConfirmation}
+        onConfirm={confirmationModal.onConfirm || (() => {})}
+        title={confirmationModal.options.title}
+        message={confirmationModal.options.message}
+        confirmText={confirmationModal.options.confirmText}
+        cancelText={confirmationModal.options.cancelText}
+        type={confirmationModal.options.type}
+        isLoading={confirmationModal.isLoading}
+      />
+
+      <NotificationModal
+        isOpen={notificationModal.isOpen}
+        onClose={closeNotification}
+        title={notificationModal.options.title}
+        message={notificationModal.options.message}
+        type={notificationModal.options.type}
+        autoClose={notificationModal.options.autoClose}
+        autoCloseDelay={notificationModal.options.autoCloseDelay}
+      />
     </div>
   );
 }

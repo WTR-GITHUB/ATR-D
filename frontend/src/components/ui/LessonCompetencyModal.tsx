@@ -19,6 +19,9 @@ import MultiSelect from './MultiSelect';
 import DynamicList from './DynamicList';
 import { competencyAtcheveAPI, competenciesAPI, virtuesAPI } from '@/lib/api';
 import { CompetencyAtcheve, Competency } from '@/lib/types';
+import { useModals } from '@/hooks/useModals';
+import ConfirmationModal from './ConfirmationModal';
+import NotificationModal from './NotificationModal';
 
 interface LessonCompetencyModalProps {
   isOpen: boolean;
@@ -47,6 +50,18 @@ export default function LessonCompetencyModal({
     virtues: [] as string[],
     todos: [] as string[]
   });
+
+  // Modal hooks
+  const {
+    confirmationModal,
+    showConfirmation,
+    closeConfirmation,
+    notificationModal,
+    closeNotification,
+    showSuccess,
+    showError,
+    showWarning
+  } = useModals();
 
   // Helper function to get subject name by ID
   const getSubjectName = (subjectId: number | undefined): string => {
@@ -98,7 +113,7 @@ export default function LessonCompetencyModal({
     try {
       // Validate required fields
       if (!competencyFormData.competency || competencyFormData.virtues.length === 0) {
-        alert('Prašome pasirinkti kompetenciją ir dorybes');
+        showWarning('Prašome pasirinkti kompetenciją ir dorybes');
         return;
       }
 
@@ -124,26 +139,33 @@ export default function LessonCompetencyModal({
       // Notify parent component
       onCompetencyCreated();
       
-      alert('Kompetencijos pasiekimas sėkmingai sukurtas');
+      showSuccess('Kompetencijos pasiekimas sėkmingai sukurtas');
     } catch (error) {
       console.error('Error creating competency atcheve:', error);
-      alert('Nepavyko sukurti kompetencijos pasiekimo');
+      showError('Nepavyko sukurti kompetencijos pasiekimo');
     }
   };
 
-  const handleDeleteCompetency = async (competencyId: number) => {
-    if (!confirm('Ar tikrai norite ištrinti šį kompetencijos pasiekimą?')) {
-      return;
-    }
-
-    try {
-      await competencyAtcheveAPI.delete(competencyId);
-      await loadData();
-      alert('Kompetencijos pasiekimas sėkmingai ištrintas');
-    } catch (error) {
-      console.error('Error deleting competency atcheve:', error);
-      alert('Nepavyko ištrinti kompetencijos pasiekimo');
-    }
+  const handleDeleteCompetency = (competencyId: number) => {
+    showConfirmation(
+      {
+        title: 'Ištrinti kompetencijos pasiekimą',
+        message: 'Ar tikrai norite ištrinti šį kompetencijos pasiekimą?',
+        confirmText: 'Ištrinti',
+        cancelText: 'Atšaukti',
+        type: 'danger'
+      },
+      async () => {
+        try {
+          await competencyAtcheveAPI.delete(competencyId);
+          await loadData();
+          showSuccess('Kompetencijos pasiekimas sėkmingai ištrintas');
+        } catch (error) {
+          console.error('Error deleting competency atcheve:', error);
+          showError('Nepavyko ištrinti kompetencijos pasiekimo');
+        }
+      }
+    );
   };
 
   if (!isOpen) return null;
@@ -352,6 +374,29 @@ export default function LessonCompetencyModal({
           </Button>
         </div>
       </div>
+
+      {/* Modal Components */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={closeConfirmation}
+        onConfirm={confirmationModal.onConfirm || (() => {})}
+        title={confirmationModal.options.title}
+        message={confirmationModal.options.message}
+        confirmText={confirmationModal.options.confirmText}
+        cancelText={confirmationModal.options.cancelText}
+        type={confirmationModal.options.type}
+        isLoading={confirmationModal.isLoading}
+      />
+
+      <NotificationModal
+        isOpen={notificationModal.isOpen}
+        onClose={closeNotification}
+        title={notificationModal.options.title}
+        message={notificationModal.options.message}
+        type={notificationModal.options.type}
+        autoClose={notificationModal.options.autoClose}
+        autoCloseDelay={notificationModal.options.autoCloseDelay}
+      />
     </div>
   );
 }

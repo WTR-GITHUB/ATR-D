@@ -17,6 +17,9 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
 import LessonDualListTransfer from '@/components/ui/LessonDualListTransfer';
 import { ArrowLeft, Save } from 'lucide-react';
+import { useModals } from '@/hooks/useModals';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import NotificationModal from '@/components/ui/NotificationModal';
 
 interface Lesson {
   id: number;
@@ -98,6 +101,18 @@ export default function CreateLessonSequencePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
+  // Modal hooks
+  const {
+    confirmationModal,
+    showConfirmation,
+    closeConfirmation,
+    notificationModal,
+    closeNotification,
+    showSuccess,
+    showError,
+    showWarning
+  } = useModals();
+
   // Gauname duomenis iš API
   useEffect(() => {
     async function loadData() {
@@ -114,14 +129,14 @@ export default function CreateLessonSequencePage() {
         setLevels(levelsData);
       } catch (error) {
         console.error('Klaida gaunant duomenis:', error);
-        alert('Įvyko klaida gaunant duomenis');
+        showError('Įvyko klaida gaunant duomenis');
       } finally {
         setIsLoadingData(false);
       }
     }
 
     loadData();
-  }, []);
+  }, [showError]);
 
   // Filter lessons when subject or level changes
   useEffect(() => {
@@ -161,12 +176,12 @@ export default function CreateLessonSequencePage() {
 
   const handleSubmit = async () => {
     if (!formData.name || !formData.subject || !formData.level) {
-      alert('Prašome užpildyti visus privalomus laukus');
+      showWarning('Prašome užpildyti visus privalomus laukus');
       return;
     }
 
     if (selectedLessons.length === 0) {
-      alert('Prašome pridėti bent vieną pamoką į seką');
+      showWarning('Prašome pridėti bent vieną pamoką į seką');
       return;
     }
 
@@ -187,23 +202,52 @@ export default function CreateLessonSequencePage() {
                            `Ištrintos pamokos bus automatiškai pašalintos iš plano.\n\n` +
                            `Ar norite tęsti?`;
       
-      if (!confirm(confirmMessage)) {
-        return; // Vartotojas atsisakė
-      }
-      
-      // Ištrinti neegzistuojančias pamokas iš selectedLessons
-      const validLessons = selectedLessons.filter(lesson => 
-        availableLessons.some(available => available.id === lesson.id)
+      showConfirmation(
+        {
+          title: 'Patvirtinimas',
+          message: confirmMessage,
+          confirmText: 'Tęsti',
+          cancelText: 'Atšaukti',
+          type: 'warning'
+        },
+        () => {
+          // Ištrinti neegzistuojančias pamokas iš selectedLessons
+          const validLessons = selectedLessons.filter(lesson => 
+            availableLessons.some(available => available.id === lesson.id)
+          );
+          
+          if (validLessons.length === 0) {
+            showWarning('Po ištrintų pamokų pašalinimo, plane nebeliko jokių pamokų. Prašome pridėti naujų pamokų.');
+            return;
+          }
+          
+          setSelectedLessons(validLessons);
+          console.log(`Pašalintos ${invalidLessons.length} ištrintos pamokos. Liko ${validLessons.length} galiojančių pamokų.`);
+          
+          // Continue with submission
+          continueWithSubmission();
+        }
       );
-      
-      if (validLessons.length === 0) {
-        alert('Po ištrintų pamokų pašalinimo, plane nebeliko jokių pamokų. Prašome pridėti naujų pamokų.');
-        return;
-      }
-      
-      setSelectedLessons(validLessons);
-      console.log(`Pašalintos ${invalidLessons.length} ištrintos pamokos. Liko ${validLessons.length} galiojančių pamokų.`);
+      return;
     }
+
+    // Continue with submission if no invalid lessons
+    continueWithSubmission();
+  };
+
+  const continueWithSubmission = async () => {
+    // Ištrinti neegzistuojančias pamokas iš selectedLessons
+    const validLessons = selectedLessons.filter(lesson => 
+      availableLessons.some(available => available.id === lesson.id)
+    );
+    
+    if (validLessons.length === 0) {
+      showWarning('Po ištrintų pamokų pašalinimo, plane nebeliko jokių pamokų. Prašome pridėti naujų pamokų.');
+      return;
+    }
+      
+    setSelectedLessons(validLessons);
+    console.log(`Išfiltruotos neegzistuojančios pamokos. Liko ${validLessons.length} galiojančių pamokų.`);
 
     setIsLoading(true);
 
@@ -223,7 +267,7 @@ export default function CreateLessonSequencePage() {
       const response = await api.post('/plans/sequences/', sequenceData);
 
       if (response.status === 201) {
-        alert('Pamokų seka sėkmingai sukurta!');
+        showSuccess('Pamokų seka sėkmingai sukurta!');
         router.push('/mentors/plans');
       } else {
         throw new Error('Nepavyko sukurti pamokų sekos');
@@ -255,7 +299,7 @@ export default function CreateLessonSequencePage() {
                       'Prašome pašalinti jas iš plano ir bandyti iš naujo.';
       }
       
-      alert(errorMessage);
+      showError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -403,6 +447,29 @@ export default function CreateLessonSequencePage() {
           </Button>
         </div>
       </form>
+
+      {/* Modal Components */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={closeConfirmation}
+        onConfirm={confirmationModal.onConfirm || (() => {})}
+        title={confirmationModal.options.title}
+        message={confirmationModal.options.message}
+        confirmText={confirmationModal.options.confirmText}
+        cancelText={confirmationModal.options.cancelText}
+        type={confirmationModal.options.type}
+        isLoading={confirmationModal.isLoading}
+      />
+
+      <NotificationModal
+        isOpen={notificationModal.isOpen}
+        onClose={closeNotification}
+        title={notificationModal.options.title}
+        message={notificationModal.options.message}
+        type={notificationModal.options.type}
+        autoClose={notificationModal.options.autoClose}
+        autoCloseDelay={notificationModal.options.autoCloseDelay}
+      />
     </div>
   );
 }

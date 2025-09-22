@@ -33,7 +33,7 @@ const ManagerNavigation: React.FC<ManagerNavigationProps> = ({ isMobile = false 
         href="/managers/violations"
         className={linkClasses}
       >
-        Skolos
+        Patirtys
       </Link>
     </>
   );

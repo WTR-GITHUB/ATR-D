@@ -55,7 +55,7 @@ const MentorNavigation: React.FC<MentorNavigationProps> = ({ isMobile = false })
         href="/mentors/violations"
         className={linkClasses}
       >
-        Skolos
+        Patirtys
       </Link>
     </>
   );

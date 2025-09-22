@@ -33,7 +33,7 @@ const ParentNavigation: React.FC<ParentNavigationProps> = ({ isMobile = false })
         href="/parents/violations"
         className={linkClasses}
       >
-        Skolos
+        Patirtys
       </Link>
     </>
   );

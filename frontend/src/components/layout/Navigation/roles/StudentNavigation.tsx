@@ -33,7 +33,7 @@ const StudentNavigation: React.FC<StudentNavigationProps> = ({ isMobile = false 
         href="/students/violations"
         className={linkClasses}
       >
-        Skolos
+        Patirtys
       </Link>
     </>
   );

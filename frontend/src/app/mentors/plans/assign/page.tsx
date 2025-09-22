@@ -28,6 +28,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import Input from '@/components/ui/Input';
 import DualListTransfer from '@/components/ui/DualListTransfer';
 import ProgressModal from '@/components/ui/ProgressModal';
+import { useModals } from '@/hooks/useModals';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import NotificationModal from '@/components/ui/NotificationModal';
 import GenerationResultsModal from '@/components/ui/GenerationResultsModal';
 import { Users, BookOpen, Target, ArrowLeft } from 'lucide-react';
 import api from '@/lib/api';
@@ -143,6 +146,16 @@ export default function AssignPlanPage() {
   const [currentStudent, setCurrentStudent] = useState<CurrentStudent | null>(null);
   const [completedStudents, setCompletedStudents] = useState(0);
   const [generationResults, setGenerationResults] = useState<StudentResult[]>([]);
+
+  // Modal hooks
+  const {
+    confirmationModal,
+    closeConfirmation,
+    notificationModal,
+    closeNotification,
+    showError,
+    showWarning
+  } = useModals();
   
   const [selectedSubject, setSelectedSubject] = useState<string>('');
   const [selectedLevel, setSelectedLevel] = useState<string>('');
@@ -263,12 +276,12 @@ export default function AssignPlanPage() {
   // Handle generation process
   const handleGenerate = async () => {
     if (!selectedSubject || !selectedLevel || !selectedPlan || selectedStudents.length === 0) {
-      alert('Prašome užpildyti visus laukus ir pasirinkti studentus');
+      showWarning('Prašome užpildyti visus laukus ir pasirinkti studentus');
       return;
     }
 
     if (!startDateRef.current?.value || !endDateRef.current?.value) {
-      alert('Prašome pasirinkti pradžios ir pabaigos datas');
+      showWarning('Prašome pasirinkti pradžios ir pabaigos datas');
       return;
     }
 
@@ -277,7 +290,7 @@ export default function AssignPlanPage() {
     const endDate = new Date(endDateRef.current.value);
     
     if (startDate >= endDate) {
-      alert('Pabaigos data turi būti vėlesnė už pradžios datą');
+      showWarning('Pabaigos data turi būti vėlesnė už pradžios datą');
       return;
     }
 
@@ -367,7 +380,7 @@ export default function AssignPlanPage() {
         ? (error as { message?: string }).message || 'Nežinoma klaida'
         : 'Nežinoma klaida';
       
-      alert('Generavimo procesas nepavyko: ' + errorMessage);
+      showError('Generavimo procesas nepavyko: ' + errorMessage);
       setShowProgressModal(false);
     } finally {
       setIsGenerating(false);
@@ -632,6 +645,29 @@ export default function AssignPlanPage() {
         isOpen={showResultsModal}
         results={generationResults}
         onClose={handleCloseResults}
+      />
+
+      {/* Modal Components */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={closeConfirmation}
+        onConfirm={confirmationModal.onConfirm || (() => {})}
+        title={confirmationModal.options.title}
+        message={confirmationModal.options.message}
+        confirmText={confirmationModal.options.confirmText}
+        cancelText={confirmationModal.options.cancelText}
+        type={confirmationModal.options.type}
+        isLoading={confirmationModal.isLoading}
+      />
+
+      <NotificationModal
+        isOpen={notificationModal.isOpen}
+        onClose={closeNotification}
+        title={notificationModal.options.title}
+        message={notificationModal.options.message}
+        type={notificationModal.options.type}
+        autoClose={notificationModal.options.autoClose}
+        autoCloseDelay={notificationModal.options.autoCloseDelay}
       />
     </div>
   );

@@ -26,12 +26,26 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Violation, TodoItem, ViolationStatus, PenaltyStatus } from '@/lib/types';
+import { useModals } from '@/hooks/useModals';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import NotificationModal from '@/components/ui/NotificationModal';
 
 export default function ManagerViolationsManagementPage() {
   useAuth();
   const [violations, setViolations] = useState<Violation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Modal hooks
+  const {
+    confirmationModal,
+    showConfirmation,
+    closeConfirmation,
+    notificationModal,
+    closeNotification,
+    showSuccess,
+    showError
+  } = useModals();
   // const [selectedViolations, setSelectedViolations] = useState<number[]>([]);
   
   // Todo modal state
@@ -59,7 +73,7 @@ export default function ManagerViolationsManagementPage() {
         setViolations(response.data);
       } catch (err: unknown) {
         console.error('Error fetching violations:', err);
-        setError('Nepavyko užkrauti pažeidimų sąrašo');
+        setError('Nepavyko užkrauti įrašų sąrašo');
       } finally {
         setIsLoading(false);
       }
@@ -97,7 +111,7 @@ export default function ManagerViolationsManagementPage() {
         icon: Clock
       },
       completed: { 
-        text: 'Išpirkta', 
+        text: 'Atlikta', 
         className: 'bg-green-100 text-green-800 border-green-200',
         icon: CheckCircle
       }
@@ -172,7 +186,7 @@ export default function ManagerViolationsManagementPage() {
       }
     },
     {
-      title: 'Skolos statusas',
+      title: 'Patirties statusas',
       data: 'status',
       render: (data: unknown) => getStatusBadge(data as string)
     },
@@ -204,7 +218,7 @@ export default function ManagerViolationsManagementPage() {
         const violation = row as Violation;
         // Hide buttons only if BOTH conditions are met: completed AND paid
         if (violation.status === 'completed' && violation.penalty_status === 'paid') {
-          return <span className="text-green-600 font-medium">Išpirkta</span>;
+          return <span className="text-green-600 font-medium">Atlikta</span>;
         }
         
         return (
@@ -248,16 +262,26 @@ export default function ManagerViolationsManagementPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Ar tikrai norite ištrinti šį pažeidimą?')) return;
-    
-    try {
-      await violationAPI.violations.delete(id);
-      setViolations(prev => prev.filter(v => v.id !== id));
-    } catch (err) {
-      console.error('Error deleting violation:', err);
-      alert('Nepavyko ištrinti pažeidimo');
-    }
+  const handleDelete = (id: number) => {
+    showConfirmation(
+      {
+        title: 'Ištrinti įrašą',
+        message: 'Ar tikrai norite ištrinti šį įrašą?',
+        confirmText: 'Ištrinti',
+        cancelText: 'Atšaukti',
+        type: 'danger'
+      },
+      async () => {
+        try {
+          await violationAPI.violations.delete(id);
+          setViolations(prev => prev.filter(v => v.id !== id));
+          showSuccess('Įrašas sėkmingai ištrintas');
+        } catch (err) {
+          console.error('Error deleting violation:', err);
+          showError('Nepavyko ištrinti įrašo');
+        }
+      }
+    );
   };
 
   // Todo modal handlers
@@ -325,7 +349,7 @@ export default function ManagerViolationsManagementPage() {
       handleCloseTodoModal();
     } catch (err) {
       console.error('Error updating todos:', err);
-      alert('Nepavyko atnaujinti užduočių');
+      showError('Nepavyko atnaujinti užduočių');
     }
   };
 
@@ -370,10 +394,10 @@ export default function ManagerViolationsManagementPage() {
                 className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5 mr-2" />
-                Atgal į skolų puslapį
+                Atgal į patirčių puslapį
               </Link>
               <div className="h-6 w-px bg-gray-300"></div>
-              <h1 className="text-2xl font-bold text-gray-900">Pažeidimų valdymas</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Patirčių valdymas</h1>
             </div>
           </div>
         </div>
@@ -389,7 +413,7 @@ export default function ManagerViolationsManagementPage() {
                 <AlertTriangle className="h-8 w-8 text-red-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Iš viso pažeidimų</p>
+                <p className="text-sm font-medium text-gray-500">Iš viso įrašų</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.totalViolations}</p>
               </div>
             </div>
@@ -453,7 +477,7 @@ export default function ManagerViolationsManagementPage() {
                 <StatusFilter
                   value={statusFilter}
                   onChange={setStatusFilter}
-                  label="Skolos statusas"
+                  label="Patirties statusas"
                   negativeLabel="Neatlikti"
                   positiveLabel="Atlikti"
                 />
@@ -502,6 +526,29 @@ export default function ManagerViolationsManagementPage() {
           violationId={selectedViolationForEdit.id}
         />
       )}
+
+      {/* Modal Components */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={closeConfirmation}
+        onConfirm={confirmationModal.onConfirm || (() => {})}
+        title={confirmationModal.options.title}
+        message={confirmationModal.options.message}
+        confirmText={confirmationModal.options.confirmText}
+        cancelText={confirmationModal.options.cancelText}
+        type={confirmationModal.options.type}
+        isLoading={confirmationModal.isLoading}
+      />
+
+      <NotificationModal
+        isOpen={notificationModal.isOpen}
+        onClose={closeNotification}
+        title={notificationModal.options.title}
+        message={notificationModal.options.message}
+        type={notificationModal.options.type}
+        autoClose={notificationModal.options.autoClose}
+        autoCloseDelay={notificationModal.options.autoCloseDelay}
+      />
     </div>
   );
 }
