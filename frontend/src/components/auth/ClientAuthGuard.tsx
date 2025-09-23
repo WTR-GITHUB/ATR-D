@@ -1,7 +1,7 @@
 // frontend/src/components/auth/ClientAuthGuard.tsx
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -18,10 +18,14 @@ export default function ClientAuthGuard({
 }: ClientAuthGuardProps) {
   const { isAuthenticated, user, isLoading, initializeAuth } = useAuth();
   const router = useRouter();
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    // Initialize auth on component mount
-    initializeAuth();
+    // Initialize auth on component mount only once
+    if (!hasInitialized.current) {
+      initializeAuth();
+      hasInitialized.current = true;
+    }
   }, [initializeAuth]);
 
   useEffect(() => {
@@ -29,7 +33,10 @@ export default function ClientAuthGuard({
 
     if (requireAuth && !isAuthenticated) {
       // Jei reikia autentifikacijos, bet vartotojas neprisijungęs
-      router.push('/auth/login');
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/auth/login') {
+        router.push('/auth/login');
+      }
       return;
     }
 

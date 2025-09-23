@@ -147,12 +147,14 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
       
       if (imuPlan && newStatus) {
         // CHANGE: Iškvieti backend'o API lankomumo keitimui
+        // SEC-001: Use API instance instead of direct fetch with localStorage
         const response = await fetch(`/api/plans/imu-plans/${imuPlan.id}/update_attendance/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            // SEC-001: Remove Authorization header - cookies handle authentication
           },
+          credentials: 'include', // SEC-001: Include cookies for authentication
           body: JSON.stringify({
             attendance_status: newStatus
           })

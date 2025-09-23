@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // API base configuration optimized for hybrid development
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.88.167:8000/api';
 
 // CHANGE: Helper for token refresh - use internal API route in hybrid mode
 const getTokenRefreshUrl = () => {
@@ -20,17 +20,15 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // SEC-001: Enable credentials for cookie-based authentication
+  withCredentials: true,
 });
 
-// Request interceptor to add auth token and current role
+// SEC-001: Request interceptor updated for cookie-based authentication
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    
-    // CHANGE: Pridėti current role header jei yra
+    // SEC-001: Remove localStorage token usage - cookies are handled automatically
+    // Only add current role header if available
     const currentRole = localStorage.getItem('current_role');
     if (currentRole) {
       config.headers['X-Current-Role'] = currentRole;
@@ -43,43 +41,36 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token refresh and role validation
+// SEC-001: Response interceptor updated for cookie-based authentication
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // CHANGE: Handle 401 (Unauthorized) - token refresh
+    // SEC-001: Handle 401 (Unauthorized) - token refresh with cookies
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refresh_token');
-        if (refreshToken) {
-          // CHANGE: Use smart token refresh URL for hybrid development mode
-          const refreshUrl = getTokenRefreshUrl();
-          
-          const response = await axios.post(refreshUrl, {
-            refresh: refreshToken,
-          });
-          
-          const { access } = response.data;
-          localStorage.setItem('access_token', access);
-          
-          originalRequest.headers.Authorization = `Bearer ${access}`;
-          return api(originalRequest);
-        }
+        // SEC-001: Use cookie-based refresh - no need to manually handle tokens
+        const refreshUrl = getTokenRefreshUrl();
+        
+        const response = await axios.post(refreshUrl, {}, {
+          withCredentials: true, // Include cookies
+        });
+        
+        // SEC-001: Cookies are set automatically by the server
+        // Retry the original request
+        return api(originalRequest);
       } catch {
-        // CHANGE: Clear all auth data on refresh failure
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        // SEC-001: Clear auth data on refresh failure
         localStorage.removeItem('current_role');
         localStorage.removeItem('auth-storage');
         window.location.href = '/auth/login';
       }
     }
 
-    // CHANGE: Handle 403 (Forbidden) - role validation issue
+    // SEC-001: Handle 403 (Forbidden) - role validation issue
     if (error.response?.status === 403 && !originalRequest._retry) {
       originalRequest._retry = true;
       
@@ -101,8 +92,9 @@ api.interceptors.response.use(
         
         return api(originalRequest);
       } catch {
-        // If user data fetch fails, redirect to login
-        localStorage.clear();
+        // SEC-001: If user data fetch fails, redirect to login
+        localStorage.removeItem('current_role');
+        localStorage.removeItem('auth-storage');
         window.location.href = '/auth/login';
       }
     }
@@ -111,12 +103,14 @@ api.interceptors.response.use(
   }
 );
 
-// Authentication API
+// SEC-001: Authentication API updated for cookie-based authentication
 export const authAPI = {
   login: (credentials: { email: string; password: string }) =>
     api.post('/users/token/', credentials),
-  refresh: (refreshToken: string) =>
-    api.post('/users/token/refresh/', { refresh: refreshToken }),
+  refresh: () =>
+    api.post('/users/token/refresh/'), // SEC-001: No need to pass refresh token - handled by cookies
+  logout: () =>
+    api.post('/users/logout/'), // SEC-001: New logout endpoint
   me: () => api.get('/users/me/'),
 };
 

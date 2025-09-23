@@ -41,9 +41,7 @@ export default function useSettings() {
         new_password: data.newPassword
       };
 
-      // Sukuriame API request'ą su authentication header'iu
-      const token = localStorage.getItem('access_token');
-      
+      // SEC-001: Updated for cookie-based authentication
       // Patikriname, ar turime user ID
       if (!user?.id) {
         throw new Error('Vartotojo ID nerastas. Prašome prisijungti iš naujo.');
@@ -55,8 +53,9 @@ export default function useSettings() {
         {
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': token ? `Bearer ${token}` : '',
+            // SEC-001: Remove Authorization header - cookies handle authentication
           },
+          withCredentials: true, // SEC-001: Include cookies for authentication
         }
       );
       

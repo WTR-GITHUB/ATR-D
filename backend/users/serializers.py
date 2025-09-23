@@ -7,11 +7,14 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.password_validation import validate_password
+from django.http import HttpResponse
+from django.conf import settings
 from .models import User
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
     JWT token serializeris - sukuria prisijungimo tokenus su papildoma informacija
+    SEC-001: Pridėtas cookie-based authentication palaikymas
     """
     @classmethod
     def get_token(cls, user):
@@ -22,6 +25,43 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['default_role'] = user.get_default_role()
         token['full_name'] = f"{user.first_name} {user.last_name}"
         return token
+    
+    def validate(self, attrs):
+        """
+        SEC-001: Override validate method to set cookies
+        """
+        data = super().validate(attrs)
+        
+        # Get tokens
+        refresh = self.get_token(self.user)
+        access = refresh.access_token
+        
+        # Set cookies in response
+        response = self.context.get('response')
+        if response:
+            # Set access token cookie
+            response.set_cookie(
+                'access_token',
+                str(access),
+                max_age=settings.SIMPLE_JWT['AUTH_COOKIE_ACCESS_MAX_AGE'].total_seconds(),
+                secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+                httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
+                samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+                domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']
+            )
+            
+            # Set refresh token cookie
+            response.set_cookie(
+                'refresh_token',
+                str(refresh),
+                max_age=settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH_MAX_AGE'].total_seconds(),
+                secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+                httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
+                samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+                domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']
+            )
+        
+        return data
 
 class UserSerializer(serializers.ModelSerializer):
     """

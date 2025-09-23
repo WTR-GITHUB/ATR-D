@@ -32,7 +32,7 @@ interface StudentCurator {
 }
 
 export const useCuratorStudents = () => {
-  const { token, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth(); // SEC-001: Remove token - handled by cookies
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +40,7 @@ export const useCuratorStudents = () => {
   useEffect(() => {
     const fetchStudents = async () => {
 
-      if (!isAuthenticated || !token) {
+      if (!isAuthenticated) { // SEC-001: Remove token check - handled by cookies
         setLoading(false);
         return;
       }
@@ -73,7 +73,7 @@ export const useCuratorStudents = () => {
     };
 
     fetchStudents();
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated]); // SEC-001: Remove token dependency - handled by cookies
 
   return {
     students,

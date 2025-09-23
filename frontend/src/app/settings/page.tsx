@@ -14,7 +14,7 @@ import Input from '@/components/ui/Input';
 import { User, Lock, Eye, EyeOff, UserCheck } from 'lucide-react';
 
 export default function SettingsPage() {
-  const { user, token } = useAuth();
+  const { user } = useAuth(); // SEC-001: Remove token - handled by cookies
   const { changePassword, isLoading, error, clearError } = useSettings();
   
   // Slaptažodžio keitimo būsenos
@@ -104,8 +104,9 @@ export default function SettingsPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          // SEC-001: Remove Authorization header - cookies handle authentication
         },
+        credentials: 'include', // SEC-001: Include cookies for authentication
         body: JSON.stringify({ 
           default_role: selectedDefaultRole 
         }),

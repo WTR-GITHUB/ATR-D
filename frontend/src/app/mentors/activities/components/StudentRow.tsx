@@ -218,22 +218,20 @@ const StudentRow: React.FC<StudentRowProps> = ({
   // Lankomumo keitimo valdymas
   const handleAttendanceChange = async (status: AttendanceStatus) => {
     try {
-      // CHANGE: Iškviečiame backend API lankomumo statusui atnaujinti
-      const accessToken = localStorage.getItem('access_token');
-      if (!accessToken) {
-        console.error('Nėra autentifikacijos token\'o');
-        return;
-      }
+      // SEC-001: Updated for cookie-based authentication
+      // No need to check for access token - cookies handle authentication automatically
 
       // Ieškome IMU planą pagal studento ID ir global_schedule ID
       if (isIMUPlan) {
         const imuPlan = student as IMUPlan;
+        // SEC-001: Updated for cookie-based authentication
         const response = await fetch(`/api/plans/imu-plans/${imuPlan.id}/update_attendance/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
+            // SEC-001: Remove Authorization header - cookies handle authentication
           },
+          credentials: 'include', // SEC-001: Include cookies for authentication
           body: JSON.stringify({
             attendance_status: status
           })

@@ -1,15 +1,14 @@
 // /frontend/src/hooks/useAuth.ts
+// SEC-001: Refactored for cookie-based authentication
 'use client';
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { authAPI } from '@/lib/api';
 import { User, LoginCredentials, AuthResponse, UserRole } from '@/lib/types';
 
 interface AuthState {
   user: User | null;
-  token: string | null;
-  refreshToken: string | null;
+  // SEC-001: Remove token and refreshToken from state - handled by cookies
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -24,7 +23,7 @@ interface AuthActions {
   setLoading: (loading: boolean) => void;
   clearError: () => void;
   initializeAuth: () => Promise<void>;
-  refreshAuthToken: () => Promise<boolean>;
+  // SEC-001: Remove refreshAuthToken - handled automatically by cookies
   getCurrentUserId: () => number | null;
   setCurrentRole: (role: string) => void; // Nustatyti dabartinę rolę
   getCurrentRole: () => string | null; // Gauti dabartinę rolę
@@ -33,74 +32,57 @@ interface AuthActions {
 type AuthStore = AuthState & AuthActions;
 
 export const useAuth = create<AuthStore>()(
-  persist(
-    (set, get) => ({
-      // State
+  (set, get) => ({
+      // SEC-001: State updated for cookie-based authentication
       user: null,
-      token: null,
-      refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
       currentRole: null, // Dabartinė aktyvi rolė
 
-      // Actions
+      // SEC-001: Actions updated for cookie-based authentication
       login: async (credentials: LoginCredentials) => {
         // RESET visą state prieš login
         set({ 
           user: null,
-          token: null,
-          refreshToken: null,
           isAuthenticated: false,
           isLoading: true, 
           error: null 
         });
         
         try {
-          // CHANGE: AGRESYVIAI išvalyti senus duomenis PRISIJUNGIMO pradžioje
-          // Tai užtikrina, kad naujas vartotojas negaus ankstesnio vartotojo duomenų
+          // SEC-001: Clear old data before login
           if (typeof window !== 'undefined') {
-            localStorage.clear();
-            sessionStorage.clear();
-            // Taip pat išvalykime Zustand persist cache
+            localStorage.removeItem('current_role');
             localStorage.removeItem('auth-storage');
             sessionStorage.removeItem('auth-storage');
           }
           
+          // SEC-001: Login with cookie-based authentication
           const response = await authAPI.login(credentials);
-          const { access, refresh }: AuthResponse = response.data;
+          // SEC-001: Tokens are now handled by cookies automatically
           
-          
-          // Store tokens in localStorage (only on client side)
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('access_token', access);
-            localStorage.setItem('refresh_token', refresh);
-          }
-          
-          // Fetch user data from backend
+          // SEC-001: Fetch user data from backend
           try {
             const userResponse = await authAPI.me();
             const user = userResponse.data;
             
-            
-            // CHANGE: Nustatyti currentRole pagal default_role
+            // SEC-001: Set currentRole based on default_role
             const initialRole = user.default_role || user.roles?.[0] || null;
             
-            // CHANGE: Išsaugoti currentRole į localStorage
+            // SEC-001: Save currentRole to localStorage for API requests
             if (typeof window !== 'undefined' && initialRole) {
               localStorage.setItem('current_role', initialRole);
             }
             
             set({
               user,
-              token: access,
-              refreshToken: refresh,
               isAuthenticated: true,
               isLoading: false,
-              currentRole: initialRole, // Nustatyti dabartinę rolę
+              currentRole: initialRole, // Set current role
             });
           } catch {
-            // CHANGE: Improved error handling for user data fetching
+            // SEC-001: Improved error handling for user data fetching
             // If fetching user data fails, use basic info from login
             const user = {
               id: 0,
@@ -114,8 +96,6 @@ export const useAuth = create<AuthStore>()(
             
             set({
               user,
-              token: access,
-              refreshToken: refresh,
               isAuthenticated: true,
               isLoading: false,
             });
@@ -134,24 +114,30 @@ export const useAuth = create<AuthStore>()(
         }
       },
 
-      logout: () => {
-        if (typeof window !== 'undefined') {
-          // CHANGE: Išvalyti VISUS duomenis iš localStorage ir sessionStorage
-          // Tai užtikrina, kad kitas vartotojas negaus ankstesnio vartotojo duomenų
-          localStorage.clear();
-          sessionStorage.clear();
-          // CHANGE: Išvalyti current_role
-          localStorage.removeItem('current_role');
+      // SEC-001: Logout updated for cookie-based authentication
+      logout: async () => {
+        try {
+          // SEC-001: Call logout endpoint to clear cookies on server
+          await authAPI.logout();
+        } catch {
+          // Ignore logout API errors - cookies will be cleared anyway
         }
+        
+        if (typeof window !== 'undefined') {
+          // SEC-001: Clear client-side data
+          localStorage.removeItem('current_role');
+          localStorage.removeItem('auth-storage');
+          sessionStorage.removeItem('auth-storage');
+        }
+        
         set({
           user: null,
-          token: null,
-          refreshToken: null,
           isAuthenticated: false,
           error: null,
-          currentRole: null, // Išvalyti dabartinę rolę
+          currentRole: null, // Clear current role
         });
-        // Perkrauti puslapį į root po logout
+        
+        // Reload page to root after logout
         window.location.href = '/';
       },
 
@@ -192,97 +178,31 @@ export const useAuth = create<AuthStore>()(
         return currentRole || user?.default_role || user?.roles?.[0] || null;
       },
 
-      // CHANGE: Added new method to handle token refresh with better error handling
-      refreshAuthToken: async () => {
-        try {
-          const refreshToken = get().refreshToken;
-          if (!refreshToken) {
-            return false;
-          }
+      // SEC-001: Token refresh is now handled automatically by cookies
 
-          const response = await authAPI.refresh(refreshToken);
-          const { access } = response.data;
-          
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('access_token', access);
-          }
-          
-          set({ token: access });
-          return true;
-        } catch {
-          // Refresh failed, clear auth state
-          get().logout();
-          return false;
-        }
-      },
-
-      // Initialize user data from stored token
-      initializeAuth: async () => {
-        // CHANGE: Improved initialization to handle server-side rendering better
-        if (typeof window === 'undefined') {
-          // Server-side: set loading to false without trying to access localStorage
-          set({ isLoading: false });
-          return;
-        }
-
-        const token = localStorage.getItem('access_token');
-        if (token) {
-          try {
-            const userResponse = await authAPI.me();
-            const user = userResponse.data;
-            
-            // CHANGE: Validate and set current role on initialization
-            const currentRole = localStorage.getItem('current_role');
-            let validRole = currentRole;
-            
-            // If no current role or role is not in user's roles, set to default
-            if (!currentRole || !user.roles?.includes(currentRole)) {
-              validRole = user.default_role || user.roles?.[0] || null;
-              if (validRole) {
-                localStorage.setItem('current_role', validRole);
-              }
+          // SEC-001: Initialize authentication with cookie-based approach
+          initializeAuth: async () => {
+            // SEC-001: Handle server-side rendering
+            if (typeof window === 'undefined') {
+              set({ isLoading: false });
+              return;
             }
-            
+
+            // SEC-001: Clear any old localStorage data first to prevent conflicts
+            localStorage.removeItem('current_role');
+            localStorage.removeItem('auth-storage');
+            sessionStorage.removeItem('auth-storage');
+
+            // SEC-001: Set initial state as not authenticated
             set({
-              user,
-              token,
-              refreshToken: localStorage.getItem('refresh_token'),
-              isAuthenticated: true,
+              user: null,
+              isAuthenticated: false,
               isLoading: false,
-              currentRole: validRole, // CHANGE: Set current role on init
+              currentRole: null,
             });
-          } catch {
-            // CHANGE: Better error handling - try to refresh token first
-            const refreshSuccess = await get().refreshAuthToken();
-            if (!refreshSuccess) {
-              // Token is invalid, clear storage
-              localStorage.removeItem('access_token');
-              localStorage.removeItem('refresh_token');
-              localStorage.removeItem('current_role');
-              localStorage.removeItem('auth-storage');
-              set({
-                user: null,
-                token: null,
-                refreshToken: null,
-                isAuthenticated: false,
-                isLoading: false,
-                currentRole: null, // CHANGE: Clear current role on logout
-              });
-            }
-          }
-        } else {
-          set({ isLoading: false });
-        }
-      },
-    }),
-    {
-      name: 'auth-storage',
-      partialize: (state) => ({
-        user: state.user,
-        token: state.token,
-        refreshToken: state.refreshToken,
-        isAuthenticated: state.isAuthenticated,
-      }),
-    }
-  )
+
+            // SEC-001: Don't try to fetch user data on initialization to prevent redirect loops
+            // User will be authenticated when they actually log in
+          },
+    })
 ); 

@@ -130,6 +130,28 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# SEC-001: Security headers configuration
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
+# SEC-001: HSTS headers for production
+if not DEBUG:
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+# SEC-001: Content Security Policy
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'")  # Allow inline scripts for development
+CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")  # Allow inline styles for development
+CSP_IMG_SRC = ("'self'", "data:", "https:")
+CSP_CONNECT_SRC = ("'self'",)
+CSP_FONT_SRC = ("'self'",)
+CSP_OBJECT_SRC = ("'none'",)
+CSP_BASE_URI = ("'self'",)
+CSP_FRAME_ANCESTORS = ("'none'",)
+
 ROOT_URLCONF = 'core.urls'
 
 TEMPLATES = [
@@ -194,7 +216,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'users.authentication.JWTCookieAuthentication',  # SEC-001: Cookie-based authentication
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Fallback to header-based
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -206,9 +229,10 @@ REST_FRAMEWORK = {
     ),
 }
 
-# JWT settings
+# JWT settings with httpOnly cookie support
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME', 60))),  # Perkelta į .env failą
+    # SEC-001: Shortened access token lifetime for better security
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME', 15))),  # Reduced from 60 to 15 minutes
     'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME', 1))),  # Perkelta į .env failą
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
@@ -229,6 +253,16 @@ SIMPLE_JWT = {
     'TOKEN_TYPE_CLAIM': 'token_type',
     
     'JTI_CLAIM': 'jti',
+    
+    # SEC-001: Cookie-based authentication settings
+    'AUTH_COOKIE_NAME': 'access_token',
+    'AUTH_COOKIE_REFRESH_NAME': 'refresh_token',
+    'AUTH_COOKIE_ACCESS_MAX_AGE': timedelta(minutes=15),  # Same as ACCESS_TOKEN_LIFETIME
+    'AUTH_COOKIE_REFRESH_MAX_AGE': timedelta(days=1),    # Same as REFRESH_TOKEN_LIFETIME
+    'AUTH_COOKIE_SECURE': not DEBUG,  # True in production, False in development
+    'AUTH_COOKIE_HTTP_ONLY': True,   # Prevent XSS attacks
+    'AUTH_COOKIE_SAMESITE': 'Strict', # Prevent CSRF attacks
+    'AUTH_COOKIE_DOMAIN': None,      # Will be set to production domain in production
 }
 
 # Internationalization
@@ -269,6 +303,35 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Development 
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
+
+# SEC-001: Session cookie security settings
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = not DEBUG  # True in production, False in development
+SESSION_COOKIE_SAMESITE = 'Strict'
+SESSION_COOKIE_AGE = 86400  # 24 hours
+
+# SEC-001: CSRF cookie security settings
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SECURE = not DEBUG  # True in production, False in development
+CSRF_COOKIE_SAMESITE = 'Strict'
+CSRF_TRUSTED_ORIGINS = [
+    "https://dienynas.mokyklaatradimai.lt",
+    "http://dienynas.mokyklaatradimai.lt",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
+# SEC-001: Enhanced CORS configuration for cookie support
+CORS_ALLOW_CREDENTIALS = True
+if not CORS_ALLOW_ALL_ORIGINS:
+    CORS_ALLOWED_ORIGINS = [
+        "https://dienynas.mokyklaatradimai.lt",
+        "http://dienynas.mokyklaatradimai.lt",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
 
 # Logging configuration
 LOGGING = {

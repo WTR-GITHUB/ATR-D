@@ -4,7 +4,9 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
-from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from django.conf import settings
+from django.http import HttpResponse
 from .models import User
 from .serializers import UserSerializer, CustomTokenObtainPairSerializer, ChangePasswordSerializer, UserSettingsSerializer
 
@@ -14,8 +16,98 @@ from .serializers import UserSerializer, CustomTokenObtainPairSerializer, Change
 class CustomTokenObtainPairView(TokenObtainPairView):
     """
     JWT token gavimo view - valdo prisijungimo procesą
+    SEC-001: Pridėtas cookie-based authentication palaikymas
     """
     serializer_class = CustomTokenObtainPairSerializer
+    
+    def post(self, request, *args, **kwargs):
+        """
+        SEC-001: Override post method to handle cookie setting
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Create response with tokens
+        response = Response(serializer.validated_data, status=200)
+        
+        # Pass response to serializer for cookie setting
+        serializer.context['response'] = response
+        
+        # Get tokens and set cookies manually
+        refresh = serializer.get_token(serializer.user)
+        access = refresh.access_token
+        
+        # Set access token cookie
+        response.set_cookie(
+            'access_token',
+            str(access),
+            max_age=settings.SIMPLE_JWT['AUTH_COOKIE_ACCESS_MAX_AGE'].total_seconds(),
+            secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+            httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
+            samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+            domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']
+        )
+        
+        # Set refresh token cookie
+        response.set_cookie(
+            'refresh_token',
+            str(refresh),
+            max_age=settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH_MAX_AGE'].total_seconds(),
+            secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+            httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
+            samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+            domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']
+        )
+        
+        return response
+
+class CustomTokenRefreshView(TokenRefreshView):
+    """
+    SEC-001: Custom token refresh view with cookie support
+    """
+    def post(self, request, *args, **kwargs):
+        """
+        Handle token refresh with cookie support
+        """
+        # Get refresh token from cookie or request body
+        refresh_token = request.COOKIES.get('refresh_token') or request.data.get('refresh')
+        
+        if not refresh_token:
+            return Response({'error': 'Refresh token not found'}, status=400)
+        
+        # Create new request data with refresh token
+        request.data['refresh'] = refresh_token
+        
+        # Call parent method
+        response = super().post(request, *args, **kwargs)
+        
+        # Set new access token cookie
+        if response.status_code == 200 and 'access' in response.data:
+            response.set_cookie(
+                'access_token',
+                response.data['access'],
+                max_age=settings.SIMPLE_JWT['AUTH_COOKIE_ACCESS_MAX_AGE'].total_seconds(),
+                secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+                httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
+                samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
+                domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']
+            )
+        
+        return response
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_view(request):
+    """
+    SEC-001: Logout view that clears cookies
+    """
+    response = HttpResponse({'message': 'Successfully logged out'})
+    
+    # Clear authentication cookies
+    response.delete_cookie('access_token')
+    response.delete_cookie('refresh_token')
+    
+    return response
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
