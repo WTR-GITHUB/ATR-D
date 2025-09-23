@@ -3,10 +3,12 @@
 // Studento savaitės tvarkaraščio komponentas - rodo studento pamokas pagal savaitę
 // CHANGE: Atnaujintas naudoti useStudentWeeklySchedule hook'ą vietoj useWeeklySchedule
 // PURPOSE: Rodo tik studento pamokas pagal jo subject levels, ne visų mentorių pamokas
+// CHANGE: Naudojamos dalykų spalvų konstantos iš subjectColors.ts
+// CHANGE: Kortelės stilius keičiasi pagal pamokos statusą (planned/in_progress/completed)
 
 'use client';
 
-import React, { useState, useEffect, forwardRef, useImperativeHandle, useMemo } from 'react';
+import React, { useEffect, forwardRef, useImperativeHandle, useMemo } from 'react';
 import { Clock, MapPin, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import useStudentWeeklySchedule from '@/hooks/useStudentWeeklySchedule';
 // import useSubjects from '@/hooks/useSubjects';
@@ -14,8 +16,10 @@ import usePeriods from '@/hooks/usePeriods';
 import { useWeekInfoContext } from '@/contexts/WeekInfoContext';
 // CHANGE: Pataisytas import'as - ScheduleItem importuojamas iš useSchedule hook'o
 import { ScheduleItem } from '@/hooks/useSchedule';
-// CHANGE: Pridėtas import'as spalvų konstantoms
-import { getScheduleColors, getScheduleColorClasses, type ScheduleStatus } from '@/constants/scheduleColors';
+// CHANGE: Pridėtas import'as studentų spalvų konstantoms
+import { type StudentScheduleStatus } from '@/constants/scheduleStudentColors';
+// CHANGE: Pridėtas import'as dalykų spalvų konstantoms
+// CHANGE: getSubjectColors import pašalintas - naudojame tik inline styles
 
 interface WeeklyScheduleCalendarProps {
   className?: string;
@@ -47,14 +51,11 @@ const LessonCard: React.FC<{
   isSelected?: boolean;
   onClick?: () => void;
 }> = ({ lesson, isSelected = false, onClick }) => {
-  // CHANGE: Naudojamos spalvų konstantos iš scheduleColors.ts
-  // Gauti pamokos statusą (pagal nutylėjimą 'planned' jei nėra statuso)
-  // CHANGE: Pridėta logika IMUPlan tikrinimui - jei nėra IMUPlan duomenų, naudoti raudoną spalvą
-  // Tikriname ar yra IMUPlan duomenų - naudojame has_imu_plan lauką iš API
-  const hasImuPlan = lesson.has_imu_plan; // Tikriname ar yra IMUPlan duomenų
-  const lessonStatus: ScheduleStatus = hasImuPlan ? (lesson.plan_status || 'planned') : 'no_imu_plan';
-  const colorClasses = getScheduleColorClasses(lessonStatus);
-  const colors = getScheduleColors(lessonStatus);
+  // CHANGE: Nauja logika - naudojame dalykų spalvas ir statusą pagal plan_status
+  // CHANGE: Naudojame plan_status tiesiogiai, nepriklausomai nuo IMUPlan
+  const lessonStatus: StudentScheduleStatus = lesson.plan_status || 'no_imu_plan';
+  
+  // CHANGE: Naudojame tik inline styles, nereikia subjectColors
   
   // CHANGE: Pašaliname lygio numerį iš dalyko pavadinimo
   // Funkcija, kuri pašalina skaičių iš dalyko pavadinimo pabaigos
@@ -62,13 +63,72 @@ const LessonCard: React.FC<{
     // Pašaliname skaičių iš pavadinimo pabaigos (pvz., "Dalykas 4" -> "Dalykas")
     return subjectName.replace(/\s+\d+$/, '');
   };
+
+  // CHANGE: Funkcija su inline styles vietoj Tailwind klasių
+  const getBorderLeftStyle = (hexColor: string): React.CSSProperties => {
+    // Naudojame inline styles - garantuotai veiks
+    return {
+      borderLeft: `4px solid ${hexColor}`
+    };
+  };
   
+  // CHANGE: Nauja logika kortelės stiliui pagal statusą - VISADA naudojame dalykų spalvas
+  const getCardStyles = () => {
+    switch (lessonStatus) {
+      case 'planned':
+        // planned: balta kortelė su dalyko spalvos krašteliu
+        return {
+          background: 'bg-white',
+          border: 'border-transparent',
+          text: 'text-gray-900',
+          borderLeftStyle: getBorderLeftStyle(lesson.subject.color)
+        };
+      case 'in_progress':
+        // in_progress: visa kortelė nudažyta dalyko spalva
+        return {
+          background: 'bg-transparent', // Naudojame inline styles
+          border: 'border-transparent',
+          text: 'text-white', // Balta tekstas ant spalvoto fono
+          borderLeftStyle: getBorderLeftStyle(lesson.subject.color),
+          backgroundColor: lesson.subject.color // Inline style spalvam fonui
+        };
+      case 'completed':
+        // completed: dalyko spalvos kraštelis + pilkas fonas
+        return {
+          background: 'bg-gray-200',
+          border: 'border-transparent',
+          text: 'text-gray-700',
+          borderLeftStyle: getBorderLeftStyle(lesson.subject.color)
+        };
+      case 'no_imu_plan':
+        // CHANGE: no_imu_plan: balta kortelė su dalyko spalvos krašteliu (ne studentų spalvos)
+        return {
+          background: 'bg-white',
+          border: 'border-transparent',
+          text: 'text-gray-900',
+          borderLeftStyle: getBorderLeftStyle(lesson.subject.color)
+        };
+      default:
+        return {
+          background: 'bg-white',
+          border: 'border-transparent',
+          text: 'text-gray-900',
+          borderLeftStyle: getBorderLeftStyle(lesson.subject.color)
+        };
+    }
+  };
+  
+  const cardStyles = getCardStyles();
 
   return (
     <div 
-      className={`${colorClasses} rounded-lg p-3 shadow-md hover:shadow-lg transition-all cursor-pointer border-l-4 w-full h-full flex flex-col justify-between relative ${
+      className={`${cardStyles.background} ${cardStyles.border} rounded-lg p-3 shadow-md hover:shadow-lg transition-all cursor-pointer w-full h-full flex flex-col justify-between relative ${
         isSelected ? 'ring-2 ring-yellow-400 ring-offset-2' : ''
       }`}
+      style={{
+        ...cardStyles.borderLeftStyle,
+        backgroundColor: cardStyles.backgroundColor
+      }}
       onClick={onClick}
     >
       {/* Geltonas ženkliukas jei pasirinkta */}
@@ -81,12 +141,12 @@ const LessonCard: React.FC<{
       <div className="space-y-1">
         {/* Dalyko pavadinimas */}
         <div>
-          <h3 className={`font-semibold text-sm leading-tight ${colors.text}`}>{getCleanSubjectName(lesson.subject.name)}</h3>
+          <h3 className={`font-semibold text-sm leading-tight ${cardStyles.text}`}>{getCleanSubjectName(lesson.subject.name)}</h3>
         </div>
       </div>
       
       {/* Papildoma informacija apačioje */}
-      <div className={`flex items-center justify-between text-xs opacity-80 mt-2 ${colors.text}`}>
+      <div className={`flex items-center justify-between text-xs opacity-80 mt-2 ${cardStyles.text}`}>
         <div className="flex items-center space-x-1">
           <MapPin size={10} />
           <span>{lesson.classroom.name}</span>
@@ -107,7 +167,7 @@ const StudentWeeklyScheduleCalendar = forwardRef<WeeklyScheduleCalendarRef, Week
   onScheduleItemSelect,
   selectedScheduleId
 }, ref) => {
-  const [currentWeek, setCurrentWeek] = useState(new Date());
+  // CHANGE: Pašalinta vietinė currentWeek būsena - naudojame tik WeekInfoContext
   // Pašalinta vietinė selectedLesson būsena - naudojame props
   
   // API hooks duomenų gavimui
@@ -156,24 +216,17 @@ const StudentWeeklyScheduleCalendar = forwardRef<WeeklyScheduleCalendarRef, Week
   
   
 
-  // Gauti pamokos objektą pagal dieną ir laiką
-  const getLessonForSlot = (date: Date, periodId: number): ScheduleItem | null => {
+  // CHANGE: Gauti VISAS pamokas pagal dieną ir laiką (konfliktuojančios pamokos)
+  const getLessonsForSlot = (date: Date, periodId: number): ScheduleItem[] => {
     const dateStr = date.toISOString().split('T')[0];
-    const foundItem = allScheduleItems.find(item => 
+    const foundItems = allScheduleItems.filter(item => 
       item.date === dateStr && item.period.id === periodId
     );
     
-    
-    return foundItem || null;
+    return foundItems;
   };
 
-  // Pašalintos funkcijos - naudojamas useWeekInfo hook
-
-  const navigateWeek = (direction: number) => {
-    const newWeek = new Date(currentWeek);
-    newWeek.setDate(currentWeek.getDate() + (direction * 7));
-    setCurrentWeek(newWeek);
-  };
+  // CHANGE: Pašalintos vietinės navigacijos funkcijos - naudojame tik konteksto funkcijas
 
   const isToday = (date: Date) => {
     const today = new Date();
@@ -247,22 +300,23 @@ const StudentWeeklyScheduleCalendar = forwardRef<WeeklyScheduleCalendarRef, Week
             </div>
             
             <div className="flex items-center space-x-2">
+              {/* CHANGE: Naudojame konteksto navigacijos funkcijas vietoj vietinių */}
               <button
-                onClick={() => navigateWeek(-1)}
+                onClick={() => contextWeekInfo.navigateWeek(-1)}
                 className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <ChevronLeft size={20} />
               </button>
               
               <button
-                onClick={() => setCurrentWeek(new Date())}
+                onClick={() => contextWeekInfo.goToToday()}
                 className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
               >
                 Dabar
               </button>
               
               <button
-                onClick={() => navigateWeek(1)}
+                onClick={() => contextWeekInfo.navigateWeek(1)}
                 className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <ChevronRight size={20} />
@@ -318,22 +372,26 @@ const StudentWeeklyScheduleCalendar = forwardRef<WeeklyScheduleCalendarRef, Week
                 
                 {/* Dienų pamokos */}
                 {weekDays.map((day, dayIndex) => {
-                  const lesson = getLessonForSlot(weekDates[dayIndex], period.id);
+                  const lessons = getLessonsForSlot(weekDates[dayIndex], period.id);
                   
                   return (
-                    <div key={`${day.key}-${period.id}`} className="min-h-20 flex">
-                      {lesson ? (
-                        <LessonCard 
-                          lesson={lesson} 
-                          isSelected={selectedScheduleId === lesson.id}
-                          onClick={() => {
-                            const newSelection = selectedScheduleId === lesson.id ? null : lesson;
-                            // Perduoti pasirinkimą į parent komponentą
-                            onScheduleItemSelect?.(newSelection);
-                          }}
-                        />
+                    <div key={`${day.key}-${period.id}`} className="min-h-20 flex flex-col">
+                      {lessons.length > 0 ? (
+                        lessons.map((lesson, lessonIndex) => (
+                          <div key={lesson.id} className={`flex-1 ${lessonIndex > 0 ? 'mt-1' : ''}`}>
+                            <LessonCard 
+                              lesson={lesson} 
+                              isSelected={selectedScheduleId === lesson.id}
+                              onClick={() => {
+                                const newSelection = selectedScheduleId === lesson.id ? null : lesson;
+                                // Perduoti pasirinkimą į parent komponentą
+                                onScheduleItemSelect?.(newSelection);
+                              }}
+                            />
+                          </div>
+                        ))
                       ) : (
-                        <div className="w-full bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-center">
+                        <div className="w-full h-full bg-gray-50 rounded-lg border border-gray-200 flex items-center justify-center">
                           <span className="text-xs text-gray-400">Laisva</span>
                         </div>
                       )}

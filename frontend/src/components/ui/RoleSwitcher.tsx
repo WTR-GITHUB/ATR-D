@@ -8,7 +8,7 @@ import { Settings, LogOut, Check, ChevronDown } from 'lucide-react';
 // Role display information
 const roleInfo = {
   manager: {
-    name: 'Sistemos valdytojas',
+    name: 'Administracija',
     description: 'Pilnas sistemos valdymas',
     path: '/managers'
   },
@@ -23,13 +23,13 @@ const roleInfo = {
     path: '/mentors'
   },
   parent: {
-    name: 'Tėvas/Globėjas',
-    description: 'Vaiko edukacinės veiklos stebėjimas',
+    name: 'Tėvai/Globėjai',
+    description: 'Vaiko ugties stebėjimas',
     path: '/parents'
   },
   student: {
-    name: 'Studentas',
-    description: 'Mokymosi veiklos vykdymas',
+    name: 'Mokinys/Mokinė',
+    description: 'Mokymosi veikla',
     path: '/students'
   }
 };

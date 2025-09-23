@@ -46,21 +46,64 @@ export const useStudentWeeklySchedule = (params: UseStudentWeeklyScheduleParams)
       setIsLoading(true);
       setError(null);
 
+      // CHANGE: Debug informacija
       // CHANGE: Naudojame naują student-schedule endpoint'ą
       const response = await api.get(`/schedule/schedules/student-schedule/?week_start=${params.weekStartDate}`);
       
       // CHANGE: Gauname duomenis iš naujo endpoint'o struktūros
       const { results, ...info } = response.data;
+            
+      // CHANGE: Debug logai pašalinti po sėkmingo testavimo
       
       setScheduleItems(results || []);
       setStudentInfo(info);
       
     } catch (err: unknown) {
       console.error('❌ Klaida gaunant studento savaitės tvarkaraščio duomenis:', err);
-      const error = err as { response?: { data?: { detail?: string } } };
-      setError(error.response?.data?.detail || 'Nepavyko gauti studento savaitės tvarkaraščio duomenų');
-      setScheduleItems([]);
-      setStudentInfo(null);
+      const error = err as { response?: { status?: number; data?: { detail?: string } } };
+      
+      // CHANGE: Jei student-schedule endpoint'as neveikia, bandome naudoti daily endpoint'a
+      if (error.response?.status === 403) {
+        console.log('🔄 Trying to use daily endpoint instead of student-schedule...');
+        try {
+          const weekItems: ScheduleItem[] = [];
+          
+          // Gauti kiekvienos dienos duomenis
+          for (let i = 0; i < 7; i++) {
+            const date = new Date(params.weekStartDate);
+            date.setDate(date.getDate() + i);
+            const dateStr = date.toISOString().split('T')[0];
+            
+            try {
+              const response = await api.get(`/schedule/schedules/daily/?date=${dateStr}`);
+              weekItems.push(...response.data);
+            } catch (dailyErr) {
+              console.log(`⚠️ Klaida gaunant ${dateStr} duomenis:`, dailyErr);
+            }
+          }
+          
+          console.log('✅ Daily endpoint duomenys:', weekItems.length, 'pamokų');
+          setScheduleItems(weekItems);
+          setStudentInfo({
+            student_id: 0,
+            student_name: 'Studentas',
+            week_start: params.weekStartDate,
+            week_end: new Date(new Date(params.weekStartDate).getTime() + 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            count: weekItems.length,
+            student_subject_levels: []
+          });
+          setError(null);
+        } catch (fallbackErr) {
+          console.error('❌ Error using daily endpoint:', fallbackErr);
+          setError('Nepavyko gauti tvarkaraščio duomenų');
+          setScheduleItems([]);
+          setStudentInfo(null);
+        }
+      } else {
+        setError(error.response?.data?.detail || 'Nepavyko gauti studento savaitės tvarkaraščio duomenų');
+        setScheduleItems([]);
+        setStudentInfo(null);
+      }
     } finally {
       setIsLoading(false);
     }

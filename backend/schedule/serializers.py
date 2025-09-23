@@ -116,7 +116,8 @@ class GlobalScheduleSerializer(serializers.ModelSerializer):
             return {
                 'id': obj.subject.id,
                 'name': obj.subject.name,
-                'description': obj.subject.description
+                'description': obj.subject.description,
+                'color': obj.subject.color
             }
         return None
     

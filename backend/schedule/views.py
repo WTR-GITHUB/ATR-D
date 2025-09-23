@@ -443,10 +443,16 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
                 "results": []
             })
         
-        # Filtruoti GlobalSchedule pagal studento subject levels
+        # CHANGE: Filtruoti GlobalSchedule pagal studento subject-level kombinacijas
+        # Sukuriame Q objektus kiekvienai subject-level kombinacijai
+        from django.db.models import Q
+        
+        q_objects = Q()
+        for sl in student_levels:
+            q_objects |= Q(subject=sl.subject, level=sl.level)
+        
         queryset = GlobalSchedule.objects.filter(
-            subject__in=[sl.subject for sl in student_levels],
-            level__in=[sl.level for sl in student_levels],
+            q_objects,
             date__range=[start_date, end_date]
         ).select_related(
             'period', 'classroom', 'subject', 'level', 'user'

@@ -12,6 +12,12 @@ class Subject(models.Model):
     """
     name = models.CharField(max_length=255, unique=True, verbose_name="Pavadinimas")
     description = models.TextField(blank=True, verbose_name="Aprašymas")
+    color = models.CharField(
+        max_length=7, 
+        default='#fecaca', 
+        verbose_name="Spalva",
+        help_text="HEX spalvos kodas (pvz., #fecaca)"
+    )
 
     class Meta:
         verbose_name = "Dalykas"

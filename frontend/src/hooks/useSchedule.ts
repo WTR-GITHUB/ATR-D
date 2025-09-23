@@ -30,6 +30,7 @@ export interface ScheduleItem {
     id: number;
     name: string;
     description: string;
+    color: string; // CHANGE: Pridėtas color laukas iš backend'o
   };
   level: {
     id: number;

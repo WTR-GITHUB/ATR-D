@@ -1,5 +1,6 @@
 # /backend/curriculum/admin.py
 from django.contrib import admin
+from django.utils.html import format_html
 from .models import Subject, Level, Objective, Component, Skill, Competency, Virtue, CompetencyAtcheve, Lesson
 
 
@@ -8,10 +9,19 @@ class SubjectAdmin(admin.ModelAdmin):
     """
     Dalykų admin - valdo dalykų administravimą
     """
-    list_display = ['name', 'description']
+    list_display = ['name', 'description', 'color_display']
     list_filter = ['name']
     search_fields = ['name', 'description']
     ordering = ['name']
+    
+    def color_display(self, obj):
+        """Rodo spalvą su vizualiu indikatoriumi"""
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">{}</span>',
+            obj.color,
+            obj.color
+        )
+    color_display.short_description = 'Spalva'
 
 
 @admin.register(Level)
