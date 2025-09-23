@@ -49,7 +49,7 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         user = self.request.user
         
         # CHANGE: Paimame dabartinę rolę iš header
-        current_role = self.request.headers.get('X-Current-Role')
+        current_role = getattr(self.request, 'current_role', None)
         if not current_role:
             current_role = getattr(user, 'default_role', None)
         
@@ -106,8 +106,8 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
         
-        # CHANGE: Naudojame X-Current-Role header teisių patikrinimui
-        current_role = self.request.headers.get('X-Current-Role')
+        # SEC-011: Naudojame server-side role validation vietoj manipuliuojamo header teisių patikrinimui
+        current_role = getattr(self.request, 'current_role', None)
         if not current_role:
             current_role = getattr(user, 'default_role', None)
         
@@ -305,8 +305,8 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
         
-        # CHANGE: Naudojame X-Current-Role header teisių patikrinimui
-        current_role = request.headers.get('X-Current-Role')
+        # SEC-011: Naudojame server-side role validation vietoj manipuliuojamo header teisių patikrinimui
+        current_role = getattr(request, 'current_role', None)
         if not current_role:
             current_role = getattr(user, 'default_role', None)
         
@@ -403,7 +403,7 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         week_start = request.query_params.get('week_start')  # YYYY-MM-DD formatas (pirmadienio data)
         
         # Tikriname, ar vartotojas yra studentas
-        current_role = request.headers.get('X-Current-Role')
+        current_role = getattr(request, 'current_role', None)
         if not current_role:
             current_role = getattr(student, 'default_role', None)
         

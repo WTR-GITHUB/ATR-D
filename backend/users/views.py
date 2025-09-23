@@ -129,8 +129,8 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
-        current_role = self.request.headers.get('X-Current-Role')
+        # SEC-011: Naudojame server-side role validation vietoj manipuliuojamo header
+        current_role = getattr(self.request, 'current_role', None)
         if not current_role:
             current_role = getattr(self.request.user, 'default_role', None)
         
@@ -204,8 +204,8 @@ def student_details(request, student_id):
     """
     from crm.models import StudentCurator
     
-    # CHANGE: Naudojame X-Current-Role header teisių patikrinimui
-    current_role = request.headers.get('X-Current-Role')
+    # SEC-011: Naudojame server-side role validation vietoj manipuliuojamo header
+    current_role = getattr(request, 'current_role', None)
     if not current_role:
         current_role = getattr(request.user, 'default_role', None)
     

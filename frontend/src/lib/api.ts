@@ -27,12 +27,8 @@ const api = axios.create({
 // SEC-001: Request interceptor updated for cookie-based authentication
 api.interceptors.request.use(
   (config) => {
-    // SEC-001: Remove localStorage token usage - cookies are handled automatically
-    // Only add current role header if available
-    const currentRole = localStorage.getItem('current_role');
-    if (currentRole) {
-      config.headers['X-Current-Role'] = currentRole;
-    }
+    // SEC-011: Removed X-Current-Role header - roles are now validated server-side
+    // Role validation is handled by RoleValidationMiddleware in backend
     
     return config;
   },
@@ -55,7 +51,7 @@ api.interceptors.response.use(
         // SEC-001: Use cookie-based refresh - no need to manually handle tokens
         const refreshUrl = getTokenRefreshUrl();
         
-        const response = await axios.post(refreshUrl, {}, {
+        await axios.post(refreshUrl, {}, {
           withCredentials: true, // Include cookies
         });
         
@@ -82,11 +78,12 @@ api.interceptors.response.use(
         // Update current role if missing or invalid
         const currentRole = localStorage.getItem('current_role');
         if (!currentRole || !user.roles?.includes(currentRole)) {
-          // Set to default role or first available role
+          // SEC-011: Role switching is now handled server-side
+          // Store role in localStorage for UI purposes only
           const newRole = user.default_role || user.roles?.[0];
           if (newRole) {
             localStorage.setItem('current_role', newRole);
-            originalRequest.headers['X-Current-Role'] = newRole;
+            // No need to send header - server validates roles from JWT
           }
         }
         

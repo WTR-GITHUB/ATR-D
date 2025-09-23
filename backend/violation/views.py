@@ -134,8 +134,8 @@ class ViolationViewSet(viewsets.ModelViewSet):
         """Grąžina pažeidimus pagal vartotojo dabartinę rolę"""
         user = self.request.user
         
-        # CHANGE: Pirmiausia patikrinti X-Current-Role header iš frontend
-        current_role = self.request.headers.get('X-Current-Role')
+        # SEC-011: Naudojame server-side role validation vietoj manipuliuojamo header
+        current_role = getattr(self.request, 'current_role', None)
         
         # Jei nėra header, naudoti default_role
         if not current_role:

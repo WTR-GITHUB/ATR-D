@@ -1,10 +1,13 @@
-// /home/vilkas/atradimai/dienynas/frontend/src/app/curators/violations/analytics/page.tsx
+// /home/master/DIENYNAS/frontend/src/app/curators/violations/analytics/page.tsx
 
 // Kuratorių skolų analizės puslapis - šiuo metu kuriamas
 // Rodo pranešimą, kad funkcionalumas bus sukurtas ateityje
 // CHANGE: Pakeistas į "kuriamas" pranešimą vietoj pilno analytics funkcionalumo
 
 'use client';
+
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
 
 import React from 'react';
 import { ArrowLeft, Construction } from 'lucide-react';

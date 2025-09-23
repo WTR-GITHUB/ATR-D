@@ -55,8 +55,8 @@ class SkillViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
-        current_role = self.request.headers.get('X-Current-Role')
+        # SEC-011: Naudojame server-side role validation vietoj manipuliuojamo header dabartinės rolės nustatymui
+        current_role = getattr(self.request, 'current_role', None)
         if not current_role:
             current_role = getattr(self.request.user, 'default_role', None)
         
@@ -86,8 +86,8 @@ class CompetencyAtcheveViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        # CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
-        current_role = self.request.headers.get('X-Current-Role')
+        # SEC-011: Naudojame server-side role validation vietoj manipuliuojamo header dabartinės rolės nustatymui
+        current_role = getattr(self.request, 'current_role', None)
         if not current_role:
             current_role = getattr(self.request.user, 'default_role', None)
         
@@ -116,8 +116,8 @@ class LessonViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        # CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
-        current_role = self.request.headers.get('X-Current-Role')
+        # SEC-011: Naudojame server-side role validation vietoj manipuliuojamo header dabartinės rolės nustatymui
+        current_role = getattr(self.request, 'current_role', None)
         if not current_role:
             current_role = getattr(self.request.user, 'default_role', None)
         

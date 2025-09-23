@@ -4,7 +4,7 @@
 
 import { create } from 'zustand';
 import { authAPI } from '@/lib/api';
-import { User, LoginCredentials, AuthResponse, UserRole } from '@/lib/types';
+import { User, LoginCredentials, UserRole } from '@/lib/types';
 
 interface AuthState {
   user: User | null;
@@ -59,7 +59,7 @@ export const useAuth = create<AuthStore>()(
           }
           
           // SEC-001: Login with cookie-based authentication
-          const response = await authAPI.login(credentials);
+          await authAPI.login(credentials);
           // SEC-001: Tokens are now handled by cookies automatically
           
           // SEC-001: Fetch user data from backend

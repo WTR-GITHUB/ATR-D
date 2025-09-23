@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
   // CHANGE: Moved from experimental to main config (Next.js 15+)
   serverExternalPackages: [],
   
+  // SEC-011: Disable static optimization to fix Html import error
+  output: 'standalone',
+  trailingSlash: false,
+  
   async rewrites() {
     return [
       {
