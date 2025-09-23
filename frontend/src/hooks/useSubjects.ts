@@ -1,60 +1,57 @@
-// frontend/src/hooks/useSubjects.ts
+// /home/master/DIENYNAS/frontend/src/hooks/useSubjects.ts
+// Hook dalykų sąrašui iš backend API
+// Purpose: Gauna dalykų sąrašą iš curriculum API endpoint'o
+// Updates: Sukurtas naujas hook su TypeScript tipais ir error handling
+// NOTE: Niekada netriname senų pastabų
 
-// Hook dalykų duomenų gavimui iš API
-// Naudojamas mentorių dalykų sąrašo gavimui Veiklos puslapyje
-// Automatiškai gauna duomenis ir valdo loading/error būsenas
-// CHANGE: Sukurtas useSubjects hook dalykų duomenų valdymui
+import { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
 
-'use client';
-
-import { useState, useEffect, useCallback } from 'react';
-import api from '@/lib/api';
-
+// Dalyko tipas pagal backend modelį
 export interface Subject {
   id: number;
   name: string;
   description: string;
+  color: string;
 }
 
+// Hook'o grąžinimo tipas
 interface UseSubjectsReturn {
   subjects: Subject[];
-  isLoading: boolean;
+  loading: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+  refetch: () => void;
 }
 
-// Hook mentorių dalykų sąrašo gavimui
 export const useSubjects = (): UseSubjectsReturn => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSubjects = useCallback(async () => {
+  const fetchSubjects = async () => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       setError(null);
       
-      const response = await api.get('/crm/mentor-subjects/my_subjects/');
-      setSubjects(response.data);
-    } catch (err: unknown) {
-      console.error('Klaida gaunant dalykų duomenis:', err);
-      const error = err as { response?: { data?: { detail?: string } } };
-      setError(error.response?.data?.detail || 'Nepavyko gauti dalykų duomenų');
+      const response = await api.get('/curriculum/subjects/');
+      setSubjects(response.data.results || response.data);
+    } catch (err) {
+      console.error('Klaida gaunant dalykus:', err);
+      setError('Nepavyko gauti dalykų sąrašo');
+      setSubjects([]);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, []);
+  };
 
   useEffect(() => {
     fetchSubjects();
-  }, [fetchSubjects]);
+  }, []);
 
   return {
     subjects,
-    isLoading,
+    loading,
     error,
-    refetch: fetchSubjects
+    refetch: fetchSubjects,
   };
 };
-
-export default useSubjects;

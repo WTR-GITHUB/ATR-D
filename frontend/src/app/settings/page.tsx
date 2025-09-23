@@ -86,10 +86,10 @@ export default function SettingsPage() {
   // Rolių pavadinimų objektas
   const getRoleDisplayName = (role: string) => {
     const roleNames: Record<string, string> = {
-      manager: 'Administratorius',
+      manager: 'Administracija',
       curator: 'Kuratorius', 
       mentor: 'Mentorius',
-      student: 'Studentas',
+      student: 'Mokinys/Mokinė',
       parent: 'Tėvai/Globėjai'
     };
     return roleNames[role] || role;

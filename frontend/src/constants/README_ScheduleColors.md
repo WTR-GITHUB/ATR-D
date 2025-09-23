@@ -5,8 +5,16 @@
 A-DIENYNAS sistemoje naudojamos trys atskiros spalvų schemos tvarkaraščio komponentams:
 
 1. **Mentorių spalvos** (`scheduleColors.ts`) - mentorių veiklų puslapiui
-2. **Studentų spalvos** (`scheduleStudentColors.ts`) - studentų tvarkaraščiui
-3. **Dalykų spalvos** (`subjectColors.ts`) - dalykų vizualiniam atskyrimui
+2. **Studentų spalvos** (`scheduleStudentColors.ts`) - studentų tvarkaraščiui  
+3. **Dalykų spalvos** (`subjectColors.ts`) - dalykų vizualiniam atskyrimui su dinaminėmis spalvomis iš duomenų bazės
+
+## 🆕 Naujausi pakeitimai (2025-01-27)
+
+- **Backend integracija**: Dalykų spalvos dabar ateina iš `Subject.color` lauko duomenų bazėje
+- **Dinaminis spalvų pritaikymas**: Frontend automatiškai naudoja HEX spalvas iš backend'o
+- **Fallback sistema**: Jei dalykas neturi spalvos, naudojamos standartinės Tailwind spalvos
+- **Inline styles**: Spalvos pritaikomos per React inline styles, garantuojant veikimą
+- **Konfliktų sprendimas**: Keli dalykai tame pačiame laikotarpyje atvaizduojami vertikaliai
 
 ## Failų struktūra
 
@@ -33,35 +41,32 @@ frontend/src/constants/
 - **Baigta**: Šviesiai pilkas fonas (`gray-100`) su pilku rėmeliu (`gray-500`)
 - **Nėra IMUPlan**: Šviesiai oranžinis fonas (`orange-200`) su oranžiniu rėmeliu (`orange-600`)
 
-### Dalykų spalvos (subjectColors.ts)
+### Dalykų spalvos (subjectColors.ts) - 🆕 DINAMINĖS IŠ DB
+- **Backend integracija**: Spalvos ateina iš `Subject.color` lauko (HEX formatas)
 - **Akademiniai dalykai**: Unikalūs pasteliniai atspalviai ir šiltosios spalvos
-  - Matematika: Šampano (`champagne-200`)
-  - Lietuvių literatūra: Dramblio kaulo (`ivory-200`)
-  - Lietuvių gramatika: Vanilės (`vanilla-200`)
-  - Biologija: Mėtų žalia (`mint-green-200`)
-  - Chemija: Levandų (`lavender-200`)
-  - Fizika: Barvinko (`periwinkle-200`)
-  - Informacinės technologijos: Kūdikio mėlyna (`baby-blue-200`)
+  - Matematika: `#fecaca` (raudona)
+  - Lietuvių literatūra: `#fef08a` (geltona)
+  - Lietuvių gramatika: `#fed7aa` (oranžinė)
+  - Biologija: `#bbf7d0` (žalia)
+  - Chemija: `#e9d5ff` (purpurinė)
+  - Fizika: `#c7d2fe` (indigo)
+  - Informacinės technologijos: `#ccfbf1` (teal)
 - **Kalbos**: Šaltosios pastelinės spalvos (mėlynos paletės)
-  - Anglų kalba: Dangaus (`sky-200`)
-  - Prancūzų kalba: Mėlyna (`blue-200`)
-  - Rusų kalba: Indigo (`indigo-200`)
-  - Ispanų kalba: Violetinė (`violet-200`)
-  - Vokiečių kalba: Purpurinė (`purple-200`)
+  - Anglų kalba: `#bfdbfe` (mėlyna)
+  - Prancūzų kalba: `#bae6fd` (dangaus)
+  - Rusų kalba: `#a5f3fc` (cyan)
+  - Ispanų kalba: `#ddd6fe` (violetinė)
+  - Vokiečių kalba: `#f5d0fe` (fuchsia)
 - **Kūrybiniai/praktiniai**: Papildomos švelniųjų atspalvių spalvos
-  - Dailė: Šalavijų (`sage-200`)
-  - MUZIKA: Alyvinė (`lilac-200`)
-  - Kinas: Pudros mėlyna (`powder-blue-200`)
-  - Kuravimasis: Jūros putos (`seafoam-200`)
-  - Etika: Vandens (`aqua-200`)
-  - Kūno kultūra: Turkio (`turquoise-200`)
-  - Maisto gamyba: Pistacijų (`pistachio-200`)
-  - Technologijos vaikinams: Mėtų (`mint-200`)
-  - Spalvų psichologija: Vatos cukraus (`cotton-candy-200`)
-  - VIDUDIENIO RATAS: Dulkėtos rožės (`dusty-rose-200`)
-  - TRIVIA ŽAIDIMAI: Violetinai rožinė (`mauve-200`)
-  - Band'as: Rausvumo (`blush-200`)
-  - Ekskursija: Medaus rasos (`honeydew-200`)
+  - Dailė: `#fce7f3` (rožinė)
+  - MUZIKA: `#fecdd3` (rose)
+  - Kinas: `#a7f3d0` (emerald)
+  - Kūrybinis rašymas: `#d9f99d` (lime)
+  - Etika: `#e2e8f0` (slate)
+  - Kūno kultūra: `#fde68a` (amber)
+  - Maisto gamyba: `#e7e5e4` (stone)
+  - Technologijos vaikinams: `#e4e4e7` (zinc)
+  - Spalvų psichologija: `#e5e5e5` (neutral)
 
 ## Naudojimas komponentuose
 
@@ -81,12 +86,18 @@ const colors = getStudentScheduleColors('planned');
 const className = getStudentScheduleColorClasses('in_progress');
 ```
 
-### Dalykų spalvoms
+### Dalykų spalvoms - 🆕 DINAMINĖS IŠ BACKEND
 ```typescript
-import { getSubjectColors, getSubjectColorClasses } from '@/constants/subjectColors';
+import { getSubjectColors, hexToTailwindColors } from '@/constants/subjectColors';
 
-const colors = getSubjectColors('Matematika');
-const className = getSubjectColorClasses('Lietuvių literatūra');
+// Automatiškai naudoja spalvą iš backend'o
+const colors = getSubjectColors('Matematika', lesson.subject.color);
+
+// HEX spalvos konversija į Tailwind klases
+const tailwindColors = hexToTailwindColors('#fecaca');
+
+// Inline styles naudojimas (rekomenduojama)
+const borderStyle = { borderLeft: `4px solid ${lesson.subject.color}` };
 ```
 
 ### Visų spalvų naudojimas
@@ -134,20 +145,76 @@ import {
 - `StudentWeeklyScheduleCalendar.tsx`
 - Kiti studentų tvarkaraščio komponentai
 
-### Naudoja dalykų spalvas
+### Naudoja dalykų spalvas - 🆕 DINAMINĖS IŠ DB
 - `StudentWeeklyScheduleCalendar.tsx` - dalykų vizualiniam atskyrimui pagal statusą
-  - **planned**: Balta kortelė su dalyko spalvos krašteliu
-  - **in_progress**: Visa kortelė nudažyta dalyko spalva
+  - **planned**: Balta kortelė su dalyko spalvos krašteliu (inline style)
+  - **in_progress**: Visa kortelė nudažyta dalyko spalva + balta tekstas
   - **completed**: Dalyko spalvos kraštelis + pilkas fonas (`gray-200`)
-- `WeeklyScheduleCalendar.tsx` - mentorių tvarkaraštyje
+  - **no_imu_plan**: Balta kortelė su dalyko spalvos krašteliu
+- `WeeklyScheduleCalendar.tsx` - mentorių tvarkaraštyje (išsaugotos originalios spalvos)
 - Kiti tvarkaraščio komponentai
+
+## 🔧 Techninis sprendimas
+
+### Backend integracija
+- **Subject model**: Pridėtas `color` laukas (CharField, max_length=7, default='#fecaca')
+- **Serializer**: `GlobalScheduleSerializer.get_subject()` grąžina spalvą
+- **Admin**: Vizualus spalvų valdymas su `format_html`
+- **Migration**: `0008_subject_color.py` prideda spalvų lauką
+
+### Frontend implementacija
+- **Inline styles**: `borderLeft: 4px solid ${hexColor}` garantuoja veikimą
+- **HEX konversija**: `hexToTailwindColors()` konvertuoja į Tailwind klases
+- **Fallback sistema**: Automatinis spalvų priskyrimas naujiems dalykams
+- **Status-based styling**: Skirtingi stiliai pagal `plan_status`
+
+### Saugumo aspektai
+- **Automatinis fallback**: Niekada nepaliks dalyko be spalvos
+- **Type safety**: TypeScript tipai užtikrina teisingą naudojimą
+- **Performance**: Inline styles veikia greičiau nei Tailwind klasių generavimas
 
 ## Ateities plėtros galimybės
 
-- Galima pridėti daugiau spalvų schemų (pvz., administratorių)
-- Galima pridėti tema (tamsi/šviesi)
-- Galima pridėti spalvų personalizavimą pagal vartotojo poreikius
+- ✅ **Dinaminės spalvos iš DB** - įgyvendinta
+- ✅ **Konfliktų sprendimas** - įgyvendinta
+- 🔄 **Spalvų personalizavimas** - galima pridėti vartotojo spalvų pasirinkimą
+- 🔄 **Tema (tamsi/šviesi)** - galima pridėti tema su spalvų variantais
+- 🔄 **Spalvų kategorijos** - galima išplėsti kategorijų sistemą
 
+## 🆕 Naujų dalykų tvarkymas
+
+### Kaip sistema elgsis su naujais dalykais:
+
+**Scenario 1: Naujas dalykas su spalva DB**
+```sql
+-- Sukuriamas naujas dalykas su spalva
+INSERT INTO curriculum_subject (name, color) VALUES ('Robotika', '#00ff00');
+```
+- ✅ Frontend gaus `lesson.subject.color = "#00ff00"`
+- ✅ Bus atvaizduotas su žalia spalva
+
+**Scenario 2: Naujas dalykas be spalvos**
+```sql
+-- Sukuriamas naujas dalykas be spalvos (naudoja default)
+INSERT INTO curriculum_subject (name) VALUES ('Robotika');
+```
+- ✅ Frontend gaus `lesson.subject.color = "#fecaca"` (default)
+- ✅ Bus atvaizduotas su raudona spalva
+
+**Scenario 3: Nežinoma HEX spalva**
+- ✅ `hexToTailwindColors()` grąžins fallback spalvą `#fecaca`
+- ✅ Bus atvaizduotas su raudona spalva
+
+### Fallback sistema:
+1. **Backend spalva** (jei pateikta) → naudojama
+2. **SUBJECT_COLORS** (jei dalykas sąraše) → naudojama
+3. **fallbackColors** (standartinės Tailwind) → naudojama
+4. **Matematika spalva** (`#fecaca`) → garantuotas fallback
+
+### Administracijos valdymas:
+- **Django Admin**: `/admin/curriculum/subject/`
+- **Vizualus spalvų rodymas**: Spalva rodoma su HEX kodu
+- **Lengvas keitimas**: Galima keisti spalvas tiesiogiai admin skiltyje
 
 ## Spalvų kodai .....
 

@@ -68,7 +68,7 @@ const Header: React.FC = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="text-xl font-bold text-gray-900">
-              A-DIENYNAS
+              DIENYNAS
             </Link>
           </div>
 

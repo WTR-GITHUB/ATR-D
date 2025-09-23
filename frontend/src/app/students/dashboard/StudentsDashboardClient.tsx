@@ -10,6 +10,7 @@ import React, { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
 import { useWeekInfoContext } from '@/contexts/WeekInfoContext';
 import StudentWeeklyScheduleCalendar, { WeeklyScheduleCalendarRef } from '../components/StudentWeeklyScheduleCalendar';
+import AchievementCard from '../components/achievementCard';
 
 export default function StudentsDashboardClient() {
   const { weekInfo, navigateWeek, goToToday, isLoading } = useWeekInfoContext();
@@ -92,6 +93,9 @@ export default function StudentsDashboardClient() {
             </div>
           )}
         </div>
+
+        {/* Ugdis kortelė */}
+        <AchievementCard />
       </div>
     </div>
   );

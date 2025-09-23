@@ -10,7 +10,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useStudentDetails } from '@/hooks/useStudentDetails';
 import { useAuth } from '@/hooks/useAuth';
-import { StudentScheduleCalendar } from '../components';
+import CuratorStudentScheduleCalendar from '../components/CuratorStudentScheduleCalendar';
 import { ReactDataTable } from '@/components/DataTable';
 import api, { violationAPI } from '@/lib/api';
 // import TodoCompletionModal from '@/components/ui/TodoCompletionModal';
@@ -150,7 +150,7 @@ const StudentDetailsPageClient = () => {
   }, [student, studentId]);
 
   // Handle schedule item selection
-  const handleScheduleItemSelect = (scheduleId: number) => {
+  const handleScheduleItemSelect = (scheduleId: number | null) => {
     setSelectedScheduleId(scheduleId);
   };
 
@@ -292,15 +292,12 @@ const StudentDetailsPageClient = () => {
         </div>
 
         {/* Student Schedule */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Tvarkaraštis</h2>
-          <StudentScheduleCalendar
-            key={scheduleRefreshKey}
-            studentId={parseInt(studentId)}
-            onScheduleItemSelect={handleScheduleItemSelect}
-            selectedScheduleId={selectedScheduleId || undefined}
-          />
-        </div>
+        <CuratorStudentScheduleCalendar
+          key={scheduleRefreshKey}
+          studentId={parseInt(studentId)}
+          onScheduleItemSelect={handleScheduleItemSelect}
+          selectedScheduleId={selectedScheduleId || undefined}
+        />
 
         {/* Violations */}
         <div className="bg-white rounded-lg shadow-sm p-6">
