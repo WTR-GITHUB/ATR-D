@@ -262,8 +262,10 @@ SIMPLE_JWT = {
     'AUTH_COOKIE_REFRESH_MAX_AGE': timedelta(days=1),    # Same as REFRESH_TOKEN_LIFETIME
     'AUTH_COOKIE_SECURE': not DEBUG,  # True in production, False in development
     'AUTH_COOKIE_HTTP_ONLY': True,   # Prevent XSS attacks
-    'AUTH_COOKIE_SAMESITE': 'Strict', # Prevent CSRF attacks
+    'AUTH_COOKIE_SAMESITE': 'Lax', # Prevent CSRF attacks, but allow cross-site requests in development
     'AUTH_COOKIE_DOMAIN': None,      # Will be set to production domain in production
+    # SEC-001: Allow cookies to work with IP addresses in development
+    'AUTH_COOKIE_DOMAIN_DEV': None,  # No domain restriction for development
 }
 
 # Internationalization

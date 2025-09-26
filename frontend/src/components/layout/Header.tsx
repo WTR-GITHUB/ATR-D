@@ -6,7 +6,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,17 +16,15 @@ import { BaseNavigation, MobileNavigation } from './Navigation';
 
 
 const Header: React.FC = () => {
-  const { user, isAuthenticated, getCurrentRole: getAuthCurrentRole, setCurrentRole } = useAuth();
+  const { user, isAuthenticated, currentRole } = useAuth();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Get current role from URL or user's default role
   const getCurrentRole = React.useCallback((): string => {
     // CHANGE: Pirmiausia patikrinti current_role iš auth store
-    const authCurrentRole = getAuthCurrentRole();
-    
-    if (authCurrentRole) {
-      return authCurrentRole;
+    if (currentRole) {
+      return currentRole;
     }
     
     // Extract role from current path
@@ -36,30 +34,18 @@ const Header: React.FC = () => {
     if (pathname.startsWith('/parents')) return 'parent';
     if (pathname.startsWith('/students')) return 'student';
     
-    // CHANGE: Jei einame į /pva/[id] puslapį, išsaugoti dabartinę rolę
+    // SEC-001: Role management is now handled server-side via JWT tokens
     if (pathname.startsWith('/pva/')) {
-      // Grąžinti dabartinę rolę iš localStorage arba user default
-      const savedRole = typeof window !== 'undefined' ? localStorage.getItem('current_role') : null;
-      if (savedRole) {
-        return savedRole;
-      }
-      // Jei nėra išsaugotos rolės, grąžinti user default_role
+      // SEC-001: Role switching is handled by RoleValidationMiddleware
+      // No need to manage roles in localStorage - server validates from JWT
       return user?.default_role || user?.roles?.[0] || '';
     }
     
     // Fallback to user's default role or first role
     return user?.default_role || user?.roles?.[0] || '';
-  }, [getAuthCurrentRole, pathname, user]);
+  }, [pathname, user, currentRole]);
 
-  // CHANGE: Nustatyti rolę pagal URL kai puslapis keičiasi
-  useEffect(() => {
-    if (!isAuthenticated || !user) return;
-
-    const currentRole = getCurrentRole();
-    if (currentRole && currentRole !== getAuthCurrentRole()) {
-      setCurrentRole(currentRole);
-    }
-  }, [pathname, isAuthenticated, user, setCurrentRole, getAuthCurrentRole, getCurrentRole]);
+  // DISABLED: Role switching is now handled by useAuth hook
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
@@ -78,7 +64,7 @@ const Header: React.FC = () => {
           {/* User menu - Role Switcher */}
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
-              <RoleSwitcher currentRole={getCurrentRole()} />
+              <RoleSwitcher currentRole={currentRole || getCurrentRole()} />
             ) : (
               <div className="flex items-center space-x-3">
                 <Link href="/auth/login">

@@ -23,10 +23,10 @@ interface SelectedLessonState {
   error: string | null;
 }
 
-const STORAGE_KEY = 'activities_selected_lesson';
+// const STORAGE_KEY = 'activities_selected_lesson'; // Removed - using cookies now
 
 interface UseSelectedLessonReturn {
-  globalScheduleId: number | undefined;
+  globalScheduleId: number | undefined; // CHANGE: Atkūriau globalScheduleId
   lessonDetails: LessonDetails | null;
   allLessonsDetails: LessonDetails[];
   imuPlans: IMUPlan[];
@@ -50,19 +50,16 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
     error: null
   });
 
-  // Išsaugoti pasirinkimą localStorage
-  const saveToStorage = useCallback((globalScheduleId: number | undefined) => {
-    if (globalScheduleId) {
-      localStorage.setItem(STORAGE_KEY, globalScheduleId.toString());
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-    }
+  // SEC-001: Storage functions removed - no longer using localStorage
+  // Role management is now handled server-side via JWT tokens
+  const saveToStorage = useCallback(() => {
+    // SEC-001: No need to store in localStorage - state is managed in memory
+    // This maintains UI state without security risks
   }, []);
 
-  // Atkurti pasirinkimą iš localStorage
   const loadFromStorage = useCallback(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? parseInt(saved, 10) : undefined;
+    // SEC-001: No need to load from localStorage - state is managed in memory
+    return undefined;
   }, []);
 
   // Gauti pamokos detales pagal GlobalSchedule ID
@@ -101,6 +98,7 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
       let allLessonsDetails: LessonDetails[] = [];
       
       if (lessonIds.length > 0) {
+        
         // Gauti visas pamokas paraleliai
         const lessonResponses = await Promise.all(
           lessonIds.map(lessonId => api.get(`/curriculum/lessons/${lessonId}/`))
@@ -125,9 +123,20 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
     } catch (err: unknown) {
       console.error('Klaida gaunant pamokos duomenis:', err);
       
-      // CHANGE: Type-safe error handling for lesson data fetching
+      // CHANGE: Geriau tvarkyti autentifikavimo klaidas activities puslapyje
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosError = err as { response?: { status?: number; data?: unknown } };
+        
+        // CHANGE: Jei autentifikavimo klaida, tiesiog rodoma klaidos žinutė be redirect
+        if (axiosError.response?.status === 401 || axiosError.response?.status === 403) {
+          setState(prev => ({
+            ...prev,
+            isLoading: false,
+            error: 'Autentifikavimo klaida. Prašome prisijungti iš naujo.'
+          }));
+          return;
+        }
+        
         if (axiosError.response?.status === 404) {
           setState(prev => ({
             ...prev,
@@ -135,7 +144,7 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
             error: 'Pasirinkta pamoka neegzistuoja. Prašome pasirinkti pamoką iš tvarkaraščio.'
           }));
           // Išvalyti neteisingą ID iš localStorage
-          saveToStorage(undefined);
+          saveToStorage();
           return;
         }
         
@@ -168,12 +177,12 @@ export const useSelectedLesson = (): UseSelectedLessonReturn => {
         isLoading: false,
         error: null
       });
-      saveToStorage(undefined);
+      saveToStorage();
       return;
     }
 
     const globalScheduleId = item.id;
-    saveToStorage(globalScheduleId);
+    saveToStorage();
     fetchLessonData(globalScheduleId);
   }, [saveToStorage, fetchLessonData]);
 

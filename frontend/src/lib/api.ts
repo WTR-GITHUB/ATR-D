@@ -5,14 +5,14 @@ import axios from 'axios';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.88.167:8000/api';
 
 // CHANGE: Helper for token refresh - use internal API route in hybrid mode
-const getTokenRefreshUrl = () => {
-  // In hybrid development mode, use Next.js internal proxy for token refresh
-  // This avoids CORS and proxy issues
-  if (typeof window !== 'undefined' && window.location.hostname === 'dienynas.mokyklaatradimai.lt') {
-    return '/api/users/token/refresh/'; // Use Next.js rewrite proxy
-  }
-  return `${API_BASE_URL}/users/token/refresh/`; // Direct backend call
-};
+// const getTokenRefreshUrl = () => { // Commented out as not used
+//   // In hybrid development mode, use Next.js internal proxy for token refresh
+//   // This avoids CORS and proxy issues
+//   if (typeof window !== 'undefined' && window.location.hostname === 'dienynas.mokyklaatradimai.lt') {
+//     return '/api/users/token/refresh/'; // Use Next.js rewrite proxy
+//   }
+//   return `${API_BASE_URL}/users/token/refresh/`; // Direct backend call
+// };
 
 // Create axios instance
 const api = axios.create({
@@ -27,8 +27,10 @@ const api = axios.create({
 // SEC-001: Request interceptor updated for cookie-based authentication
 api.interceptors.request.use(
   (config) => {
-    // SEC-011: Removed X-Current-Role header - roles are now validated server-side
-    // Role validation is handled by RoleValidationMiddleware in backend
+    // SEC-011: Role validation is now handled server-side by RoleValidationMiddleware
+    // No need to send X-Current-Role header - backend determines role from JWT token
+    // This ensures security by preventing client-side role manipulation
+    
     
     return config;
   },
@@ -37,63 +39,43 @@ api.interceptors.request.use(
   }
 );
 
-// SEC-001: Response interceptor updated for cookie-based authentication
+// SEC-001: Response interceptor with simple redirect handling
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // SEC-001: Handle 401 (Unauthorized) - token refresh with cookies
+    // Handle 401 (Unauthorized) - simple auto-logout
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
+      // Simple logout - clear cookies and redirect
       try {
-        // SEC-001: Use cookie-based refresh - no need to manually handle tokens
-        const refreshUrl = getTokenRefreshUrl();
-        
-        await axios.post(refreshUrl, {}, {
-          withCredentials: true, // Include cookies
-        });
-        
-        // SEC-001: Cookies are set automatically by the server
-        // Retry the original request
-        return api(originalRequest);
+        await api.post('/users/logout/');
       } catch {
-        // SEC-001: Clear auth data on refresh failure
-        localStorage.removeItem('current_role');
-        localStorage.removeItem('auth-storage');
+        // Logout API failed - continue with redirect
+      }
+
+      // Direct redirect to login
+      if (typeof window !== 'undefined') {
         window.location.href = '/auth/login';
       }
+      return Promise.reject(error);
     }
 
-    // SEC-001: Handle 403 (Forbidden) - role validation issue
+    // Handle 403 (Forbidden) - role validation issue
     if (error.response?.status === 403 && !originalRequest._retry) {
       originalRequest._retry = true;
       
-      // Try to refresh user data and role
-      try {
-        const userResponse = await api.get('/users/me/');
-        const user = userResponse.data;
-        
-        // Update current role if missing or invalid
-        const currentRole = localStorage.getItem('current_role');
-        if (!currentRole || !user.roles?.includes(currentRole)) {
-          // SEC-011: Role switching is now handled server-side
-          // Store role in localStorage for UI purposes only
-          const newRole = user.default_role || user.roles?.[0];
-          if (newRole) {
-            localStorage.setItem('current_role', newRole);
-            // No need to send header - server validates roles from JWT
-          }
-        }
-        
-        return api(originalRequest);
-      } catch {
-        // SEC-001: If user data fetch fails, redirect to login
-        localStorage.removeItem('current_role');
-        localStorage.removeItem('auth-storage');
+      // ROLE SWITCHING TOKEN LOGIC: Tiesioginis redirect į login
+      // Nereikia role refresh - backend'as tikrina ar role egzistuoja token'e
+      // Jei 403, tai reiškia kad role nėra token'e arba token'as neteisingas
+      
+      // ✅ Tiesioginis redirect į login:
+      if (typeof window !== 'undefined') {
         window.location.href = '/auth/login';
       }
+      return Promise.reject(error);
     }
 
     return Promise.reject(error);

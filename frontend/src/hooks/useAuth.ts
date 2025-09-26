@@ -1,208 +1,307 @@
 // /frontend/src/hooks/useAuth.ts
-// SEC-001: Refactored for cookie-based authentication
+// Simple authentication hook - no Context, no AuthManager
 'use client';
 
-import { create } from 'zustand';
-import { authAPI } from '@/lib/api';
-import { User, LoginCredentials, UserRole } from '@/lib/types';
+import { useState, useEffect, useCallback } from 'react';
+
+interface User {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  roles: string[];
+  default_role: string;
+  is_active: boolean;
+  date_joined: string;
+}
 
 interface AuthState {
   user: User | null;
-  // SEC-001: Remove token and refreshToken from state - handled by cookies
-  isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  currentRole: string | null; // Dabartinė aktyvi rolė
+  currentRole: string | null;
+  isRoleSwitching: boolean; // NEW: Loading state for role switching
 }
 
-interface AuthActions {
-  login: (credentials: LoginCredentials) => Promise<void>;
-  logout: () => void;
-  setUser: (user: User) => void;
-  setError: (error: string | null) => void;
-  setLoading: (loading: boolean) => void;
-  clearError: () => void;
-  initializeAuth: () => Promise<void>;
-  // SEC-001: Remove refreshAuthToken - handled automatically by cookies
-  getCurrentUserId: () => number | null;
-  setCurrentRole: (role: string) => void; // Nustatyti dabartinę rolę
-  getCurrentRole: () => string | null; // Gauti dabartinę rolę
-}
+/**
+ * Simple useAuth hook with direct API calls
+ * No complex state management - just basic auth functionality
+ */
+export function useAuth() {
+  const [authState, setAuthState] = useState<AuthState>({
+    user: null,
+    isLoading: true,
+    error: null,
+    currentRole: null,
+    isRoleSwitching: false, // NEW: Initialize role switching state
+  });
 
-type AuthStore = AuthState & AuthActions;
+  const validateAuth = useCallback(async () => {
+    try {
+      // OPTIMIZATION: Skip validation if role switching is in progress
+      if (authState.isRoleSwitching) {
+        // console.log('🔐 AUTH: Skipping validation - role switching in progress');
+        return;
+      }
 
-export const useAuth = create<AuthStore>()(
-  (set, get) => ({
-      // SEC-001: State updated for cookie-based authentication
+      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+
+      // Check cookies for debugging (no console log)
+      // const hasCookies = document.cookie.length > 0;
+      
+      // Check if session is valid
+      let validateResponse;
+      try {
+        validateResponse = await fetch('/api/users/auth/validate/', {
+          credentials: 'include',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        });
+      } catch {
+        // Network error - user not authenticated
+        validateResponse = { ok: false };
+      }
+
+      if (!validateResponse.ok) {
+        // Not authenticated - normal behavior
+        setAuthState({
+          user: null,
+          isLoading: false,
+          error: null,
+          currentRole: null,
+          isRoleSwitching: false,
+        });
+        return;
+      }
+
+      // Get user data with current role from middleware
+      let userResponse;
+      try {
+        userResponse = await fetch('/api/users/me/', {
+          credentials: 'include',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        });
+      } catch {
+        // Network error - user not authenticated
+        userResponse = { ok: false };
+      }
+
+      if (userResponse.ok && 'json' in userResponse) {
+        const userData: User = await userResponse.json();
+        
+        // SEC-011: Get current role from validate_auth endpoint (includes middleware role)
+        let validateResponse;
+        try {
+          validateResponse = await fetch('/api/users/auth/validate/', {
+            credentials: 'include',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+          });
+        } catch {
+          // Network error - use default role
+          validateResponse = { ok: false };
+        }
+        
+        let currentRole = userData.default_role || userData.roles[0] || null;
+        
+        if (validateResponse.ok && 'json' in validateResponse) {
+          const validateData = await validateResponse.json();
+          currentRole = validateData.current_role || currentRole;
+        }
+
+        // SEC-011: No localStorage needed - role is managed server-side
+        // Role information comes from JWT token via RoleValidationMiddleware
+
+        setAuthState({
+          user: userData,
+          isLoading: false,
+          error: null,
+          currentRole,
+          isRoleSwitching: false,
+        });
+        
+      } else {
+        // User data fetch failed - not authenticated
+        setAuthState({
+          user: null,
+          isLoading: false,
+          error: null,
+          currentRole: null,
+          isRoleSwitching: false,
+        });
+        return;
+      }
+    } catch {
+      // Authentication validation failed - user not logged in
+      setAuthState({
+        user: null,
+        isLoading: false,
+        error: null,
+        currentRole: null,
+        isRoleSwitching: false,
+      });
+    }
+  }, [authState.isRoleSwitching]);
+
+  // Validate authentication on mount
+  useEffect(() => {
+    validateAuth();
+  }, [validateAuth]);
+
+  // CRITICAL FIX: Listen for role changes from other components
+  useEffect(() => {
+    const handleRoleChange = (event: CustomEvent) => {
+      const { role } = event.detail;
+      setAuthState(prev => ({ ...prev, currentRole: role }));
+    };
+
+    window.addEventListener('roleChanged', handleRoleChange as EventListener);
+    return () => {
+      window.removeEventListener('roleChanged', handleRoleChange as EventListener);
+    };
+  }, []);
+
+  const login = async (credentials: { email: string; password: string }) => {
+    try {
+      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+      // console.log('🔐 Logging in...');
+
+      const response = await fetch('/api/users/token/', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify(credentials),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Login failed');
+      }
+
+      // After successful login, get user data
+      await validateAuth();
+      // console.log('✅ Login successful!');
+      return true;
+    } catch (error) {
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Login failed',
+      }));
+      return false;
+    }
+  };
+
+  const logout = async () => {
+    // console.log('👋 Logging out...');
+    try {
+      await fetch('/api/users/logout/', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      });
+    } catch {
+      // Logout API failed - continue with local logout
+    }
+
+    // Clear state regardless of API success
+    setAuthState({
       user: null,
-      isAuthenticated: false,
       isLoading: false,
       error: null,
-      currentRole: null, // Dabartinė aktyvi rolė
+      currentRole: null,
+      isRoleSwitching: false,
+    });
 
-      // SEC-001: Actions updated for cookie-based authentication
-      login: async (credentials: LoginCredentials) => {
-        // RESET visą state prieš login
-        set({ 
-          user: null,
-          isAuthenticated: false,
-          isLoading: true, 
-          error: null 
-        });
-        
-        try {
-          // SEC-001: Clear old data before login
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('current_role');
-            localStorage.removeItem('auth-storage');
-            sessionStorage.removeItem('auth-storage');
-          }
-          
-          // SEC-001: Login with cookie-based authentication
-          await authAPI.login(credentials);
-          // SEC-001: Tokens are now handled by cookies automatically
-          
-          // SEC-001: Fetch user data from backend
-          try {
-            const userResponse = await authAPI.me();
-            const user = userResponse.data;
-            
-            // SEC-001: Set currentRole based on default_role
-            const initialRole = user.default_role || user.roles?.[0] || null;
-            
-            // SEC-001: Save currentRole to localStorage for API requests
-            if (typeof window !== 'undefined' && initialRole) {
-              localStorage.setItem('current_role', initialRole);
-            }
-            
-            set({
-              user,
-              isAuthenticated: true,
-              isLoading: false,
-              currentRole: initialRole, // Set current role
-            });
-          } catch {
-            // SEC-001: Improved error handling for user data fetching
-            // If fetching user data fails, use basic info from login
-            const user = {
-              id: 0,
-              email: credentials.email,
-              first_name: '',
-              last_name: '',
-              roles: ['student'] as UserRole[],
-              is_active: true,
-              date_joined: new Date().toISOString(),
-            };
-            
-            set({
-              user,
-              isAuthenticated: true,
-              isLoading: false,
-            });
-          }
-        } catch (error: unknown) {
-          // CHANGE: Type-safe error handling for login errors
-          const errorMessage = error && typeof error === 'object' && 'response' in error 
-            ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Login failed'
-            : 'Login failed';
-          
-          set({
-            error: errorMessage,
-            isLoading: false,
-          });
-          throw error;
-        }
-      },
+    // console.log('✅ Logout successful!');
+    // Redirect to login
+    window.location.href = '/auth/login';
+  };
 
-      // SEC-001: Logout updated for cookie-based authentication
-      logout: async () => {
-        try {
-          // SEC-001: Call logout endpoint to clear cookies on server
-          await authAPI.logout();
-        } catch {
-          // Ignore logout API errors - cookies will be cleared anyway
-        }
-        
-        if (typeof window !== 'undefined') {
-          // SEC-001: Clear client-side data
-          localStorage.removeItem('current_role');
-          localStorage.removeItem('auth-storage');
-          sessionStorage.removeItem('auth-storage');
-        }
-        
-        set({
-          user: null,
-          isAuthenticated: false,
-          error: null,
-          currentRole: null, // Clear current role
-        });
-        
-        // Reload page to root after logout
+  const switchRole = useCallback(async (role: string) => {
+    if (!authState.user || !authState.user.roles.includes(role)) {
+      return false;
+    }
+
+    try {
+      // OPTIMIZATION: Set loading state to prevent validation loops
+      setAuthState(prev => ({ ...prev, isRoleSwitching: true }));
+
+      // ROLE SWITCHING TOKEN LOGIC: Tik frontend state keičimas
+      
+      // ✅ TIK frontend state keičimas:
+      setAuthState(prev => ({ ...prev, currentRole: role, isRoleSwitching: false }));
+      
+      // ✅ Broadcast role change event:
+      window.dispatchEvent(new CustomEvent('roleChanged', { 
+        detail: { role, timestamp: Date.now() } 
+      }));
+      
+      // console.log(`🔄 Role switched to: ${role}`);
+      return true;
+    } catch {
+      setAuthState(prev => ({ ...prev, isRoleSwitching: false }));
+      return false;
+    }
+  }, [authState.user]);
+
+  const redirectToDashboard = () => {
+    if (!authState.user) {
+      return;
+    }
+
+    const role = authState.currentRole || authState.user.default_role || authState.user.roles[0];
+
+    switch (role) {
+      case 'manager':
+        window.location.href = '/managers';
+        break;
+      case 'curator':
+        window.location.href = '/curators';
+        break;
+      case 'mentor':
+        window.location.href = '/mentors';
+        break;
+      case 'parent':
+        window.location.href = '/parents';
+        break;
+      case 'student':
+        window.location.href = '/students';
+        break;
+      default:
         window.location.href = '/';
-      },
+    }
+  };
 
-      setUser: (user: User) => {
-        set({ user });
-      },
+  return {
+    // State
+    user: authState.user,
+    isLoading: authState.isLoading,
+    error: authState.error,
+    currentRole: authState.currentRole,
+    isAuthenticated: !!authState.user,
+    isRoleSwitching: authState.isRoleSwitching, // NEW: Expose role switching state
 
-      setError: (error: string | null) => {
-        set({ error });
-      },
+    // Actions
+    login,
+    logout,
+    switchRole,
+    redirectToDashboard,
+    validateAuth,
 
-      setLoading: (loading: boolean) => {
-        set({ isLoading: loading });
-      },
+    // Utilities
+    getCurrentUserId: () => authState.user?.id || null,
+    getCurrentRole: () => authState.currentRole || authState.user?.default_role || null,
+  };
+}
 
-      clearError: () => {
-        set({ error: null });
-      },
-
-      // CHANGE: Pridėta pagalbinė funkcija dabartinio vartotojo ID gavimui
-      getCurrentUserId: () => {
-        const user = get().user;
-        return user?.id || null;
-      },
-
-      // CHANGE: Pridėtos funkcijos dabartinės rolės valdymui
-      setCurrentRole: (role: string) => {
-        set({ currentRole: role });
-        // CHANGE: Išsaugoti currentRole į localStorage API užklausoms
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('current_role', role);
-        }
-      },
-
-      getCurrentRole: () => {
-        const { currentRole, user } = get();
-        // Grąžina dabartinę rolę arba default_role arba pirmąją rolę
-        return currentRole || user?.default_role || user?.roles?.[0] || null;
-      },
-
-      // SEC-001: Token refresh is now handled automatically by cookies
-
-          // SEC-001: Initialize authentication with cookie-based approach
-          initializeAuth: async () => {
-            // SEC-001: Handle server-side rendering
-            if (typeof window === 'undefined') {
-              set({ isLoading: false });
-              return;
-            }
-
-            // SEC-001: Clear any old localStorage data first to prevent conflicts
-            localStorage.removeItem('current_role');
-            localStorage.removeItem('auth-storage');
-            sessionStorage.removeItem('auth-storage');
-
-            // SEC-001: Set initial state as not authenticated
-            set({
-              user: null,
-              isAuthenticated: false,
-              isLoading: false,
-              currentRole: null,
-            });
-
-            // SEC-001: Don't try to fetch user data on initialization to prevent redirect loops
-            // User will be authenticated when they actually log in
-          },
-    })
-); 
+export default useAuth;

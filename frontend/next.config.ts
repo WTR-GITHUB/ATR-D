@@ -16,6 +16,12 @@ const nextConfig: NextConfig = {
   trailingSlash: false,
   
   async rewrites() {
+    // In development with Nginx proxy, no rewrites needed
+    // Nginx already handles /api/ -> backend:8000 proxy
+    if (process.env.NODE_ENV === 'development') {
+      return [];
+    }
+
     return [
       {
         source: '/api/:path*',

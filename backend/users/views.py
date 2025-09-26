@@ -7,8 +7,13 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.conf import settings
 from django.http import HttpResponse
+import logging
 from .models import User
 from .serializers import UserSerializer, CustomTokenObtainPairSerializer, ChangePasswordSerializer, UserSettingsSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
+
+# Create logger for this module
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 
@@ -27,7 +32,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        # Create response with tokens
+        # Create response with tokens (both in response body and cookies)
         response = Response(serializer.validated_data, status=200)
         
         # Pass response to serializer for cookie setting
@@ -45,7 +50,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
             httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
             samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
-            domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']
+            domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN'] if not settings.DEBUG else None  # No domain restriction in development
         )
         
         # Set refresh token cookie
@@ -56,7 +61,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
             httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
             samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
-            domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']
+            domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN'] if not settings.DEBUG else None  # No domain restriction in development
         )
         
         return response
@@ -90,7 +95,7 @@ class CustomTokenRefreshView(TokenRefreshView):
                 secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
                 httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
                 samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
-                domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']
+                domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN'] if not settings.DEBUG else None  # No domain restriction in development
             )
         
         return response
@@ -243,4 +248,74 @@ def student_details(request, student_id):
     except Exception as e:
         return Response({
             'error': f'Klaida gaunant studento duomenis: {str(e)}'
+        }, status=500)
+
+
+# ROLE SWITCHING TOKEN LOGIC: Pašalintas switch_role endpoint
+# Nereikalingas - role switching vyksta tik frontend'e
+# Backend'as tikrina ar role egzistuoja token'e per RoleValidationMiddleware
+
+
+@api_view(['GET'])
+def validate_auth(request):
+    """
+    SEC-001: Authentication validation endpoint for AuthManager
+    Fast endpoint to check if user is authenticated via cookies
+    Used by frontend AuthManager for instant authentication checks
+    """
+    try:
+        # Check if user is authenticated via JWT middleware
+        if request.user.is_authenticated:
+            # SEC-011: Get current role from middleware
+            current_role = getattr(request, 'current_role', None)
+            if not current_role:
+                current_role = request.user.default_role
+            
+            # DEBUG: Log validation request
+            logger.info(f"🔐 VALIDATE DEBUG: User {request.user.id} validation request")
+            logger.info(f"🔐 VALIDATE DEBUG: Current role from middleware: {current_role}")
+            logger.info(f"🔐 VALIDATE DEBUG: User default role: {request.user.default_role}")
+            logger.info(f"🔐 VALIDATE DEBUG: User roles: {request.user.roles}")
+            
+            return Response({
+                'valid': True,
+                'user_id': request.user.id,
+                'email': request.user.email,
+                'roles': request.user.roles,
+                'default_role': request.user.default_role,
+                'current_role': current_role,  # SEC-011: Add current role from middleware
+            }, status=200)
+        else:
+            return Response({
+                'valid': False,
+                'error': 'User not authenticated'
+            }, status=401)
+            
+    except Exception as e:
+        return Response({
+            'valid': False,
+            'error': f'Validation error: {str(e)}'
+        }, status=500)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def debug_role(request):
+    """
+    SEC-011: Debug endpoint to check role validation
+    """
+    try:
+        current_role = getattr(request, 'current_role', None)
+        
+        return Response({
+            'user_id': request.user.id,
+            'user_roles': request.user.roles,
+            'user_default_role': request.user.default_role,
+            'middleware_current_role': current_role,
+            'has_current_role_attr': hasattr(request, 'current_role'),
+            'request_attributes': [attr for attr in dir(request) if 'role' in attr.lower()],
+        }, status=200)
+        
+    except Exception as e:
+        return Response({
+            'error': f'Debug error: {str(e)}'
         }, status=500)

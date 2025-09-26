@@ -6,13 +6,16 @@ import React from 'react';
 import { WeekInfoProvider } from '@/contexts/WeekInfoContext';
 import { getWeekInfo } from '@/lib/services/weekInfoService';
 import StudentsDashboardClient from './StudentsDashboardClient';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 
 export default async function StudentsDashboardPage() {
   const weekInfo = await getWeekInfo();
 
   return (
-    <WeekInfoProvider initialData={weekInfo}>
-      <StudentsDashboardClient />
-    </WeekInfoProvider>
+    <ClientAuthGuard requireAuth={true} allowedRoles={['student']}>
+      <WeekInfoProvider initialData={weekInfo}>
+        <StudentsDashboardClient />
+      </WeekInfoProvider>
+    </ClientAuthGuard>
   );
 }

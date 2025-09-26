@@ -6,6 +6,7 @@ import React from 'react';
 import { WeekInfoProvider } from '@/contexts/WeekInfoContext';
 import { getWeekInfo } from '@/lib/services/weekInfoService';
 import StudentsDashboard from './dashboard/page';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 
 // Server component for Students page
 // Provides server-side week data to eliminate hydration mismatches
@@ -14,8 +15,10 @@ export default async function StudentsPage() {
   const weekInfo = await getWeekInfo();
   
   return (
-    <WeekInfoProvider initialData={weekInfo}>
-      <StudentsDashboard />
-    </WeekInfoProvider>
+    <ClientAuthGuard requireAuth={true} allowedRoles={['student']}>
+      <WeekInfoProvider initialData={weekInfo}>
+        <StudentsDashboard />
+      </WeekInfoProvider>
+    </ClientAuthGuard>
   );
 }

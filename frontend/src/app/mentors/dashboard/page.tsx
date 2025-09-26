@@ -2,11 +2,13 @@
 
 import React from 'react';
 import { Construction } from 'lucide-react';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 
 
 export default function MentorDashboardPage() {
   
   return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
     <div className="min-h-screen bg-gray-50">
 
       {/* Main Content */}
@@ -22,5 +24,6 @@ export default function MentorDashboardPage() {
         </div>
       </div>
     </div>
+    </ClientAuthGuard>
   );
 }

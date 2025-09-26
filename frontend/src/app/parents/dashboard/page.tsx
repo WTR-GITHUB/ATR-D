@@ -5,6 +5,7 @@ import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Users, BookOpen, Calendar, Award, MessageSquare } from 'lucide-react';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 
 export default function ParentsDashboardPage() {
   const { user } = useAuth();
@@ -81,6 +82,7 @@ export default function ParentsDashboardPage() {
   ];
 
   return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['parent']}>
     <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-rose-600 to-rose-800 rounded-lg shadow p-6 text-white">
@@ -237,5 +239,6 @@ export default function ParentsDashboardPage() {
         </CardContent>
       </Card>
     </div>
+    </ClientAuthGuard>
   );
 } 

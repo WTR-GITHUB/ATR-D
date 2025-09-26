@@ -64,6 +64,10 @@ class RoleValidationMiddleware:
             # Try to get token from cookie first (SEC-001 implementation)
             access_token = request.COOKIES.get(settings.SIMPLE_JWT.get('AUTH_COOKIE_NAME', 'access_token'))
             
+            # DEBUG: Log cookie information
+            logger.info(f"🔐 MIDDLEWARE DEBUG: Request cookies: {list(request.COOKIES.keys())}")
+            logger.info(f"🔐 MIDDLEWARE DEBUG: Access token from cookie: {access_token[:50] if access_token else 'None'}...")
+            
             if not access_token:
                 # Fallback to Authorization header
                 auth_header = request.META.get('HTTP_AUTHORIZATION', '')
@@ -74,17 +78,29 @@ class RoleValidationMiddleware:
                 # Decode and validate token
                 token = AccessToken(access_token)
                 
+                # DEBUG: Log token payload
+                logger.info(f"🔐 MIDDLEWARE DEBUG: Token payload: {token.payload}")
+                
                 # Get role information from token claims
-                default_role = token.get('default_role')
+                # ROLE SWITCHING TOKEN LOGIC: Token'e nėra current_role
+                # Tik roles ir default_role
                 roles = token.get('roles', [])
+                default_role = token.get('default_role')
                 
-                # Return default_role if it exists in user's roles
-                if default_role and default_role in roles:
-                    return default_role
+                # DEBUG: Log role information
+                logger.info(f"🔐 MIDDLEWARE DEBUG: Roles from token: {roles}")
+                logger.info(f"🔐 MIDDLEWARE DEBUG: Default role from token: {default_role}")
                 
-                # Return first role if no default_role
+                # ROLE SWITCHING TOKEN LOGIC: Leisti dirbti su bet kuria role iš token'o
+                # default_role naudojamas tik login redirect'ui, ne middleware'e
+                # Middleware tikrina ar role egzistuoja token'e ir leidžia dirbti su ja
                 if roles:
-                    return roles[0]
+                    # Grąžinti pirmąją role iš token'o (frontend valdo current role)
+                    # Backend tikrina ar role egzistuoja token'e
+                    selected_role = roles[0]
+                    logger.info(f"🔐 MIDDLEWARE DEBUG: Selected role from token: {selected_role}")
+                    logger.info(f"🔐 MIDDLEWARE DEBUG: Available roles in token: {roles}")
+                    return selected_role
                     
         except (InvalidToken, TokenError, Exception) as e:
             logger.debug(f"Could not extract role from JWT token: {str(e)}")

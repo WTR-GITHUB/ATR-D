@@ -1,8 +1,8 @@
 // frontend/src/components/auth/ClientAuthGuard.tsx
+// Simple authentication guard for page-level protection
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
 
 interface ClientAuthGuardProps {
@@ -11,108 +11,132 @@ interface ClientAuthGuardProps {
   allowedRoles?: string[];
 }
 
-export default function ClientAuthGuard({ 
-  children, 
-  requireAuth = true, 
-  allowedRoles = [] 
-}: ClientAuthGuardProps) {
-  const { isAuthenticated, user, isLoading, initializeAuth } = useAuth();
-  const router = useRouter();
-  const hasInitialized = useRef(false);
-
-  useEffect(() => {
-    // Initialize auth on component mount only once
-    if (!hasInitialized.current) {
-      initializeAuth();
-      hasInitialized.current = true;
-    }
-  }, [initializeAuth]);
-
-  useEffect(() => {
-    if (isLoading) return; // Palaukti kol autentifikacija užsikraus
-
-    if (requireAuth && !isAuthenticated) {
-      // Jei reikia autentifikacijos, bet vartotojas neprisijungęs
-      const currentPath = window.location.pathname;
-      if (currentPath !== '/auth/login') {
-        router.push('/auth/login');
-      }
-      return;
-    }
-
-    if (isAuthenticated && user) {
-      // Jei vartotojas prisijungęs, nukreipti pagal rolę
-      const currentPath = window.location.pathname;
-      
-      // Jei esame login puslapyje ir vartotojas prisijungęs, nukreipti į dashboard
-      if (currentPath === '/auth/login') {
-        redirectToDashboard(user.roles, router, user.default_role);
-        return;
-      }
-
-      // Jei esame pagrindiniame puslapyje ir vartotojas prisijungęs, nukreipti į dashboard
-      if (currentPath === '/') {
-        redirectToDashboard(user.roles, router, user.default_role);
-        return;
-      }
-
-      // Patikrinti ar vartotojas turi reikiamą rolę
-      if (allowedRoles.length > 0 && !(user.roles || []).some(role => allowedRoles.includes(role))) {
-        // Jei vartotojas neturi reikiamos rolės, nukreipti į jo dashboard
-        redirectToDashboard(user.roles || [], router, user.default_role);
-        return;
-      }
-    }
-  }, [isAuthenticated, user, isLoading, requireAuth, allowedRoles, router]);
-
-  // Rodyti loading būseną kol autentifikacija užsikraus
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+/**
+ * AuthLoadingSpinner - Loading state component
+ */
+function AuthLoadingSpinner() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Tikrinama autentifikacija...</p>
       </div>
-    );
+    </div>
+  );
+}
+
+/**
+ * AuthErrorPage - Error state component
+ */
+function AuthErrorPage({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          <p className="font-bold">Autentifikacijos klaida</p>
+          <p className="text-sm">Įvyko klaida tikrinant autentifikaciją</p>
+        </div>
+        <div className="space-x-4">
+          <button 
+            onClick={onRetry}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Bandyti iš naujo
+          </button>
+          <button 
+            onClick={() => window.location.href = '/auth/login'}
+            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Eiti į prisijungimo puslapį
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * LoginPage - Unauthenticated state component
+ */
+function LoginPage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold mb-4">Reikalinga autentifikacija</h1>
+        <p className="text-gray-600 mb-6">Norėdami tęsti, turite prisijungti</p>
+        <button 
+          onClick={() => window.location.href = '/auth/login'}
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Prisijungti
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * ClientAuthGuard - Page-level authentication guard
+ * CHANGE: Išjungtas automatinis redirect activities puslapyje
+ */
+function ClientAuthGuard({
+  children,
+  requireAuth = true,
+  allowedRoles = []
+}: ClientAuthGuardProps) {
+  const { user, isLoading, error, redirectToDashboard } = useAuth();
+
+
+  // Show loading spinner while checking authentication
+  if (isLoading) {
+    return <AuthLoadingSpinner />;
+  }
+
+  // Show error if authentication failed
+  if (error) {
+    return <AuthErrorPage onRetry={() => window.location.reload()} />;
+  }
+
+  if (requireAuth && !user) {
+    return <LoginPage />;
+  }
+
+  // Handle role-based access control
+  if (user && allowedRoles.length > 0) {
+    const userRoles = user.roles || [];
+    const hasRequiredRole = userRoles.some((role: string) => allowedRoles.includes(role));
+
+    if (!hasRequiredRole) {
+      if (typeof window !== 'undefined') {
+        redirectToDashboard();
+        return <AuthLoadingSpinner />;
+      }
+    }
+  }
+
+  // Handle automatic dashboard redirects for authenticated users
+  if (user && typeof window !== 'undefined') {
+    const currentPath = window.location.pathname;
+
+
+    // Redirect from login page if authenticated
+    if (currentPath === '/auth/login') {
+      redirectToDashboard();
+      return <AuthLoadingSpinner />;
+    }
+
+    // Redirect from home page if authenticated
+    if (currentPath === '/') {
+      redirectToDashboard();
+      return <AuthLoadingSpinner />;
+    }
   }
 
   return <>{children}</>;
 }
 
-// Pagalbinė funkcija nukreipti į dashboard pagal roles
-// CHANGE: Naudojama numatytoji rolė arba pirma rolė iš user.roles sąrašo
-function redirectToDashboard(roles: string[] | null | undefined, router: { push: (path: string) => void }, defaultRole?: string) {
-  const userRoles = roles || [];
-  
-  if (userRoles.length > 0) {
-    // PRIORITY: Use default_role if it exists AND is valid, otherwise use first role
-    let roleToUse;
-    if (defaultRole && userRoles.includes(defaultRole)) {
-      roleToUse = defaultRole;
-    } else {
-      roleToUse = userRoles[0];
-    }
-    
-    switch (roleToUse) {
-      case 'manager':
-        router.push('/managers');
-        break;
-      case 'curator':
-        router.push('/curators');
-        break;
-      case 'mentor':
-        router.push('/mentors');
-        break;
-      case 'parent':
-        router.push('/parents');
-        break;
-      case 'student':
-        router.push('/students');
-        break;
-      default:
-        // Fallback to homepage if unknown role
-        router.push('/');
-    }
-  } else {
-    // No roles - redirect to homepage
-    router.push('/');
-  }
-} 
+/**
+ * Export ClientAuthGuard component
+ * Updated to use simple useAuth hook
+ */
+export default ClientAuthGuard;

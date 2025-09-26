@@ -40,13 +40,14 @@ interface RoleSwitcherProps {
 }
 
 export default function RoleSwitcher({ currentRole, onRoleChange }: RoleSwitcherProps) {
-  const { user, logout, getCurrentRole, setCurrentRole } = useAuth();
+  const { user, logout, currentRole: authCurrentRole, switchRole, isRoleSwitching } = useAuth();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Get active role (from prop or current role from auth store)
-  const activeRole = currentRole || getCurrentRole() || user?.default_role || user?.roles?.[0] || '';
+  // CHANGE: Naudoti currentRole tiesiogiai iš useAuth state vietoj getCurrentRole funkcijos
+  const activeRole = currentRole || authCurrentRole || user?.default_role || user?.roles?.[0] || '';
   const activeRoleInfo = roleInfo[activeRole as keyof typeof roleInfo];
 
   // Close dropdown when clicking outside
@@ -63,24 +64,32 @@ export default function RoleSwitcher({ currentRole, onRoleChange }: RoleSwitcher
     };
   }, []);
 
-  const handleRoleSelect = (role: string) => {
-    
-    // CHANGE: Išsaugoti dabartinę rolę auth store
-    setCurrentRole(role);
-    
-    // Call callback if provided
-    if (onRoleChange) {
-      onRoleChange(role);
+  const handleRoleSelect = async (role: string) => {
+    // OPTIMIZATION: Prevent multiple role switches
+    if (isRoleSwitching) {
+      return;
     }
     
-    // Navigate to role dashboard
-    const rolePath = roleInfo[role as keyof typeof roleInfo]?.path || '/';
-    router.push(rolePath);
+    // Close dropdown immediately
+    setIsOpen(false);
     
-    // Close dropdown
-    setTimeout(() => {
-      setIsOpen(false);
-    }, 300);
+    // ROLE SWITCHING TOKEN LOGIC: Tiesioginis state keičimas
+    // Nereikia API calls - role switching vyksta tik frontend'e
+    // Backend'as tikrina ar role egzistuoja token'e per RoleValidationMiddleware
+    
+    // ✅ TIK frontend state keičimas:
+    const success = await switchRole(role);
+    
+    if (success) {
+      // Call callback if provided
+      if (onRoleChange) {
+        onRoleChange(role);
+      }
+      
+      // Navigate to role dashboard iškart po state keičimo
+      const rolePath = roleInfo[role as keyof typeof roleInfo]?.path || '/';
+      router.push(rolePath);
+    }
   };
 
   const handleSettings = () => {
@@ -162,7 +171,7 @@ export default function RoleSwitcher({ currentRole, onRoleChange }: RoleSwitcher
                 </h3>
               </div>
               
-              {user.roles.map((role) => {
+              {user.roles.map((role: string) => {
                 const info = roleInfo[role as keyof typeof roleInfo];
                 const isSelected = role === activeRole;
                 
@@ -170,11 +179,12 @@ export default function RoleSwitcher({ currentRole, onRoleChange }: RoleSwitcher
                   <button
                     key={role}
                     onClick={() => handleRoleSelect(role)}
+                    disabled={isRoleSwitching}
                     className={`w-full flex items-center justify-between px-4 py-3 text-left transition-all duration-200 border-l-3 ${
                       isSelected 
                         ? 'bg-blue-50 border-l-blue-500 text-blue-900' 
                         : 'border-l-transparent hover:bg-gray-50 hover:border-l-gray-300'
-                    }`}
+                    } ${isRoleSwitching ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <div className="flex-1">
                       <div className={`text-sm font-medium ${
@@ -189,10 +199,14 @@ export default function RoleSwitcher({ currentRole, onRoleChange }: RoleSwitcher
                       </div>
                     </div>
                     
-                    {/* Checkmark */}
-                    <Check className={`w-5 h-5 text-green-500 transition-all duration-200 ${
-                      isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-75'
-                    }`} />
+                    {/* Loading or Checkmark */}
+                    {isRoleSwitching ? (
+                      <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Check className={`w-5 h-5 text-green-500 transition-all duration-200 ${
+                        isSelected ? 'opacity-100 scale-100' : 'opacity-0 scale-75'
+                      }`} />
+                    )}
                   </button>
                 );
               })}

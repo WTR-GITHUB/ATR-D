@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Users, BookOpen, TrendingUp, Calendar, Award, Settings, Shield, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 
 export default function ManagerDashboardPage() {
   const { user } = useAuth();
@@ -108,6 +109,7 @@ export default function ManagerDashboardPage() {
   ];
 
   return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['manager']}>
     <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow p-6 text-white">
@@ -259,5 +261,6 @@ export default function ManagerDashboardPage() {
         </CardContent>
       </Card>
     </div>
+    </ClientAuthGuard>
   );
 }

@@ -11,6 +11,7 @@ import api from '@/lib/api';
 import { ScheduleItem } from '@/hooks/useSchedule';
 
 interface UseStudentWeeklyScheduleParams {
+  studentId: number;
   weekStartDate: string; // YYYY-MM-DD formato pirmadienio data
   enabled?: boolean;
 }
@@ -48,7 +49,7 @@ export const useStudentWeeklySchedule = (params: UseStudentWeeklyScheduleParams)
 
       // CHANGE: Debug informacija
       // CHANGE: Naudojame naują student-schedule endpoint'ą
-      const response = await api.get(`/schedule/schedules/student-schedule/?week_start=${params.weekStartDate}`);
+      const response = await api.get(`/schedule/schedules/student-schedule/?student_id=${params.studentId}&week_start=${params.weekStartDate}`);
       
       // CHANGE: Gauname duomenis iš naujo endpoint'o struktūros
       const { results, ...info } = response.data;
@@ -107,7 +108,7 @@ export const useStudentWeeklySchedule = (params: UseStudentWeeklyScheduleParams)
     } finally {
       setIsLoading(false);
     }
-  }, [params.enabled, params.weekStartDate]);
+  }, [params.enabled, params.weekStartDate, params.studentId]);
 
   useEffect(() => {
     fetchStudentWeeklySchedule();

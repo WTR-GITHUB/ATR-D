@@ -7,18 +7,19 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 import { StudentCard } from './components';
 import { useCuratorStudents } from '@/hooks/useCuratorStudents';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function CuratorsChildrenPage() {
   const { students, loading, error } = useCuratorStudents();
-  const { setCurrentRole } = useAuth();
+  const { switchRole } = useAuth();
 
   // CHANGE: Nustatyti curator rolę kai puslapis kraunasi
   useEffect(() => {
-    setCurrentRole('curator');
-  }, [setCurrentRole]);
+    switchRole('curator');
+  }, [switchRole]);
 
   if (loading) {
     return (
@@ -57,6 +58,7 @@ export default function CuratorsChildrenPage() {
   }
 
   return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['curator']}>
     <div className="space-y-6">
       {/* Puslapio antraštė */}
       <div className="border-b border-gray-200 pb-4">
@@ -91,5 +93,6 @@ export default function CuratorsChildrenPage() {
         </div>
       )}
     </div>
+    </ClientAuthGuard>
   );
 }

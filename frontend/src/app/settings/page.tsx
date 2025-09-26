@@ -12,6 +12,7 @@ import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { User, Lock, Eye, EyeOff, UserCheck } from 'lucide-react';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 
 export default function SettingsPage() {
   const { user } = useAuth(); // SEC-001: Remove token - handled by cookies
@@ -147,6 +148,7 @@ export default function SettingsPage() {
   }
 
   return (
+    <ClientAuthGuard requireAuth={true}>
     <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8">
       {/* Puslapio antraštė */}
       <div className="border-b border-gray-200 pb-4">
@@ -342,7 +344,7 @@ export default function SettingsPage() {
                 </p>
                 
                 <div className="space-y-2">
-                  {user.roles.map((role) => (
+                  {user.roles.map((role: string) => (
                     <div 
                       key={role}
                       className={`border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 ${
@@ -399,5 +401,6 @@ export default function SettingsPage() {
         )}
       </div>
     </div>
+    </ClientAuthGuard>
   );
 }

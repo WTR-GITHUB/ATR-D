@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 import { ReactDataTable } from '@/components/DataTable';
 import { studentSubjectLevelsAPI } from '@/lib/api';
 import { Users, BookOpen, GraduationCap } from 'lucide-react';
@@ -80,28 +81,33 @@ export default function MentorStudentsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Kraunama...</p>
+      <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Kraunama...</p>
+          </div>
         </div>
-      </div>
+      </ClientAuthGuard>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Klaida</h2>
-          <p className="text-gray-600">{error}</p>
+      <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Klaida</h2>
+            <p className="text-gray-600">{error}</p>
+          </div>
         </div>
-      </div>
+      </ClientAuthGuard>
     );
   }
 
   return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Studentų sąrašas</h1>
@@ -174,5 +180,6 @@ export default function MentorStudentsPage() {
         />
       )}
     </div>
+    </ClientAuthGuard>
   );
 } 

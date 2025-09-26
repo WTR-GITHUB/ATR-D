@@ -1,5 +1,10 @@
 import CuratorsDashboard from './dashboard/page';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 
 export default function CuratorsPage() {
-  return <CuratorsDashboard />;
+  return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['curator']}>
+      <CuratorsDashboard />
+    </ClientAuthGuard>
+  );
 }

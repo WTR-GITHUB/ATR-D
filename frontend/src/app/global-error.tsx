@@ -12,8 +12,7 @@ export default function GlobalError({
   reset: () => void
 }) {
   return (
-    <html>
-      <body>
+    <div>
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="text-center">
             <h1 className="text-6xl font-bold text-red-600 mb-4">Klaida</h1>
@@ -31,7 +30,6 @@ export default function GlobalError({
             </button>
           </div>
         </div>
-      </body>
-    </html>
+    </div>
   )
 }

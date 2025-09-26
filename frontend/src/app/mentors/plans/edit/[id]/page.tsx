@@ -123,6 +123,8 @@ async function fetchPlan(planId: string): Promise<LessonSequence> {
   }
 }
 
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
+
 export default function EditLessonSequencePage() {
   // useAuth();
   const router = useRouter();
@@ -419,17 +421,20 @@ export default function EditLessonSequencePage() {
 
   if (isLoadingData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Kraunama...</p>
+      <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Kraunama...</p>
+          </div>
         </div>
-      </div>
+      </ClientAuthGuard>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center">
         <h1 className="text-2xl font-bold text-gray-900">Redaguoti ugdymo planą</h1>
@@ -581,6 +586,7 @@ export default function EditLessonSequencePage() {
         autoClose={notificationModal.options.autoClose}
         autoCloseDelay={notificationModal.options.autoCloseDelay}
       />
-    </div>
+      </div>
+    </ClientAuthGuard>
   );
 }

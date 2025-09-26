@@ -53,40 +53,17 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         if not current_role:
             current_role = getattr(user, 'default_role', None)
         
-        print(f"🔍 GET_QUERYSET DEBUG:")
-        print(f"   👤 Vartotojas: {user.email}")
-        print(f"   🎭 Rolės: {user.roles}")
-        print(f"   🔄 Dabartinė rolė: {current_role}")
         
-        if current_role == 'admin':
+        if current_role == 'manager':
             queryset = GlobalSchedule.objects.all()
-            print(f"   🔑 ADMIN: Grąžinami visi įrašai ({queryset.count()})")
             return queryset
         elif current_role == 'mentor':
             # Mentoriai mato tik tuos dalykus, kurie jiems priskirti
             mentor_subjects = user.mentor_subjects.values_list('subject', flat=True)
-            print(f"   🎓 MENTOR: Priskirti dalykai: {list(mentor_subjects)}")
-            
-            # DEBUG: Patikriname kiekvieną sąlygą atskirai
-            all_schedules = GlobalSchedule.objects.all()
-            print(f"   📊 Iš viso GlobalSchedule įrašų: {all_schedules.count()}")
-            
-            user_schedules = GlobalSchedule.objects.filter(user=user)
-            print(f"   👤 Schedules su user={user.id}: {user_schedules.count()}")
-            
-            subject_schedules = GlobalSchedule.objects.filter(subject__in=mentor_subjects)
-            print(f"   📚 Schedules su mentor_subjects: {subject_schedules.count()}")
-            
             queryset = GlobalSchedule.objects.filter(
                 user=user,
                 subject__in=mentor_subjects
             )
-            print(f"   ✅ GALUTINIS MENTOR QUERYSET: {queryset.count()} įrašų")
-            
-            # DEBUG: Loguojame kiekvieną rezultatą
-            for schedule in queryset:
-                print(f"      📝 ID: {schedule.id}, Dalykas: {schedule.subject.name}, Mentorius: {schedule.user.email}, Data: {schedule.date}")
-            
             return queryset
         elif current_role == 'student':
             # Studentai mato tvarkaraštį pagal savo dalykus ir lygius
@@ -94,10 +71,31 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
                 subject__in=user.subject_levels.values_list('subject', flat=True),
                 level__in=user.subject_levels.values_list('level', flat=True)
             )
-            print(f"   🎒 STUDENT: Grąžinami įrašai ({queryset.count()})")
+            return queryset
+        elif current_role == 'curator':
+            # Kuratoriai mato tvarkaraščius savo studentų pagal StudentSubjectLevel
+            from crm.models import StudentCurator, StudentSubjectLevel
+            from django.db.models import Q
+            
+            # Gauti studentus, kuriuos kuratorius kuruoja
+            curated_students = StudentCurator.objects.filter(curator=user).values_list('student', flat=True)
+            if not curated_students.exists():
+                return GlobalSchedule.objects.none()
+            
+            # Gauti studentų subject levels
+            student_levels = StudentSubjectLevel.objects.filter(student__in=curated_students).select_related('subject', 'level')
+            
+            if not student_levels.exists():
+                return GlobalSchedule.objects.none()
+            
+            # Sukurti Q objektus kiekvienai subject-level kombinacijai
+            q_objects = Q()
+            for sl in student_levels:
+                q_objects |= Q(subject=sl.subject, level=sl.level)
+            
+            queryset = GlobalSchedule.objects.filter(q_objects)
             return queryset
         else:
-            print(f"   ❌ NO ROLE: Grąžinamas tuščias queryset")
             return GlobalSchedule.objects.none()
     
     def perform_create(self, serializer):
@@ -112,9 +110,9 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
             current_role = getattr(user, 'default_role', None)
         
         # Tikriname, ar vartotojas gali kurti tvarkaraštį
-        if current_role not in ['mentor', 'admin']:
+        if current_role not in ['mentor', 'manager']:
             from rest_framework import serializers
-            raise serializers.ValidationError('Tik mentoriai ir administratoriai gali kurti tvarkaraštį')
+            raise serializers.ValidationError('Tik mentoriai ir vadovai gali kurti tvarkaraštį')
         
         # Jei mentorius, tikriname, ar dalykas jam priskirtas
         if current_role == 'mentor':
@@ -277,25 +275,10 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         else:
             target_date = datetime.now().date()
         
-        # DEBUG: Loguojame užklausos parametrus
-        print(f"🔍 DAILY SCHEDULE DEBUG:")
-        print(f"   📅 Data: {target_date}")
-        print(f"   👤 Vartotojas: {request.user.email}")
-        print(f"   🎭 Rolės: {request.user.roles}")
-        
         # Filtruojame pagal vartotojo roles
         queryset = self.get_queryset()
-        print(f"   📊 Iš viso queryset įrašų: {queryset.count()}")
-        
         daily_schedule = queryset.filter(date=target_date).order_by('period__starttime')
-        print(f"   📋 Dienos tvarkaraštis ({target_date}): {daily_schedule.count()} įrašų")
-        
-        # DEBUG: Loguojame kiekvieną įrašą
-        for schedule in daily_schedule:
-            print(f"      📝 ID: {schedule.id}, Dalykas: {schedule.subject.name}, Mentorius: {schedule.user.email}, Laikas: {schedule.period.starttime}")
-        
         serializer = self.get_serializer(daily_schedule, many=True)
-        print(f"   ✅ Grąžinami duomenys: {len(serializer.data)} įrašų")
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'], url_path='mentor-subjects')
@@ -317,7 +300,6 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
             )
         
         mentor_subjects = user.mentor_subjects.select_related('subject').all()
-        print(f"DEBUG: Mentor {user.email} priskirti dalykai count: {mentor_subjects.count()}")
         
         subjects_data = [
             {
@@ -327,8 +309,6 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
             }
             for ms in mentor_subjects
         ]
-        
-        print(f"DEBUG: Grąžinami dalykai: {subjects_data}")
         return Response(subjects_data)
     
     @action(detail=False, methods=['get'])
@@ -407,9 +387,9 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         if not current_role:
             current_role = getattr(student, 'default_role', None)
         
-        if current_role != 'student':
+        if current_role not in ['student', 'curator', 'manager', 'mentor']:
             return Response(
-                {"error": "Tik studentai gali gauti savo tvarkaraštį"},
+                {"error": "Tik studentai, kuratoriai, vadovai ir mentoriai gali gauti tvarkaraštį"},
                 status=status.HTTP_403_FORBIDDEN
             )
         

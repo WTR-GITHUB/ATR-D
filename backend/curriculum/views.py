@@ -3,9 +3,7 @@
 # PURPOSE: Replace vulnerable X-Current-Role header with secure server-side validation
 # UPDATES: Added custom permission classes for SEC-017 security fix
 
-from django.shortcuts import render
 from rest_framework import viewsets, status
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import Subject, Level, Objective, Component, Skill, Competency, Virtue, CompetencyAtcheve, Lesson
 from .serializers import (
@@ -13,7 +11,7 @@ from .serializers import (
     SkillSerializer, CompetencySerializer, VirtueSerializer, CompetencyAtcheveSerializer, LessonSerializer
 )
 from .permissions import (
-    ManagerOnlyPermission, MentorOrManagerPermission, CuratorOrManagerPermission,
+    ManagerOnlyPermission, MentorOrManagerPermission,
     AllAuthenticatedPermission, ReadOnlyForStudentsPermission, LessonPermission
 )
 
@@ -25,7 +23,21 @@ class SubjectViewSet(viewsets.ModelViewSet):
     """
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
-    permission_classes = [ManagerOnlyPermission]  # SEC-017: Only managers can manage subjects
+    permission_classes = [AllAuthenticatedPermission]  # SEC-017: All authenticated users can read subjects
+    
+    def get_permissions(self):
+        """
+        SEC-017: Override permissions based on HTTP method
+        All authenticated users can read, only managers can write
+        """
+        if self.action in ['list', 'retrieve']:
+            # All authenticated users can read subjects
+            permission_classes = [AllAuthenticatedPermission]
+        else:
+            # Only managers can create/update/delete subjects
+            permission_classes = [ManagerOnlyPermission]
+        
+        return [permission() for permission in permission_classes]
 
 
 class LevelViewSet(viewsets.ModelViewSet):
@@ -35,7 +47,7 @@ class LevelViewSet(viewsets.ModelViewSet):
     """
     queryset = Level.objects.all()
     serializer_class = LevelSerializer
-    permission_classes = [ManagerOnlyPermission]  # SEC-017: Only managers can manage levels
+    permission_classes = [MentorOrManagerPermission]  # SEC-011: Mentors and managers can access levels (needed for lessons)
 
 
 class ObjectiveViewSet(viewsets.ModelViewSet):
@@ -143,7 +155,7 @@ class VirtueViewSet(viewsets.ModelViewSet):
     """
     queryset = Virtue.objects.all()
     serializer_class = VirtueSerializer
-    permission_classes = [CuratorOrManagerPermission]  # SEC-017: Curators and managers can manage virtues
+    permission_classes = [MentorOrManagerPermission]  # SEC-011: Mentors and managers can access virtues (needed for lessons)
 
 
 class LessonViewSet(viewsets.ModelViewSet):
@@ -153,6 +165,12 @@ class LessonViewSet(viewsets.ModelViewSet):
     """
     serializer_class = LessonSerializer
     permission_classes = [LessonPermission]  # SEC-017: Custom permission class with complex role logic
+    
+    def get_permissions(self):
+        """
+        SEC-017: Get permissions for lesson endpoints
+        """
+        return super().get_permissions()
 
     def get_queryset(self):
         """
@@ -162,6 +180,10 @@ class LessonViewSet(viewsets.ModelViewSet):
         # Get validated role from middleware (already validated server-side)
         current_role = getattr(self.request, 'current_role', None)
         user = self.request.user
+        
+        # If no current_role, try to get default role from user
+        if not current_role:
+            current_role = getattr(user, 'default_role', None)
         
         if current_role == 'mentor':
             # Mentors can see their own lessons
@@ -188,6 +210,25 @@ class LessonViewSet(viewsets.ModelViewSet):
         else:
             # Unknown role, return empty queryset
             return Lesson.objects.none()
+
+    def get_object(self):
+        """
+        SEC-017: Override get_object to return 403 instead of 404 for access denied
+        """
+        try:
+            # First try to get the object from the filtered queryset
+            return super().get_object()
+        except Exception:
+            # If object not found in filtered queryset, check if it exists at all
+            lesson_id = self.kwargs.get('pk')
+            if lesson_id and Lesson.objects.filter(id=lesson_id).exists():
+                # Object exists but user doesn't have access - return 403
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("You don't have permission to access this lesson.")
+            else:
+                # Object doesn't exist at all - return 404
+                from rest_framework.exceptions import NotFound
+                raise NotFound("Lesson not found.")
 
     def perform_create(self, serializer):
         """

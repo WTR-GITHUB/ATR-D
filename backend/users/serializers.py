@@ -23,6 +23,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['email'] = user.email
         token['roles'] = user.roles
         token['default_role'] = user.get_default_role()
+        # ROLE SWITCHING TOKEN LOGIC: Pašalintas current_role - nereikalingas
+        # Token'e saugomos tik roles ir default_role
+        # Role switching vyksta tik frontend'e
         token['full_name'] = f"{user.first_name} {user.last_name}"
         return token
     
@@ -47,7 +50,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
                 httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
                 samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
-                domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']
+                domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN'] if not settings.DEBUG else None  # No domain restriction in development
             )
             
             # Set refresh token cookie
@@ -58,7 +61,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
                 httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
                 samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE'],
-                domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN']
+                domain=settings.SIMPLE_JWT['AUTH_COOKIE_DOMAIN'] if not settings.DEBUG else None  # No domain restriction in development
             )
         
         return data

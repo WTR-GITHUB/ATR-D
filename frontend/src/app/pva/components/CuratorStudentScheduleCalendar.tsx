@@ -2,18 +2,19 @@
 
 // CuratorStudentScheduleCalendar komponentas - curator tvarkaraščio kalendorius
 // Rodo konkretaus studento tvarkaraštį pagal perduotą studentId
-// CHANGE: Sukurtas pagal StudentsDashboardClient akordeon logiką
-// CHANGE: Naudoja useStudentSchedule hook'ą vietoj useStudentWeeklySchedule
+// CHANGE: Perdarytas naudoti useStudentWeeklySchedule hook'ą vietoj useStudentSchedule
+// CHANGE: Naudoja /schedule/schedules/student-schedule/ endpoint'ą (nereikia IMUPlan įrašų)
 // CHANGE: Pritaišytas curator kontekstui su studentId parametru
 
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Calendar, Clock, MapPin, Users } from 'lucide-react';
 import { useWeekInfoContext } from '@/contexts/WeekInfoContext';
-import { useStudentSchedule } from '@/hooks/useStudentSchedule';
+import { useStudentWeeklySchedule } from '@/hooks/useStudentWeeklySchedule';
 import usePeriods from '@/hooks/usePeriods';
-import { getSubjectColors } from '@/constants/subjectColors';
+// CHANGE: Pataisytas import'as - ScheduleItem importuojamas iš useSchedule hook'o
+import { ScheduleItem } from '@/hooks/useSchedule';
 
 interface CuratorStudentScheduleCalendarProps {
   studentId: number;
@@ -27,47 +28,51 @@ export interface CuratorStudentScheduleCalendarRef {
   refetch: () => Promise<void>;
 }
 
-const CuratorStudentScheduleCalendar = React.forwardRef<CuratorStudentScheduleCalendarRef, CuratorStudentScheduleCalendarProps>(({ 
-  studentId, 
-  className = '',
-  onScheduleItemSelect,
-  selectedScheduleId
-}, ref) => {
+  const CuratorStudentScheduleCalendar = React.forwardRef<CuratorStudentScheduleCalendarRef, CuratorStudentScheduleCalendarProps>(({ 
+    studentId,
+    className = '',
+    onScheduleItemSelect,
+    selectedScheduleId
+  }, ref) => {
+  
   const { weekInfo, navigateWeek, goToToday, isLoading } = useWeekInfoContext();
   const [isScheduleExpanded, setIsScheduleExpanded] = useState(true);
   
-  // Gauname studento tvarkaraščio duomenis pagal studentId
+  // CHANGE: Gauname studento tvarkaraščio duomenis pagal studentId naudojant naują hook'ą
   const mondayDate = weekInfo.weekDates[0].toISOString().split('T')[0];
-  const { scheduleItems, isLoading: scheduleLoading, error: scheduleError, studentName } = useStudentSchedule({
-    studentId,
+  
+  // CHANGE: Naudojame useStudentWeeklySchedule vietoj useStudentSchedule
+  const { scheduleItems, isLoading: scheduleLoading, error: scheduleError, studentInfo } = useStudentWeeklySchedule({
+    studentId: studentId,
     weekStartDate: mondayDate,
     enabled: true
   });
+  
 
-  // Expose refetch function to parent component via ref
+  // CHANGE: Expose refetch function to parent component via ref
   React.useImperativeHandle(ref, () => ({
     refetch: async () => {
+      // CHANGE: Naudojame naują hook'ą, kuris turi refetch funkciją
       // Re-fetch data by updating the weekStartDate
-      // This will trigger the useStudentSchedule hook to refetch
+      // This will trigger the useStudentWeeklySchedule hook to refetch
       window.location.reload(); // Simple solution for now
     }
   }), []);
 
-  // Pamokos kortelės komponentas - pritaikytas StudentScheduleItem duomenims su spalvomis
+  // CHANGE: Pamokos kortelės komponentas - pritaikytas ScheduleItem duomenims su spalvomis
   const LessonCard: React.FC<{ 
-    lesson: {
-      id: number;
-      lesson_subject: string;
-      lesson_title: string;
-      global_schedule_classroom: string;
-      global_schedule_level: string;
-    }; 
+    lesson: ScheduleItem; 
     isSelected?: boolean;
     onClick?: () => void;
   }> = ({ lesson, isSelected = false, onClick }) => {
-    // CHANGE: Gauname dalyko spalvas pagal dalyko pavadinimą
-    const subjectColors = getSubjectColors(lesson.lesson_subject || 'Matematika');
+    // CHANGE: Nauja logika - naudojame dalykų spalvas ir statusą pagal plan_status
+    const lessonStatus = lesson.plan_status || 'no_imu_plan';
     
+    // CHANGE: Pašaliname lygio numerį iš dalyko pavadinimo
+    const getCleanSubjectName = (subjectName: string): string => {
+      return subjectName.replace(/\s+\d+$/, '');
+    };
+
     // CHANGE: Funkcija su inline styles vietoj Tailwind klasių
     const getBorderLeftStyle = (hexColor: string): React.CSSProperties => {
       return {
@@ -75,14 +80,46 @@ const CuratorStudentScheduleCalendar = React.forwardRef<CuratorStudentScheduleCa
       };
     };
     
-    // CHANGE: Kortelės stilius pagal dalyko spalvas
+    // CHANGE: Nauja logika kortelės stiliui pagal statusą - VISADA naudojame dalykų spalvas
     const getCardStyles = () => {
-      return {
-        background: 'bg-white',
-        border: 'border-transparent',
-        text: 'text-gray-900',
-        borderLeftStyle: getBorderLeftStyle(subjectColors.hex.background)
-      };
+      switch (lessonStatus) {
+        case 'planned':
+          return {
+            background: 'bg-white',
+            border: 'border-transparent',
+            text: 'text-gray-900',
+            borderLeftStyle: getBorderLeftStyle(lesson.subject.color)
+          };
+        case 'in_progress':
+          return {
+            background: 'bg-transparent',
+            border: 'border-transparent',
+            text: 'text-white',
+            borderLeftStyle: getBorderLeftStyle(lesson.subject.color),
+            backgroundColor: lesson.subject.color
+          };
+        case 'completed':
+          return {
+            background: 'bg-gray-200',
+            border: 'border-transparent',
+            text: 'text-gray-700',
+            borderLeftStyle: getBorderLeftStyle(lesson.subject.color)
+          };
+        case 'no_imu_plan':
+          return {
+            background: 'bg-white',
+            border: 'border-transparent',
+            text: 'text-gray-900',
+            borderLeftStyle: getBorderLeftStyle(lesson.subject.color)
+          };
+        default:
+          return {
+            background: 'bg-white',
+            border: 'border-transparent',
+            text: 'text-gray-900',
+            borderLeftStyle: getBorderLeftStyle(lesson.subject.color)
+          };
+      }
     };
     
     const cardStyles = getCardStyles();
@@ -92,7 +129,10 @@ const CuratorStudentScheduleCalendar = React.forwardRef<CuratorStudentScheduleCa
         className={`${cardStyles.background} ${cardStyles.border} rounded-lg p-3 shadow-md hover:shadow-lg transition-all cursor-pointer w-full h-full flex flex-col justify-between relative ${
           isSelected ? 'ring-2 ring-yellow-400 ring-offset-2' : ''
         }`}
-        style={cardStyles.borderLeftStyle}
+        style={{
+          ...cardStyles.borderLeftStyle,
+          backgroundColor: cardStyles.backgroundColor
+        }}
         onClick={onClick}
       >
         {/* Geltonas ženkliukas jei pasirinkta */}
@@ -106,19 +146,20 @@ const CuratorStudentScheduleCalendar = React.forwardRef<CuratorStudentScheduleCa
           {/* Dalyko pavadinimas */}
           <div>
             <h3 className={`font-semibold text-sm leading-tight ${cardStyles.text}`}>
-              {lesson.lesson_subject || 'Nepriskirtas dalykas'}
+              {getCleanSubjectName(lesson.subject.name)}
             </h3>
-            <p className="text-xs text-gray-600">{lesson.lesson_title}</p>
           </div>
         </div>
         
         {/* Papildoma informacija apačioje */}
         <div className={`flex items-center justify-between text-xs opacity-80 mt-2 ${cardStyles.text}`}>
           <div className="flex items-center space-x-1">
-            <span>{lesson.global_schedule_classroom || '-'}</span>
+            <MapPin size={10} />
+            <span>{lesson.classroom.name}</span>
           </div>
           <div className="flex items-center space-x-1">
-            <span>{lesson.global_schedule_level || '-'}</span>
+            <Users size={10} />
+            <span className="text-xs">{lesson.level.name.split(' ')[0]}</span>
           </div>
         </div>
       </div>
@@ -146,12 +187,11 @@ const CuratorStudentScheduleCalendar = React.forwardRef<CuratorStudentScheduleCa
     }));
   }, [weekInfo.weekDates]);
 
-  // Gauti pamokas pagal dieną ir laiką
-  const getLessonsForSlot = (date: Date, periodId: number) => {
+  // CHANGE: Gauti pamokas pagal dieną ir laiką - naudojame naują duomenų struktūrą
+  const getLessonsForSlot = (date: Date, periodId: number): ScheduleItem[] => {
     const dateStr = date.toISOString().split('T')[0];
     const foundItems = scheduleItems.filter(item => 
-      item.global_schedule_date === dateStr && 
-      item.global_schedule_period_name === periods.find(p => p.id === periodId)?.name
+      item.date === dateStr && item.period.id === periodId
     );
     
     return foundItems;
@@ -209,8 +249,8 @@ const CuratorStudentScheduleCalendar = React.forwardRef<CuratorStudentScheduleCa
               <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${weekInfo.statusColor}`}>
                 {weekInfo.statusText}
               </span>
-              {studentName && (
-                <span className="ml-2 text-xs text-gray-500">• {studentName}</span>
+              {studentInfo?.student_name && (
+                <span className="ml-2 text-xs text-gray-500">• {studentInfo.student_name}</span>
               )}
             </p>
           </div>
@@ -295,10 +335,11 @@ const CuratorStudentScheduleCalendar = React.forwardRef<CuratorStudentScheduleCa
                   <div className="flex items-center justify-center bg-gray-50 rounded-lg border min-h-20">
                     <div className="text-center">
                       <div className="flex items-center justify-center text-gray-600 mb-1">
-                        <span className="text-xs font-medium text-gray-700">
-                          {period.starttime}-{period.endtime}
-                        </span>
+                        <Clock size={14} className="mr-1" />
                       </div>
+                      <span className="text-xs font-medium text-gray-700">
+                        {period.starttime}-{period.endtime}
+                      </span>
                       {period.name && (
                         <div className="text-xs text-gray-500 mt-1">
                           {period.name}

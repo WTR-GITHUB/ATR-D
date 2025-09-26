@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { violationAPI } from '@/lib/api';
 import { 
@@ -169,6 +170,7 @@ export default function CuratorViolationsPage() {
   }
 
   return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['curator']}>
     <div className="min-h-screen bg-gray-50">
 
       {/* Main Content */}
@@ -492,5 +494,6 @@ export default function CuratorViolationsPage() {
         }}
       />
     </div>
+    </ClientAuthGuard>
   );
 }

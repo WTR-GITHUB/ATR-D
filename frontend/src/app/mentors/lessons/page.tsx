@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { ReactDataTable } from '@/components/DataTable';
@@ -84,59 +85,43 @@ export default function MentorLessonsPage() {
     fetchLessons();
   }, []);
 
-  // const columns = [
-  //   {
-  //     title: 'Dalykas',
-  //     data: 'subject_name'
-  //   },
-  //   {
-  //     title: 'Pavadinimas',
-  //     data: 'title'
-  //   },
-  //   {
-  //     title: 'Tema',
-  //     data: 'topic_name'
-  //   },
-  //   {
-  //     title: 'Mokymo lygiai',
-  //     data: 'levels_names'
-  //   },
-  //   {
-  //     title: 'Veiksmai',
-  //     data: 'id'
-  //   }
-  // ];
+
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
+        <div className="space-y-6">
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+          </div>
         </div>
-      </div>
+      </ClientAuthGuard>
     );
   }
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <Card>
-          <CardContent>
-            <div className="text-center py-12">
-              <div className="text-red-600 mb-4">
-                <BookOpen className="mx-auto h-12 w-12" />
+      <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
+        <div className="space-y-6">
+          <Card>
+            <CardContent>
+              <div className="text-center py-12">
+                <div className="text-red-600 mb-4">
+                  <BookOpen className="mx-auto h-12 w-12" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Klaida</h3>
+                <p className="text-sm text-gray-500">{error}</p>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Klaida</h3>
-              <p className="text-sm text-gray-500">{error}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      </ClientAuthGuard>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
+      <div className="space-y-6">
       {/* Quick Actions */}
       <Card>
         <CardHeader>
@@ -266,6 +251,7 @@ export default function MentorLessonsPage() {
         autoClose={notificationModal.options.autoClose}
         autoCloseDelay={notificationModal.options.autoCloseDelay}
       />
-    </div>
+      </div>
+    </ClientAuthGuard>
   );
 } 

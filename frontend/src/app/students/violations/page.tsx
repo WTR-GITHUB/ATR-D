@@ -6,10 +6,12 @@
 'use client';
 
 import React from 'react';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 import { Construction } from 'lucide-react';
 
 export default function StudentViolationsPage() {
   return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['student']}>
     <div className="min-h-screen bg-gray-50">
 
       {/* Main Content */}
@@ -25,5 +27,6 @@ export default function StudentViolationsPage() {
         </div>
       </div>
     </div>
+    </ClientAuthGuard>
   );
 }

@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 // import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { violationAPI } from '@/lib/api';
@@ -171,6 +172,7 @@ export default function MentorViolationsPage() {
   }
 
   return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
     <div className="min-h-screen bg-gray-50">
 
       {/* Main Content */}
@@ -492,5 +494,6 @@ export default function MentorViolationsPage() {
         }}
       />
     </div>
+    </ClientAuthGuard>
   );
 }

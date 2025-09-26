@@ -46,19 +46,15 @@ export const getBestRole = (user: User | null, currentRole: string | null): stri
 };
 
 /**
- * Validates and fixes role data in localStorage
+ * SEC-001: Validates role data - no longer uses localStorage
+ * Role validation is now handled server-side via JWT tokens
  */
 export const validateAndFixRole = (user: User | null): string | null => {
   if (!user) return null;
   
-  const currentRole = localStorage.getItem('current_role');
-  const validRole = getBestRole(user, currentRole);
-  
-  if (validRole && validRole !== currentRole) {
-    localStorage.setItem('current_role', validRole);
-  }
-  
-  return validRole;
+  // SEC-001: Role validation is now handled server-side
+  // No need to manage roles in localStorage - server validates from JWT
+  return getBestRole(user, null);
 };
 
 /**

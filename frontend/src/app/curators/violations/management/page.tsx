@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 import { ReactDataTable } from '@/components/DataTable';
 import { violationAPI } from '@/lib/api';
 import TodoCompletionModal from '@/components/ui/TodoCompletionModal';
@@ -402,6 +403,7 @@ export default function CuratorViolationsManagementPage() {
   }
 
   return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['curator']}>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200">
@@ -569,5 +571,6 @@ export default function CuratorViolationsManagementPage() {
         autoCloseDelay={notificationModal.options.autoCloseDelay}
       />
     </div>
+    </ClientAuthGuard>
   );
 }
