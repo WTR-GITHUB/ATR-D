@@ -11,6 +11,7 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: a-dienynas-postgres
+    # user: "1000:1000"  # PostgreSQL reikalauja root teisių inicializacijai
     environment:
       POSTGRES_DB: "${POSTGRES_DB}"
       POSTGRES_USER: "${POSTGRES_USER}"
@@ -19,7 +20,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"  # MCP prieiga - tik localhost
     networks:
       - a-dienynas-network
     restart: unless-stopped
@@ -33,9 +34,10 @@ services:
   redis:
     image: redis:7-alpine
     container_name: a-dienynas-redis
+    user: "1000:1000"  # Rootless mode
     command: redis-server --requirepass "${REDIS_PASSWORD}"
-    ports:
-      - "6379:6379"
+    # ports:
+      # - "6379:6379"  # UŽKOMENTUOTA - Redis prieinamas tik per Docker tinklą
     volumes:
       - redis_data:/data
     networks:
@@ -53,6 +55,7 @@ services:
       context: .
       dockerfile: ./docker/backend/Dockerfile
     container_name: a-dienynas-backend
+    # user: "1000:1000"  # Backend reikalauja root teisių static failams
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
@@ -69,10 +72,11 @@ services:
     volumes:
       - ./backend:/app
       - ./backend/static:/app/static
+      - static_volume:/var/www/static
       - media_volume:/app/media
       - ./logs/backend:/app/logs
-    ports:
-      - "8000:8000"
+    # ports:
+      # - "8000:8000"  # UŽKOMENTUOTA - Backend prieinamas tik per Nginx
     depends_on:
       postgres:
         condition: service_healthy
@@ -93,16 +97,17 @@ services:
       context: .
       dockerfile: ./docker/frontend/Dockerfile
     container_name: a-dienynas-frontend
+    # user: "1000:1000"  # Frontend reikalauja root teisių build procesui
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-      - NODE_ENV=development
+      - NODE_ENV=production
     volumes:
       - ./frontend:/app
       - /app/node_modules
       # - /app/.next  # Užkomentuota - neperrašyti build direktorijos
       - ./logs/frontend:/app/logs
-    ports:
-      - "3000:3000"
+    # ports:
+      # - "3000:3000"  # UŽKOMENTUOTA - Frontend prieinamas tik per Nginx
     depends_on:
       - backend
     networks:
@@ -114,12 +119,13 @@ services:
       timeout: 10s
       retries: 3
 
-  # Nginx Reverse Proxy - DEVELOPMENT MODE with HMR
+  # Nginx Reverse Proxy - PRODUCTION MODE with SSL
   nginx:
     build:
       context: ./docker/nginx
       dockerfile: Dockerfile
     container_name: a-dienynas-nginx
+    # user: "1000:1000"  # Nginx reikalauja root teisių portų valdymui
     ports:
       - "80:80"
       - "443:443"

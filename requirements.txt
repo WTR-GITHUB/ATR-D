@@ -18,3 +18,4 @@ sqlparse==0.5.3
 urllib3==2.5.0
 gunicorn==21.2.0
 psycopg2-binary==2.9.9
+argon2-cffi==25.1.0

@@ -27,8 +27,8 @@ RUN mkdir -p /app/logs
 # Expose port
 EXPOSE 3000
 
-# Build for development with NODE_ENV set by docker-compose.yml
-# ENV NODE_ENV=development  # Set by docker-compose.yml environment
+# Build for production with NODE_ENV set by docker-compose.yml
+# ENV NODE_ENV=production  # Set by docker-compose.yml environment
 
-# Start development server with hot reload
-CMD ["npm", "run", "dev"]
+# Start production server (build will happen at runtime)
+CMD ["sh", "-c", "npm run build && npm run start"]

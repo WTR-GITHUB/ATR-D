@@ -30,6 +30,18 @@ python manage.py migrate
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
+# CHANGE: Copy static files to shared volume location
+# This ensures static files are accessible by Nginx container
+echo "Copying static files to shared volume..."
+# The static_volume is mounted at /var/www/static in Nginx container
+# We need to copy files to the volume mount point
+if [ -d "/var/www/static" ]; then
+    cp -r /app/static/* /var/www/static/
+    echo "Static files copied to /var/www/static/"
+else
+    echo "Warning: /var/www/static directory not found - static files may not be accessible"
+fi
+
 # Create superuser if it doesn't exist
 echo "Checking for superuser..."
 python manage.py shell -c "
