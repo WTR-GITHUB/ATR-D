@@ -73,7 +73,7 @@ interface UseActiveActivitiesRealtimeReturn {
  * 
  * Naudojimas:
  * const { activeActivities, refreshActiveActivities, sendActivityStatusChange } = useActiveActivitiesRealtime({
- *   onActivityUpdate: (activities) => console.log('Activities updated:', activities)
+ *   onActivityUpdate: (activities) => {}
  * });
  */
 export const useActiveActivitiesRealtime = (options: UseActiveActivitiesRealtimeOptions = {}): UseActiveActivitiesRealtimeReturn => {
@@ -106,7 +106,6 @@ export const useActiveActivitiesRealtime = (options: UseActiveActivitiesRealtime
   const handleActivityUpdate = useCallback(async () => {
     if (isRefreshing) return; // Vengiame daugkartinio atsinaujinimo
     
-    console.log('Refreshing active activities due to real-time update...');
     setIsRefreshing(true);
     
     try {
@@ -125,7 +124,6 @@ export const useActiveActivitiesRealtime = (options: UseActiveActivitiesRealtime
 
     const handleWebSocketMessage = (message: { type: string; data?: unknown }) => {
       if (message.type === 'activity_status_change' || message.type === 'schedule_update') {
-        console.log('Activity update received:', message);
         handleActivityUpdate();
       }
     };
@@ -151,7 +149,6 @@ export const useActiveActivitiesRealtime = (options: UseActiveActivitiesRealtime
     };
     
     sendMessage(message);
-    console.log('Sent activity status change:', message);
   }, [sendMessage]);
 
   /**

@@ -102,7 +102,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): UseWebSocketRet
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('WebSocket connected');
         setIsConnected(true);
         setIsConnecting(false);
         setError(null);
@@ -113,7 +112,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): UseWebSocketRet
       ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
-          console.log('WebSocket message received:', message);
           onMessage?.(message);
         } catch (err) {
           console.error('Error parsing WebSocket message:', err);
@@ -121,7 +119,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): UseWebSocketRet
       };
 
       ws.onclose = (event) => {
-        console.log('WebSocket disconnected:', event.code, event.reason);
         setIsConnected(false);
         setIsConnecting(false);
         onDisconnect?.();
@@ -129,7 +126,6 @@ export const useWebSocket = (options: UseWebSocketOptions = {}): UseWebSocketRet
         // Automatinis prisijungimas jei reikia
         if (shouldReconnectRef.current && reconnectAttemptsRef.current < maxReconnectAttempts) {
           reconnectAttemptsRef.current++;
-          console.log(`Reconnecting... attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts}`);
           
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();

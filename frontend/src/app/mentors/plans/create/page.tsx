@@ -224,7 +224,6 @@ export default function CreateLessonSequencePage() {
           }
           
           setSelectedLessons(validLessons);
-          console.log(`Pašalintos ${invalidLessons.length} ištrintos pamokos. Liko ${validLessons.length} galiojančių pamokų.`);
           
           // Continue with submission
           continueWithSubmission();
@@ -249,7 +248,6 @@ export default function CreateLessonSequencePage() {
     }
       
     setSelectedLessons(validLessons);
-    console.log(`Išfiltruotos neegzistuojančios pamokos. Liko ${validLessons.length} galiojančių pamokų.`);
 
     setIsLoading(true);
 
@@ -263,7 +261,6 @@ export default function CreateLessonSequencePage() {
         items: selectedLessons.map(lesson => lesson.id) // Siunčiame tik pamokų ID sąrašą
       };
 
-      console.log('Siunčiami duomenys:', sequenceData);
 
       // Siunčiame užklausą į backend'ą
       const response = await api.post('/plans/sequences/', sequenceData);

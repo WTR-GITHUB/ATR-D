@@ -65,7 +65,6 @@ export const useStudentWeeklySchedule = (params: UseStudentWeeklyScheduleParams)
       
       // CHANGE: Jei student-schedule endpoint'as neveikia, bandome naudoti daily endpoint'a
       if (error.response?.status === 403) {
-        console.log('🔄 Trying to use daily endpoint instead of student-schedule...');
         try {
           const weekItems: ScheduleItem[] = [];
           
@@ -79,11 +78,9 @@ export const useStudentWeeklySchedule = (params: UseStudentWeeklyScheduleParams)
               const response = await api.get(`/schedule/schedules/daily/?date=${dateStr}`);
               weekItems.push(...response.data);
             } catch (dailyErr) {
-              console.log(`⚠️ Klaida gaunant ${dateStr} duomenis:`, dailyErr);
             }
           }
           
-          console.log('✅ Daily endpoint duomenys:', weekItems.length, 'pamokų');
           setScheduleItems(weekItems);
           setStudentInfo({
             student_id: 0,

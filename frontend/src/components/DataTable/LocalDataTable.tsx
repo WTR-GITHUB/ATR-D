@@ -241,13 +241,11 @@ const LocalDataTable: React.FC<LocalDataTableProps> = ({
               
               // Force show the filter container
               (filterContainer as { show: () => unknown }).show();
-              console.log('Filter container created:', (filterContainer as { length: number }).length);
               
               // Alternative: Insert directly into the parent container
               const parentContainer = (tableWrapper as { parent: () => unknown }).parent();
               if ((parentContainer as { length: number }).length) {
                 (parentContainer as { prepend: (element: unknown) => unknown }).prepend(filterContainer);
-                console.log('Filter container inserted into parent');
               }
             },
             ...options

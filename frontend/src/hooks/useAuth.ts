@@ -41,7 +41,6 @@ export function useAuth() {
     try {
       // OPTIMIZATION: Skip validation if role switching is in progress
       if (authState.isRoleSwitching) {
-        // console.log('🔐 AUTH: Skipping validation - role switching in progress');
         return;
       }
 
@@ -53,18 +52,14 @@ export function useAuth() {
       // SIMPLIFIED: Only call /api/users/me/ - it will handle authentication internally
       let userResponse;
       try {
-        console.log('🔐 AUTH DEBUG: Making request to /api/users/me/');
         userResponse = await fetch('/api/users/me/', {
           credentials: 'include',
           headers: {
             'X-Requested-With': 'XMLHttpRequest',
           },
         });
-        console.log('🔐 AUTH DEBUG: Response status:', userResponse.status);
-        console.log('🔐 AUTH DEBUG: Response ok:', userResponse.ok);
       } catch (error) {
         // Network error - user not authenticated
-        console.log('🔐 AUTH DEBUG: Network error:', error);
         userResponse = { ok: false };
       }
 
@@ -129,7 +124,6 @@ export function useAuth() {
   const login = async (credentials: { email: string; password: string }) => {
     try {
       setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
-      // console.log('🔐 Logging in...');
 
       const response = await fetch('/api/users/token/', {
         method: 'POST',
@@ -148,7 +142,6 @@ export function useAuth() {
 
       // After successful login, get user data
       await validateAuth();
-      // console.log('✅ Login successful!');
       return true;
     } catch (error) {
       setAuthState(prev => ({
@@ -161,7 +154,6 @@ export function useAuth() {
   };
 
   const logout = async () => {
-    // console.log('👋 Logging out...');
     try {
       await fetch('/api/users/logout/', {
         method: 'POST',
@@ -183,7 +175,6 @@ export function useAuth() {
       isRoleSwitching: false,
     });
 
-    // console.log('✅ Logout successful!');
     // Redirect to login
     window.location.href = '/auth/login';
   };
@@ -231,7 +222,6 @@ export function useAuth() {
         detail: { role: data.current_role || role, timestamp: Date.now() } 
       }));
       
-      // console.log(`🔄 Role switched to: ${data.current_role || role}`);
       return true;
     } catch (error) {
       setAuthState(prev => ({ ...prev, isRoleSwitching: false }));

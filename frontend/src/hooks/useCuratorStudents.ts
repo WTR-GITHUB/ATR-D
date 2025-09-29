@@ -44,9 +44,7 @@ export const useCuratorStudents = () => {
         setLoading(true);
         setError(null);
 
-        console.log('🔍 DEBUG: Starting API call to /crm/student-curators/');
         const response = await api.get('/crm/student-curators/');
-        console.log('🔍 DEBUG: API response:', response.data);
 
 
         const data: StudentCurator[] = response.data;

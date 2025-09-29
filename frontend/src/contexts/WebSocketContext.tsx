@@ -49,7 +49,6 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   const messageCallbacks = React.useRef<Set<(message: WebSocketMessage) => void>>(new Set());
 
   const handleMessage = useCallback((message: WebSocketMessage) => {
-    console.log('WebSocket message received in context:', message);
     // Skleisti žinutę visiems callback'ams
     messageCallbacks.current.forEach(callback => {
       try {

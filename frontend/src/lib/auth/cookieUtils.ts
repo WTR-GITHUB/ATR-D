@@ -237,14 +237,6 @@ export function debugAuthCookies(): void {
   const authCookies = getAuthCookies();
   const validation = validateAuthCookies();
   
-  console.log('Auth cookies debug', {
-    cookies: authCookies,
-    validation,
-    allCookies: document.cookie,
-    domain: window.location.hostname,
-    isSameDomain: isSameDomain(),
-    areExpired: areAuthCookiesExpired(),
-  });
 }
 
 const cookieUtils = {

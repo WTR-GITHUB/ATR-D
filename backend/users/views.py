@@ -309,12 +309,6 @@ def validate_auth(request):
             if not current_role:
                 current_role = request.user.default_role
             
-            # DEBUG: Log validation request
-            logger.info(f"🔐 VALIDATE DEBUG: User {request.user.id} validation request")
-            logger.info(f"🔐 VALIDATE DEBUG: Current role from middleware: {current_role}")
-            logger.info(f"🔐 VALIDATE DEBUG: User default role: {request.user.default_role}")
-            logger.info(f"🔐 VALIDATE DEBUG: User roles: {request.user.roles}")
-            
             return Response({
                 'valid': True,
                 'user_id': request.user.id,

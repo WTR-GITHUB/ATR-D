@@ -49,19 +49,10 @@ export const useStudentSchedule = (params: UseStudentScheduleParams): UseStudent
 
   const fetchStudentSchedule = useCallback(async () => {
     if (!params.enabled || !params.weekStartDate || !params.studentId) {
-      console.log('🔄 STUDENT_SCHEDULE: Skipping fetch - missing params:', {
-        enabled: params.enabled,
-        weekStartDate: params.weekStartDate,
-        studentId: params.studentId
-      });
       return;
     }
 
     try {
-      console.log('📤 STUDENT_SCHEDULE: Fetching schedule for student:', {
-        studentId: params.studentId,
-        weekStartDate: params.weekStartDate
-      });
       setIsLoading(true);
       setError(null);
 
@@ -72,11 +63,6 @@ export const useStudentSchedule = (params: UseStudentScheduleParams): UseStudent
         }
       });
       
-      console.log('✅ STUDENT_SCHEDULE: Response received:', {
-        count: response.data.count,
-        studentName: response.data.student_name,
-        resultsLength: response.data.results?.length || 0
-      });
       
       setScheduleItems(response.data.results || []);
       setStudentName(response.data.student_name || '');

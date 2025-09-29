@@ -27,14 +27,6 @@ class RoleValidationMiddleware:
         # Initialize current_role as None
         request.current_role = None
         
-        # DEBUG: Log middleware execution with detailed info
-        logger.info(f"🔐 MIDDLEWARE DEBUG: === REQUEST START ===")
-        logger.info(f"🔐 MIDDLEWARE DEBUG: Path: {request.path}")
-        logger.info(f"🔐 MIDDLEWARE DEBUG: Method: {request.method}")
-        logger.info(f"🔐 MIDDLEWARE DEBUG: User authenticated: {hasattr(request, 'user') and request.user.is_authenticated}")
-        logger.info(f"🔐 MIDDLEWARE DEBUG: Request cookies: {list(request.COOKIES.keys())}")
-        logger.info(f"🔐 MIDDLEWARE DEBUG: Headers: {dict(request.META)}")
-        
         # MIDDLEWARE FIX: Don't authenticate here - AuthenticationMiddleware already did it
         # Just process the already authenticated user
         
@@ -81,11 +73,6 @@ class RoleValidationMiddleware:
         # Process the request
         response = self.get_response(request)
         
-        # DEBUG: Log response details
-        logger.info(f"🔐 MIDDLEWARE DEBUG: Response status: {response.status_code}")
-        logger.info(f"🔐 MIDDLEWARE DEBUG: Response headers: {dict(response.headers)}")
-        logger.info(f"🔐 MIDDLEWARE DEBUG: === REQUEST END ===")
-        
         return response
 
     def _get_role_from_jwt_token(self, request):
@@ -95,10 +82,6 @@ class RoleValidationMiddleware:
         try:
             # Try to get token from cookie first (SEC-001 implementation)
             access_token = request.COOKIES.get(settings.SIMPLE_JWT.get('AUTH_COOKIE_NAME', 'access_token'))
-            
-            # DEBUG: Log cookie information
-            logger.info(f"🔐 MIDDLEWARE DEBUG: Request cookies: {list(request.COOKIES.keys())}")
-            logger.info(f"🔐 MIDDLEWARE DEBUG: Access token from cookie: {access_token[:50] if access_token else 'None'}...")
             
             if not access_token:
                 # Fallback to Authorization header
@@ -110,26 +93,18 @@ class RoleValidationMiddleware:
                 # Decode and validate token
                 token = AccessToken(access_token)
                 
-                # DEBUG: Log token payload
-                logger.info(f"🔐 MIDDLEWARE DEBUG: Token payload: {token.payload}")
-                
                 # Get role information from token claims
                 # ROLE SWITCHING TOKEN LOGIC: Token'e tik current_role
                 # roles ir default_role pašalinti - tikrinama iš DB
                 current_role = token.get('current_role')
-                
-                # DEBUG: Log role information
-                logger.info(f"🔐 MIDDLEWARE DEBUG: Current role from token: {current_role}")
                 
                 # ROLE SWITCHING TOKEN LOGIC: Naudoti current_role iš token'o
                 # Tikrinti ar current_role leidžiama iš DB user.roles
                 if current_role:
                     # Validate current_role against DB user.roles
                     if current_role in request.user.roles:
-                        logger.info(f"🔐 MIDDLEWARE DEBUG: Validated current_role: {current_role}")
                         return current_role
                     else:
-                        logger.warning(f"🔐 MIDDLEWARE DEBUG: Invalid current_role {current_role} for user {request.user.id}")
                         # Fallback to default_role
                         return request.user.get_default_role()
                     

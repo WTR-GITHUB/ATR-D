@@ -49,17 +49,12 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    console.log('🔐 API DEBUG: Interceptor error:', error.response?.status, error.config?.url);
-
     // Handle 401 (Unauthorized) - simple auto-logout
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      console.log('🔐 API DEBUG: 401 error, current path:', window.location.pathname);
-
       // Prevent redirect loops - only redirect if not already on login page
       if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/login')) {
-        console.log('🔐 API DEBUG: Redirecting to login page');
         // Simple logout - clear cookies and redirect
         try {
           await api.post('/users/logout/');
@@ -70,7 +65,6 @@ api.interceptors.response.use(
         // Direct redirect to login
         window.location.href = '/auth/login';
       } else {
-        console.log('🔐 API DEBUG: Already on login page, not redirecting');
       }
       return Promise.reject(error);
     }

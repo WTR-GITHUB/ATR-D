@@ -126,7 +126,7 @@ const StudentRow: React.FC<StudentRowProps> = ({
 
   const getStudentStatus = (): string => {
     if (isIMUPlan) {
-      return (student as IMUPlan).attendance_status || '';
+      return (student as Student & { attendance_status: AttendanceStatus }).attendance_status || '';
     }
     return (student as Student).attendance_status || '';
   };
@@ -165,7 +165,7 @@ const StudentRow: React.FC<StudentRowProps> = ({
 
   const hasRecentFeedback = (): boolean => {
     if (isIMUPlan) {
-      return !!(student as IMUPlan).notes;
+      return !!(student as Student & { notes: string }).notes;
     }
     return !!(student as Student).notes;
   };
@@ -207,9 +207,9 @@ const StudentRow: React.FC<StudentRowProps> = ({
   const convertToAttendanceStatus = (status: string): AttendanceStatus => {
     if (isIMUPlan) {
       // REFAKTORINIMAS: Dabar galime naudoti attendance_status tiesiogiai
-      const imuPlan = student as IMUPlan;
-      if (imuPlan.attendance_status) {
-        return imuPlan.attendance_status;
+      const studentWithAttendance = student as Student & { attendance_status: AttendanceStatus };
+      if (studentWithAttendance.attendance_status) {
+        return studentWithAttendance.attendance_status;
       }
       // CHANGE: Vietoj null grąžiname 'present' kaip default
       return 'present';
@@ -243,9 +243,9 @@ const StudentRow: React.FC<StudentRowProps> = ({
 
       // Ieškome IMU planą pagal studento ID ir global_schedule ID
       if (isIMUPlan) {
-        const imuPlan = student as IMUPlan;
+        const studentWithImuPlan = student as Student & { imuPlanId: number };
         // SEC-001: Updated for cookie-based authentication
-        const response = await fetch(`/api/plans/imu-plans/${imuPlan.id}/update_attendance/`, {
+        const response = await fetch(`/api/plans/imu-plans/${studentWithImuPlan.imuPlanId}/update_attendance/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

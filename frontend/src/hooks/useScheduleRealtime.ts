@@ -37,7 +37,7 @@ interface UseScheduleRealtimeReturn {
  * Naudojimas:
  * const { scheduleItems, isRefreshing, isConnected } = useScheduleRealtime({
  *   weekStartDate: '2024-09-16',
- *   onScheduleUpdate: (items) => console.log('Schedule updated:', items)
+ *   onScheduleUpdate: (items) => {}
  * });
  */
 export const useScheduleRealtime = (options: UseScheduleRealtimeOptions): UseScheduleRealtimeReturn => {
@@ -64,7 +64,6 @@ export const useScheduleRealtime = (options: UseScheduleRealtimeOptions): UseSch
   const handleScheduleUpdate = useCallback(async () => {
     if (isRefreshing) return; // Vengiame daugkartinio atsinaujinimo
     
-    console.log('Refreshing schedule due to real-time update...');
     setIsRefreshing(true);
     
     try {
@@ -89,7 +88,6 @@ export const useScheduleRealtime = (options: UseScheduleRealtimeOptions): UseSch
     enabled,
     onMessage: useCallback((message: { type: string; data?: unknown }) => {
       if (message.type === 'schedule_update' || message.type === 'activity_status_change') {
-        console.log('Schedule update received:', message);
         handleScheduleUpdate();
       }
     }, [handleScheduleUpdate]),
@@ -112,7 +110,6 @@ export const useScheduleRealtime = (options: UseScheduleRealtimeOptions): UseSch
     };
     
     sendMessage(message);
-    console.log('Sent activity status change:', message);
   }, [sendMessage]);
 
   /**
