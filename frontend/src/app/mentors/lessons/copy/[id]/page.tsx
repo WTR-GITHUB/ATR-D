@@ -5,6 +5,8 @@ import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import LessonForm from '@/components/forms/LessonForm';
 
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
+
 export default function CopyLessonPage() {
   const params = useParams();
   const router = useRouter();
@@ -21,11 +23,13 @@ export default function CopyLessonPage() {
   };
 
   return (
-    <LessonForm
-      mode="copy"
-      lessonId={lessonId}
-      onSuccess={handleSuccess}
-      onCancel={handleCancel}
-    />
+    <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
+      <LessonForm
+        mode="copy"
+        lessonId={lessonId}
+        onSuccess={handleSuccess}
+        onCancel={handleCancel}
+      />
+    </ClientAuthGuard>
   );
 }

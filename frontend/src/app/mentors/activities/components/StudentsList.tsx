@@ -142,6 +142,8 @@ const StudentsList: React.FC<StudentsListProps> = ({
                 onAttendanceChange={handleAttendanceChange} // CHANGE: Naudojame local handleAttendanceChange funkciją
                 isActivityActive={isActivityActive} // CHANGE: Perduodamas veiklos aktyvumas
                 planStatus={planStatus} // CHANGE: Perduodamas plano statusas
+                lessonId={lessonId} // CHANGE: Perduodamas lessonId į StudentRow
+                isIMUPlan={!!(student as Student & { imuPlanId: number }).imuPlanId} // CHANGE: Nustatome pagal imuPlanId lauką
               />
             ))}
           </div>
@@ -164,6 +166,7 @@ const StudentsList: React.FC<StudentsListProps> = ({
           last_name: s.last_name,
           email: s.email || '',
           roles: ['student'] as const,
+          default_role: 'student' as const,
           is_active: true,
           date_joined: new Date().toISOString()
         }))}

@@ -2,17 +2,21 @@
 import axios from 'axios';
 
 // API base configuration optimized for hybrid development
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+// CRITICAL FIX: Use relative URLs in production to avoid redirect loops
+// Frontend should use /api/ which gets proxied by Nginx to backend
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? '/api'  // Use relative URL in production - Nginx handles proxy
+  : (process.env.NEXT_PUBLIC_API_URL || 'http://192.168.88.167:8000/api');
 
 // CHANGE: Helper for token refresh - use internal API route in hybrid mode
-const getTokenRefreshUrl = () => {
-  // In hybrid development mode, use Next.js internal proxy for token refresh
-  // This avoids CORS and proxy issues
-  if (typeof window !== 'undefined' && window.location.hostname === 'dienynas.mokyklaatradimai.lt') {
-    return '/api/users/token/refresh/'; // Use Next.js rewrite proxy
-  }
-  return `${API_BASE_URL}/users/token/refresh/`; // Direct backend call
-};
+// const getTokenRefreshUrl = () => { // Commented out as not used
+//   // In hybrid development mode, use Next.js internal proxy for token refresh
+//   // This avoids CORS and proxy issues
+//   if (typeof window !== 'undefined' && window.location.hostname === 'dienynas.mokyklaatradimai.lt') {
+//     return '/api/users/token/refresh/'; // Use Next.js rewrite proxy
+//   }
+//   return `${API_BASE_URL}/users/token/refresh/`; // Direct backend call
+// };
 
 // Create axios instance
 const api = axios.create({
@@ -20,21 +24,17 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // SEC-001: Enable credentials for cookie-based authentication
+  withCredentials: true,
 });
 
-// Request interceptor to add auth token and current role
+// SEC-001: Request interceptor updated for cookie-based authentication
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // SEC-011: Role validation is now handled server-side by RoleValidationMiddleware
+    // No need to send X-Current-Role header - backend determines role from JWT token
+    // This ensures security by preventing client-side role manipulation
     
-    // CHANGE: Pridėti current role header jei yra
-    const currentRole = localStorage.getItem('current_role');
-    if (currentRole) {
-      config.headers['X-Current-Role'] = currentRole;
-    }
     
     return config;
   },
@@ -43,80 +43,65 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token refresh and role validation
+// SEC-001: Response interceptor with simple redirect handling
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // CHANGE: Handle 401 (Unauthorized) - token refresh
+    console.log('🔐 API DEBUG: Interceptor error:', error.response?.status, error.config?.url);
+
+    // Handle 401 (Unauthorized) - simple auto-logout
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      try {
-        const refreshToken = localStorage.getItem('refresh_token');
-        if (refreshToken) {
-          // CHANGE: Use smart token refresh URL for hybrid development mode
-          const refreshUrl = getTokenRefreshUrl();
-          
-          const response = await axios.post(refreshUrl, {
-            refresh: refreshToken,
-          });
-          
-          const { access } = response.data;
-          localStorage.setItem('access_token', access);
-          
-          originalRequest.headers.Authorization = `Bearer ${access}`;
-          return api(originalRequest);
+      console.log('🔐 API DEBUG: 401 error, current path:', window.location.pathname);
+
+      // Prevent redirect loops - only redirect if not already on login page
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/login')) {
+        console.log('🔐 API DEBUG: Redirecting to login page');
+        // Simple logout - clear cookies and redirect
+        try {
+          await api.post('/users/logout/');
+        } catch {
+          // Logout API failed - continue with redirect
         }
-      } catch {
-        // CHANGE: Clear all auth data on refresh failure
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('current_role');
-        localStorage.removeItem('auth-storage');
+
+        // Direct redirect to login
         window.location.href = '/auth/login';
+      } else {
+        console.log('🔐 API DEBUG: Already on login page, not redirecting');
       }
+      return Promise.reject(error);
     }
 
-    // CHANGE: Handle 403 (Forbidden) - role validation issue
+    // Handle 403 (Forbidden) - role validation issue
     if (error.response?.status === 403 && !originalRequest._retry) {
       originalRequest._retry = true;
       
-      // Try to refresh user data and role
-      try {
-        const userResponse = await api.get('/users/me/');
-        const user = userResponse.data;
-        
-        // Update current role if missing or invalid
-        const currentRole = localStorage.getItem('current_role');
-        if (!currentRole || !user.roles?.includes(currentRole)) {
-          // Set to default role or first available role
-          const newRole = user.default_role || user.roles?.[0];
-          if (newRole) {
-            localStorage.setItem('current_role', newRole);
-            originalRequest.headers['X-Current-Role'] = newRole;
-          }
-        }
-        
-        return api(originalRequest);
-      } catch {
-        // If user data fetch fails, redirect to login
-        localStorage.clear();
+      // ROLE SWITCHING TOKEN LOGIC: Tiesioginis redirect į login
+      // Nereikia role refresh - backend'as tikrina ar role egzistuoja token'e
+      // Jei 403, tai reiškia kad role nėra token'e arba token'as neteisingas
+      
+      // ✅ Tiesioginis redirect į login:
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/login')) {
         window.location.href = '/auth/login';
       }
+      return Promise.reject(error);
     }
 
     return Promise.reject(error);
   }
 );
 
-// Authentication API
+// SEC-001: Authentication API updated for cookie-based authentication
 export const authAPI = {
   login: (credentials: { email: string; password: string }) =>
     api.post('/users/token/', credentials),
-  refresh: (refreshToken: string) =>
-    api.post('/users/token/refresh/', { refresh: refreshToken }),
+  refresh: () =>
+    api.post('/users/token/refresh/'), // SEC-001: No need to pass refresh token - handled by cookies
+  logout: () =>
+    api.post('/users/logout/'), // SEC-001: New logout endpoint
   me: () => api.get('/users/me/'),
 };
 

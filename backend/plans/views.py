@@ -456,10 +456,14 @@ class IMUPlanViewSet(viewsets.ModelViewSet):
         CHANGE: Pridėtas X-Current-Role header palaikymas
         CHANGE: Pridėtas student_id filtravimas iš query parametrų
         """
-        # CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
-        current_role = self.request.headers.get('X-Current-Role')
+        # SEC-011: Naudojame server-side role validation vietoj manipuliuojamo header dabartinės rolės nustatymui
+        current_role = getattr(self.request, 'current_role', None)
         if not current_role:
             current_role = getattr(self.request.user, 'default_role', None)
+        
+        print(f'🔍 IMUPLAN: get_queryset called - User: {self.request.user.email}, Current role: {current_role}')
+        print(f'🔍 IMUPLAN: Request path: {self.request.path}')
+        print(f'🔍 IMUPLAN: Query params: {dict(self.request.query_params)}')
         
         queryset = super().get_queryset()
         
@@ -491,7 +495,9 @@ class IMUPlanViewSet(viewsets.ModelViewSet):
             # Kuratorius mato savo kuruojamų studentų IMU planus
             from crm.models import StudentCurator
             curated_students = StudentCurator.objects.filter(curator=self.request.user).values_list('student', flat=True)
+            print(f'👥 IMUPLAN: Curator {self.request.user.email} has curated students: {list(curated_students)}')
             queryset = queryset.filter(student__in=curated_students)
+            print(f'📊 IMUPLAN: Filtered queryset count: {queryset.count()}')
         elif current_role != 'manager':
             # Jei ne manager ir ne kita žinoma rolė, grąžinti tuščią queryset
             queryset = queryset.none()

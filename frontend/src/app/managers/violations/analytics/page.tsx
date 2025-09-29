@@ -7,11 +7,13 @@
 'use client';
 
 import React from 'react';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 import { ArrowLeft, Construction } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CuratorViolationsAnalyticsPage() {
   return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['manager']}>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200">
@@ -52,5 +54,6 @@ export default function CuratorViolationsAnalyticsPage() {
         </div>
       </div>
     </div>
+    </ClientAuthGuard>
   );
 }

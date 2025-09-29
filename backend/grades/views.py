@@ -74,8 +74,8 @@ class GradeViewSet(viewsets.ModelViewSet):
         Filtruojame vertinimus pagal parametrus ir dabartinę rolę
         CHANGE: Pridėtas filtravimas ir X-Current-Role header palaikymas
         """
-        # CHANGE: Naudojame X-Current-Role header dabartinės rolės nustatymui
-        current_role = self.request.headers.get('X-Current-Role')
+        # SEC-011: Naudojame server-side role validation vietoj manipuliuojamo header dabartinės rolės nustatymui
+        current_role = getattr(self.request, 'current_role', None)
         if not current_role:
             current_role = getattr(self.request.user, 'default_role', None)
         

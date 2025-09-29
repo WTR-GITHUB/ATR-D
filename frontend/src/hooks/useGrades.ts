@@ -51,6 +51,13 @@ export const useGrades = (): UseGradesReturn => {
     setError(null);
     
     try {
+      // CHANGE: Validuojame parametrus prieš naudojimą
+      if (!studentId || !lessonId) {
+        console.error('❌ useGrades: Trūksta privalomų parametrų:', { studentId, lessonId });
+        setIsLoading(false);
+        return null;
+      }
+      
       // CHANGE: Sukuriame URL parametrus vertinimo paieškai
       const params = new URLSearchParams({
         student: studentId.toString(),

@@ -5,6 +5,8 @@ import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import LessonForm from '@/components/forms/LessonForm';
 
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
+
 export default function EditLessonPage() {
   const router = useRouter();
   const params = useParams();
@@ -21,11 +23,13 @@ export default function EditLessonPage() {
   };
 
   return (
-    <LessonForm
-      mode="edit"
-      lessonId={lessonId}
-      onSuccess={handleSuccess}
-      onCancel={handleCancel}
-    />
+    <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
+      <LessonForm
+        mode="edit"
+        lessonId={lessonId}
+        onSuccess={handleSuccess}
+        onCancel={handleCancel}
+      />
+    </ClientAuthGuard>
   );
 }

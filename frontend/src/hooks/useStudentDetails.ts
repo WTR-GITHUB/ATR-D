@@ -24,7 +24,7 @@ interface StudentDetails {
 }
 
 export const useStudentDetails = (studentId: string) => {
-  const { token, isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user } = useAuth(); // SEC-001: Remove token - handled by cookies
   const [student, setStudent] = useState<StudentDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +32,7 @@ export const useStudentDetails = (studentId: string) => {
 
   useEffect(() => {
     const fetchStudentDetails = async () => {
-      if (!isAuthenticated || !token || !user) {
+      if (!isAuthenticated || !user) { // SEC-001: Remove token check - handled by cookies
         setLoading(false);
         return;
       }
@@ -70,7 +70,7 @@ export const useStudentDetails = (studentId: string) => {
     };
 
     fetchStudentDetails();
-  }, [isAuthenticated, token, user, studentId]);
+  }, [isAuthenticated, user, studentId]); // SEC-001: Remove token dependency - handled by cookies
 
   return {
     student,

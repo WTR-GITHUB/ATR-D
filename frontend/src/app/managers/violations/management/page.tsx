@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 import { useAuth } from '@/hooks/useAuth';
 import { ReactDataTable } from '@/components/DataTable';
 import { violationAPI } from '@/lib/api';
@@ -383,6 +384,7 @@ export default function ManagerViolationsManagementPage() {
   }
 
   return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['manager']}>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200">
@@ -550,5 +552,6 @@ export default function ManagerViolationsManagementPage() {
         autoCloseDelay={notificationModal.options.autoCloseDelay}
       />
     </div>
+    </ClientAuthGuard>
   );
 }

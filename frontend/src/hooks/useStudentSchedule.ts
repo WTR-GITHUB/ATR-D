@@ -48,9 +48,20 @@ export const useStudentSchedule = (params: UseStudentScheduleParams): UseStudent
   const [count, setCount] = useState<number>(0);
 
   const fetchStudentSchedule = useCallback(async () => {
-    if (!params.enabled || !params.weekStartDate || !params.studentId) return;
+    if (!params.enabled || !params.weekStartDate || !params.studentId) {
+      console.log('🔄 STUDENT_SCHEDULE: Skipping fetch - missing params:', {
+        enabled: params.enabled,
+        weekStartDate: params.weekStartDate,
+        studentId: params.studentId
+      });
+      return;
+    }
 
     try {
+      console.log('📤 STUDENT_SCHEDULE: Fetching schedule for student:', {
+        studentId: params.studentId,
+        weekStartDate: params.weekStartDate
+      });
       setIsLoading(true);
       setError(null);
 
@@ -61,13 +72,24 @@ export const useStudentSchedule = (params: UseStudentScheduleParams): UseStudent
         }
       });
       
+      console.log('✅ STUDENT_SCHEDULE: Response received:', {
+        count: response.data.count,
+        studentName: response.data.student_name,
+        resultsLength: response.data.results?.length || 0
+      });
+      
       setScheduleItems(response.data.results || []);
       setStudentName(response.data.student_name || '');
       setCount(response.data.count || 0);
       
     } catch (err: unknown) {
-      console.error('❌ Klaida gaunant studento tvarkaraščio duomenis:', err);
-      const error = err as { response?: { data?: { error?: string } } };
+      console.error('❌ STUDENT_SCHEDULE: Error fetching schedule:', err);
+      const error = err as { response?: { data?: { error?: string }, status?: number } };
+      console.error('❌ STUDENT_SCHEDULE: Error details:', {
+        status: error.response?.status,
+        error: error.response?.data?.error,
+        fullError: error
+      });
       setError(error.response?.data?.error || 'Nepavyko gauti studento tvarkaraščio duomenų');
       setScheduleItems([]);
       setStudentName('');

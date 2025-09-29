@@ -1,288 +1,294 @@
 // /frontend/src/hooks/useAuth.ts
+// Simple authentication hook - no Context, no AuthManager
 'use client';
 
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { authAPI } from '@/lib/api';
-import { User, LoginCredentials, AuthResponse, UserRole } from '@/lib/types';
+import { useState, useEffect, useCallback } from 'react';
+
+interface User {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  roles: string[];
+  default_role: string;
+  current_role?: string; // Dabartinė aktyvi rolė (iš token'o)
+  is_active: boolean;
+  date_joined: string;
+}
 
 interface AuthState {
   user: User | null;
-  token: string | null;
-  refreshToken: string | null;
-  isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  currentRole: string | null; // Dabartinė aktyvi rolė
+  currentRole: string | null;
+  isRoleSwitching: boolean; // NEW: Loading state for role switching
 }
 
-interface AuthActions {
-  login: (credentials: LoginCredentials) => Promise<void>;
-  logout: () => void;
-  setUser: (user: User) => void;
-  setError: (error: string | null) => void;
-  setLoading: (loading: boolean) => void;
-  clearError: () => void;
-  initializeAuth: () => Promise<void>;
-  refreshAuthToken: () => Promise<boolean>;
-  getCurrentUserId: () => number | null;
-  setCurrentRole: (role: string) => void; // Nustatyti dabartinę rolę
-  getCurrentRole: () => string | null; // Gauti dabartinę rolę
-}
+/**
+ * Simple useAuth hook with direct API calls
+ * No complex state management - just basic auth functionality
+ */
+export function useAuth() {
+  const [authState, setAuthState] = useState<AuthState>({
+    user: null,
+    isLoading: true,
+    error: null,
+    currentRole: null,
+    isRoleSwitching: false, // NEW: Initialize role switching state
+  });
 
-type AuthStore = AuthState & AuthActions;
+  const validateAuth = useCallback(async () => {
+    try {
+      // OPTIMIZATION: Skip validation if role switching is in progress
+      if (authState.isRoleSwitching) {
+        // console.log('🔐 AUTH: Skipping validation - role switching in progress');
+        return;
+      }
 
-export const useAuth = create<AuthStore>()(
-  persist(
-    (set, get) => ({
-      // State
-      user: null,
-      token: null,
-      refreshToken: null,
-      isAuthenticated: false,
-      isLoading: false,
-      error: null,
-      currentRole: null, // Dabartinė aktyvi rolė
+      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Actions
-      login: async (credentials: LoginCredentials) => {
-        // RESET visą state prieš login
-        set({ 
-          user: null,
-          token: null,
-          refreshToken: null,
-          isAuthenticated: false,
-          isLoading: true, 
-          error: null 
+      // Check cookies for debugging (no console log)
+      // const hasCookies = document.cookie.length > 0;
+      
+      // SIMPLIFIED: Only call /api/users/me/ - it will handle authentication internally
+      let userResponse;
+      try {
+        console.log('🔐 AUTH DEBUG: Making request to /api/users/me/');
+        userResponse = await fetch('/api/users/me/', {
+          credentials: 'include',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        });
+        console.log('🔐 AUTH DEBUG: Response status:', userResponse.status);
+        console.log('🔐 AUTH DEBUG: Response ok:', userResponse.ok);
+      } catch (error) {
+        // Network error - user not authenticated
+        console.log('🔐 AUTH DEBUG: Network error:', error);
+        userResponse = { ok: false };
+      }
+
+      if (userResponse.ok && 'json' in userResponse) {
+        const userData: User = await userResponse.json();
+        
+        // ROLE SWITCHING TOKEN LOGIC: Naudoti current_role iš backend
+        let currentRole = userData.current_role || userData.default_role || userData.roles[0] || null;
+
+        // SEC-011: No localStorage needed - role is managed server-side
+        // Role information comes from JWT token via RoleValidationMiddleware
+
+        setAuthState({
+          user: userData,
+          isLoading: false,
+          error: null,
+          currentRole,
+          isRoleSwitching: false,
         });
         
-        try {
-          // CHANGE: AGRESYVIAI išvalyti senus duomenis PRISIJUNGIMO pradžioje
-          // Tai užtikrina, kad naujas vartotojas negaus ankstesnio vartotojo duomenų
-          if (typeof window !== 'undefined') {
-            localStorage.clear();
-            sessionStorage.clear();
-            // Taip pat išvalykime Zustand persist cache
-            localStorage.removeItem('auth-storage');
-            sessionStorage.removeItem('auth-storage');
-          }
-          
-          const response = await authAPI.login(credentials);
-          const { access, refresh }: AuthResponse = response.data;
-          
-          
-          // Store tokens in localStorage (only on client side)
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('access_token', access);
-            localStorage.setItem('refresh_token', refresh);
-          }
-          
-          // Fetch user data from backend
-          try {
-            const userResponse = await authAPI.me();
-            const user = userResponse.data;
-            
-            
-            // CHANGE: Nustatyti currentRole pagal default_role
-            const initialRole = user.default_role || user.roles?.[0] || null;
-            
-            // CHANGE: Išsaugoti currentRole į localStorage
-            if (typeof window !== 'undefined' && initialRole) {
-              localStorage.setItem('current_role', initialRole);
-            }
-            
-            set({
-              user,
-              token: access,
-              refreshToken: refresh,
-              isAuthenticated: true,
-              isLoading: false,
-              currentRole: initialRole, // Nustatyti dabartinę rolę
-            });
-          } catch {
-            // CHANGE: Improved error handling for user data fetching
-            // If fetching user data fails, use basic info from login
-            const user = {
-              id: 0,
-              email: credentials.email,
-              first_name: '',
-              last_name: '',
-              roles: ['student'] as UserRole[],
-              is_active: true,
-              date_joined: new Date().toISOString(),
-            };
-            
-            set({
-              user,
-              token: access,
-              refreshToken: refresh,
-              isAuthenticated: true,
-              isLoading: false,
-            });
-          }
-        } catch (error: unknown) {
-          // CHANGE: Type-safe error handling for login errors
-          const errorMessage = error && typeof error === 'object' && 'response' in error 
-            ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Login failed'
-            : 'Login failed';
-          
-          set({
-            error: errorMessage,
-            isLoading: false,
-          });
-          throw error;
-        }
-      },
-
-      logout: () => {
-        if (typeof window !== 'undefined') {
-          // CHANGE: Išvalyti VISUS duomenis iš localStorage ir sessionStorage
-          // Tai užtikrina, kad kitas vartotojas negaus ankstesnio vartotojo duomenų
-          localStorage.clear();
-          sessionStorage.clear();
-          // CHANGE: Išvalyti current_role
-          localStorage.removeItem('current_role');
-        }
-        set({
+      } else {
+        // User data fetch failed - not authenticated
+        setAuthState({
           user: null,
-          token: null,
-          refreshToken: null,
-          isAuthenticated: false,
+          isLoading: false,
           error: null,
-          currentRole: null, // Išvalyti dabartinę rolę
+          currentRole: null,
+          isRoleSwitching: false,
         });
-        // Perkrauti puslapį į root po logout
-        window.location.href = '/';
-      },
-
-      setUser: (user: User) => {
-        set({ user });
-      },
-
-      setError: (error: string | null) => {
-        set({ error });
-      },
-
-      setLoading: (loading: boolean) => {
-        set({ isLoading: loading });
-      },
-
-      clearError: () => {
-        set({ error: null });
-      },
-
-      // CHANGE: Pridėta pagalbinė funkcija dabartinio vartotojo ID gavimui
-      getCurrentUserId: () => {
-        const user = get().user;
-        return user?.id || null;
-      },
-
-      // CHANGE: Pridėtos funkcijos dabartinės rolės valdymui
-      setCurrentRole: (role: string) => {
-        set({ currentRole: role });
-        // CHANGE: Išsaugoti currentRole į localStorage API užklausoms
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('current_role', role);
-        }
-      },
-
-      getCurrentRole: () => {
-        const { currentRole, user } = get();
-        // Grąžina dabartinę rolę arba default_role arba pirmąją rolę
-        return currentRole || user?.default_role || user?.roles?.[0] || null;
-      },
-
-      // CHANGE: Added new method to handle token refresh with better error handling
-      refreshAuthToken: async () => {
-        try {
-          const refreshToken = get().refreshToken;
-          if (!refreshToken) {
-            return false;
-          }
-
-          const response = await authAPI.refresh(refreshToken);
-          const { access } = response.data;
-          
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('access_token', access);
-          }
-          
-          set({ token: access });
-          return true;
-        } catch {
-          // Refresh failed, clear auth state
-          get().logout();
-          return false;
-        }
-      },
-
-      // Initialize user data from stored token
-      initializeAuth: async () => {
-        // CHANGE: Improved initialization to handle server-side rendering better
-        if (typeof window === 'undefined') {
-          // Server-side: set loading to false without trying to access localStorage
-          set({ isLoading: false });
-          return;
-        }
-
-        const token = localStorage.getItem('access_token');
-        if (token) {
-          try {
-            const userResponse = await authAPI.me();
-            const user = userResponse.data;
-            
-            // CHANGE: Validate and set current role on initialization
-            const currentRole = localStorage.getItem('current_role');
-            let validRole = currentRole;
-            
-            // If no current role or role is not in user's roles, set to default
-            if (!currentRole || !user.roles?.includes(currentRole)) {
-              validRole = user.default_role || user.roles?.[0] || null;
-              if (validRole) {
-                localStorage.setItem('current_role', validRole);
-              }
-            }
-            
-            set({
-              user,
-              token,
-              refreshToken: localStorage.getItem('refresh_token'),
-              isAuthenticated: true,
-              isLoading: false,
-              currentRole: validRole, // CHANGE: Set current role on init
-            });
-          } catch {
-            // CHANGE: Better error handling - try to refresh token first
-            const refreshSuccess = await get().refreshAuthToken();
-            if (!refreshSuccess) {
-              // Token is invalid, clear storage
-              localStorage.removeItem('access_token');
-              localStorage.removeItem('refresh_token');
-              localStorage.removeItem('current_role');
-              localStorage.removeItem('auth-storage');
-              set({
-                user: null,
-                token: null,
-                refreshToken: null,
-                isAuthenticated: false,
-                isLoading: false,
-                currentRole: null, // CHANGE: Clear current role on logout
-              });
-            }
-          }
-        } else {
-          set({ isLoading: false });
-        }
-      },
-    }),
-    {
-      name: 'auth-storage',
-      partialize: (state) => ({
-        user: state.user,
-        token: state.token,
-        refreshToken: state.refreshToken,
-        isAuthenticated: state.isAuthenticated,
-      }),
+        return;
+      }
+    } catch {
+      // Authentication validation failed - user not logged in
+      setAuthState({
+        user: null,
+        isLoading: false,
+        error: null,
+        currentRole: null,
+        isRoleSwitching: false,
+      });
     }
-  )
-); 
+  }, [authState.isRoleSwitching]);
+
+  // Validate authentication on mount
+  useEffect(() => {
+    validateAuth();
+  }, [validateAuth]);
+
+  // CRITICAL FIX: Listen for role changes from other components
+  useEffect(() => {
+    const handleRoleChange = (event: CustomEvent) => {
+      const { role } = event.detail;
+      setAuthState(prev => ({ ...prev, currentRole: role }));
+    };
+
+    window.addEventListener('roleChanged', handleRoleChange as EventListener);
+    return () => {
+      window.removeEventListener('roleChanged', handleRoleChange as EventListener);
+    };
+  }, []);
+
+  const login = async (credentials: { email: string; password: string }) => {
+    try {
+      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
+      // console.log('🔐 Logging in...');
+
+      const response = await fetch('/api/users/token/', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify(credentials),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Login failed');
+      }
+
+      // After successful login, get user data
+      await validateAuth();
+      // console.log('✅ Login successful!');
+      return true;
+    } catch (error) {
+      setAuthState(prev => ({
+        ...prev,
+        isLoading: false,
+        error: error instanceof Error ? error.message : 'Login failed',
+      }));
+      return false;
+    }
+  };
+
+  const logout = async () => {
+    // console.log('👋 Logging out...');
+    try {
+      await fetch('/api/users/logout/', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      });
+    } catch {
+      // Logout API failed - continue with local logout
+    }
+
+    // Clear state regardless of API success
+    setAuthState({
+      user: null,
+      isLoading: false,
+      error: null,
+      currentRole: null,
+      isRoleSwitching: false,
+    });
+
+    // console.log('✅ Logout successful!');
+    // Redirect to login
+    window.location.href = '/auth/login';
+  };
+
+  const switchRole = useCallback(async (role: string) => {
+    if (!authState.user || !authState.user.roles.includes(role)) {
+      return false;
+    }
+
+    try {
+      // OPTIMIZATION: Set loading state to prevent validation loops
+      setAuthState(prev => ({ ...prev, isRoleSwitching: true }));
+
+      // ROLE SWITCHING TOKEN LOGIC: Naudoti naują backend API
+      const response = await fetch('/api/users/switch-role/', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({ role }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Role switch failed');
+      }
+
+      const data = await response.json();
+      
+      // ✅ COOKIE REWRITE LOGIC: Backend automatiškai perrašo cookie'us
+      // Backend siunčia naujus cookie'us su Set-Cookie header'iais
+      // Frontend tiesiog atnaujina state su nauja current_role
+      
+      // ✅ Atnaujinti frontend state su nauja current_role:
+      setAuthState(prev => ({ 
+        ...prev, 
+        currentRole: data.current_role || role,
+        isRoleSwitching: false 
+      }));
+      
+      // ✅ Broadcast role change event:
+      window.dispatchEvent(new CustomEvent('roleChanged', { 
+        detail: { role: data.current_role || role, timestamp: Date.now() } 
+      }));
+      
+      // console.log(`🔄 Role switched to: ${data.current_role || role}`);
+      return true;
+    } catch (error) {
+      setAuthState(prev => ({ ...prev, isRoleSwitching: false }));
+      console.error('Role switch failed:', error);
+      return false;
+    }
+  }, [authState.user]);
+
+  const redirectToDashboard = () => {
+    if (!authState.user) {
+      return;
+    }
+
+    // ROLE SWITCHING TOKEN LOGIC: Naudoti current_role iš token'o
+    const role = authState.currentRole || authState.user.current_role || authState.user.default_role || authState.user.roles[0];
+
+    switch (role) {
+      case 'manager':
+        window.location.href = '/managers';
+        break;
+      case 'curator':
+        window.location.href = '/curators';
+        break;
+      case 'mentor':
+        window.location.href = '/mentors';
+        break;
+      case 'parent':
+        window.location.href = '/parents';
+        break;
+      case 'student':
+        window.location.href = '/students';
+        break;
+      default:
+        window.location.href = '/';
+    }
+  };
+
+  return {
+    // State
+    user: authState.user,
+    isLoading: authState.isLoading,
+    error: authState.error,
+    currentRole: authState.currentRole,
+    isAuthenticated: !!authState.user,
+    isRoleSwitching: authState.isRoleSwitching, // NEW: Expose role switching state
+
+    // Actions
+    login,
+    logout,
+    switchRole,
+    redirectToDashboard,
+    validateAuth,
+
+    // Utilities
+    getCurrentUserId: () => authState.user?.id || null,
+    getCurrentRole: () => authState.currentRole || authState.user?.default_role || null,
+  };
+}
+
+export default useAuth;

@@ -8,7 +8,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-// import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -83,8 +83,10 @@ async function fetchLevels(): Promise<Level[]> {
   return response.data;
 }
 
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
+
 export default function CreateLessonSequencePage() {
-  // useAuth();
+  useAuth(); // ROLE SWITCHING FIX: Iškviečia useAuth hook'ą
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -307,17 +309,20 @@ export default function CreateLessonSequencePage() {
 
   if (isLoadingData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Kraunama...</p>
+      <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Kraunama...</p>
+          </div>
         </div>
-      </div>
+      </ClientAuthGuard>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center space-x-4">
         <Button
@@ -470,6 +475,7 @@ export default function CreateLessonSequencePage() {
         autoClose={notificationModal.options.autoClose}
         autoCloseDelay={notificationModal.options.autoCloseDelay}
       />
-    </div>
+      </div>
+    </ClientAuthGuard>
   );
 }

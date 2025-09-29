@@ -6,11 +6,20 @@
 // CHANGE: Backend'as automatiškai priskiria pozicijas pagal masyvo indeksą
 // CHANGE: Pridėtas saugumo patikrinimas items laukui - naudojamas fallback tuščiam masyvui jei backend'as nepateikia
 // CHANGE: Suvienodintas dizainas su create puslapiu - naudojamas LessonDualListTransfer komponentas
+// CHANGE: Automatiškai pašalinamos ištrintos pamokos iš plano - nereikia patvirtinimo modalų
+// CHANGE: Parodomas įspėjimas apie automatiškai pašalintas pamokas
+// ATNAUJINTA LOGIKA (2024-12-19):
+// - Perduodamas subjectId ir levelId į LessonDualListTransfer
+// - Pašalintas dubliavimasis filtravimas - availableLessons nefiltruojami pagal dalyką/lygį
+// - Filtravimas pagal dalyką ir lygį vykdomas tik LessonDualListTransfer komponente
+// - Tikrai ištrintos pamokos pašalinamos automatiškai
+// - Rodyti įspėjimą tik apie tikrai ištrintas pamokas iš DB
+// - Ištaisytas duomenų struktūros neatitikimas - handleLessonSequenceChange naudoja item.lesson
 
 'use client';
 
 import React, { useState, useEffect } from 'react';
-// import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useRouter, useParams } from 'next/navigation';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -123,8 +132,10 @@ async function fetchPlan(planId: string): Promise<LessonSequence> {
   }
 }
 
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
+
 export default function EditLessonSequencePage() {
-  // useAuth();
+  useAuth(); // ROLE SWITCHING FIX: Iškviečia useAuth hook'ą
   const router = useRouter();
   const params = useParams();
   const planId = params.id as string;
@@ -146,7 +157,6 @@ export default function EditLessonSequencePage() {
   // Modal hooks
   const {
     confirmationModal,
-    showConfirmation,
     closeConfirmation,
     notificationModal,
     closeNotification,
@@ -189,6 +199,7 @@ export default function EditLessonSequencePage() {
         }
 
         
+        
         setAvailableLessons(lessonsData);
         setSubjects(subjectsData);
         setLevels(levelsData);
@@ -223,22 +234,8 @@ export default function EditLessonSequencePage() {
     }
   }, [planId, showError]);
 
-  // Filter lessons when subject or level changes
-  useEffect(() => {
-    async function filterLessons() {
-      try {
-        const filteredLessons = await fetchMentorLessons(formData.subject, formData.level);
-        setAvailableLessons(filteredLessons);
-      } catch (error) {
-        console.error('Klaida filtruojant pamokas:', error);
-      }
-    }
-
-    // Only filter if we have initial data loaded
-    if (!isLoadingData) {
-      filterLessons();
-    }
-  }, [formData.subject, formData.level, isLoadingData]);
+  // NEPERKRAUNIAME availableLessons kai keičiasi dalykas/lygis
+  // Filtravimas vykdomas LessonDualListTransfer komponente
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -246,16 +243,28 @@ export default function EditLessonSequencePage() {
 
   // Handle lesson sequence changes from the dual list component
   const handleLessonSequenceChange = (selected: Record<string, unknown>[] | LessonSequenceItem[]) => {
+    
     // Type guard to ensure we have LessonSequenceItemDisplay[]
-    const lessonItems = selected.map(item => ({
-      id: Number(item.id),
-      lesson: Number(item.id), // Use id as lesson ID for LessonSequenceItemDisplay
-      title: String(item.title),
-      subject: String(item.subject),
-      levels: String(item.levels || 'Nenurodyta'),
-      topic: String(item.topic),
-      position: Number(item.position) || 0
-    })) as LessonSequenceItemDisplay[];
+    const lessonItems = selected.map(item => {
+      // Debug logging
+      
+      // Check if item already has lesson field (from LessonSequenceItemDisplay)
+      const lessonId = (item as Record<string, unknown>).lesson 
+        ? Number((item as Record<string, unknown>).lesson)
+        : Number(item.id); // Fallback to id for LessonSequenceItem
+      
+      const result = {
+        id: Number(item.id),
+        lesson: lessonId, // Use lesson field if available, fallback to id
+        title: String(item.title),
+        subject: String(item.subject),
+        levels: String(item.levels || 'Nenurodyta'),
+        topic: String(item.topic),
+        position: Number(item.position) || 0
+      };
+      
+      return result;
+    }) as LessonSequenceItemDisplay[];
     
     setSelectedLessons(lessonItems);
   };
@@ -273,70 +282,30 @@ export default function EditLessonSequencePage() {
       return;
     }
 
-    // Patikriname ar visos pamokos egzistuoja availableLessons masyve
-    const invalidLessons = selectedLessons.filter(item => 
-      !availableLessons.some(lesson => lesson.id === item.lesson)
-    );
-    
-    if (invalidLessons.length > 0) {
-      console.warn(`Rasta ${invalidLessons.length} pamokų, kurios nėra availableLessons masyve:`, invalidLessons);
-      
-      // Patikriname ar tai ištrintos pamokos
-      const deletedLessonIds = invalidLessons.map(lesson => lesson.lesson);
-      console.warn(`Pamokų ID, kurios gali būti ištrintos: ${deletedLessonIds.join(', ')}`);
-      
-      // Parodyti vartotojui pranešimą apie ištrintas pamokas
-      const confirmMessage = `Rasta ${invalidLessons.length} pamokų, kurios gali būti ištrintos arba neegzistuoti.\n\n` +
-                           `Ištrintos pamokos bus automatiškai pašalintos iš plano.\n\n` +
-                           `Ar norite tęsti?`;
-      
-      showConfirmation(
-        {
-          title: 'Patvirtinimas',
-          message: confirmMessage,
-          confirmText: 'Tęsti',
-          cancelText: 'Atšaukti',
-          type: 'warning'
-        },
-        () => {
-          // Ištrinti neegzistuojančias pamokas iš selectedLessons
-          const validLessons = selectedLessons.filter(item => 
-            availableLessons.some(available => available.id === item.lesson)
-          );
-          
-          if (validLessons.length === 0) {
-            showWarning('Po ištrintų pamokų pašalinimo, plane nebeliko jokių pamokų. Prašome pridėti naujų pamokų.');
-            return;
-          }
-          
-          setSelectedLessons(validLessons);
-          console.log(`Pašalintos ${invalidLessons.length} ištrintos pamokos. Liko ${validLessons.length} galiojančių pamokų.`);
-          
-          // Continue with submission
-          continueWithSubmission();
-        }
-      );
-      return;
-    }
-
-    // Continue with submission if no invalid lessons
-    continueWithSubmission();
-  };
-
-  const continueWithSubmission = async () => {
-    // Ištrinti neegzistuojančias pamokas iš selectedLessons
+    // Automatiškai išfiltruojame ištrintas pamokas prieš išsaugant
     const validLessons = selectedLessons.filter(item => 
-      availableLessons.some(available => available.id === item.lesson)
+      availableLessons.some(lesson => lesson.id === item.lesson)
     );
     
     if (validLessons.length === 0) {
       showWarning('Po ištrintų pamokų pašalinimo, plane nebeliko jokių pamokų. Prašome pridėti naujų pamokų.');
       return;
     }
-      
-    setSelectedLessons(validLessons);
-    console.log(`Išfiltruotos neegzistuojančios pamokos. Liko ${validLessons.length} galiojančių pamokų.`);
     
+    // Atnaujiname selectedLessons su galiojančiomis pamokomis
+    if (validLessons.length !== selectedLessons.length) {
+      const removedCount = selectedLessons.length - validLessons.length;
+      setSelectedLessons(validLessons);
+      
+      // Parodyti pranešimą apie automatiškai pašalintas pamokas
+      showWarning(`Automatiškai pašalintos ${removedCount} ištrintos pamokos iš plano. Planas bus išsaugotas su galiojančiomis pamokomis.`);
+    }
+
+    // Tęsti su išsaugojimu
+    continueWithSubmission();
+  };;
+
+  const continueWithSubmission = async () => {
     // Papildomas patikrinimas - ar visos pamokos turi teisingus ID's
     if (selectedLessons.some(item => !item.id || item.id <= 0)) {
       showError('Kai kurios pamokos neturi teisingų ID. Prašome perkrauti puslapį.');
@@ -386,7 +355,6 @@ export default function EditLessonSequencePage() {
     } catch (error: unknown) {
       console.error('Klaida atnaujinant pamokų seką:', error);
       const axiosError = error as { response?: { data?: unknown } };
-      console.log('Backend response data:', axiosError.response?.data);
       
       let errorMessage = 'Įvyko klaida atnaujinant pamokų seką';
       
@@ -415,21 +383,24 @@ export default function EditLessonSequencePage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  };;
 
   if (isLoadingData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Kraunama...</p>
+      <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Kraunama...</p>
+          </div>
         </div>
-      </div>
+      </ClientAuthGuard>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center">
         <h1 className="text-2xl font-bold text-gray-900">Redaguoti ugdymo planą</h1>
@@ -528,9 +499,10 @@ export default function EditLessonSequencePage() {
                 selectedTitle="Pamokų seka"
                 isLoading={isLoadingData}
                 showDeletedWarning={true}
-                deletedLessonsCount={selectedLessons.filter(item => 
-                  !availableLessons.some(lesson => lesson.id === item.lesson)
-                ).length}
+                subjectId={formData.subject}
+                levelId={formData.level}
+                subjects={subjects}
+                levels={levels}
               />
             )}
           </CardContent>
@@ -581,6 +553,7 @@ export default function EditLessonSequencePage() {
         autoClose={notificationModal.options.autoClose}
         autoCloseDelay={notificationModal.options.autoCloseDelay}
       />
-    </div>
+      </div>
+    </ClientAuthGuard>
   );
 }

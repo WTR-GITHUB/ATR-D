@@ -178,20 +178,35 @@ export default function GradeSelector({
         notes: ''
       };
 
+
   
 
       let response;
       
       // CHANGE: Patikriname ar egzistuoja įrašas su tais pačiais parametrais
       if (currentGrade?.id) {
-        // Atnaujiname esamą vertinimą
-
-        response = await api.put(`/grades/grades/${currentGrade.id}/`, gradeData);
-
+        try {
+          // CHANGE: Pirmiausia bandome atnaujinti esamą vertinimą
+          response = await api.put(`/grades/grades/${currentGrade.id}/`, gradeData);
+        } catch (updateError: unknown) {
+          // CHANGE: Jei atnaujinimas nepavyksta (404), naudojame get_or_create
+          if (updateError && typeof updateError === 'object' && 'response' in updateError) {
+            const axiosError = updateError as { response?: { status?: number } };
+            if (axiosError.response?.status === 404) {
+              console.warn('⚠️ GradeSelector: Grade ID neegzistuoja, naudojame get_or_create');
+              // CHANGE: Išvalome currentGrade, nes jis neegzistuoja
+              // onGradeChange(null); // CHANGE: Pašalinta, nes TypeScript nesutinka su null
+              response = await api.post('/grades/grades/get_or_create/', gradeData);
+            } else {
+              throw updateError; // CHANGE: Jei kita klaida, mesti toliau
+            }
+          } else {
+            throw updateError; // CHANGE: Jei ne axios klaida, mesti toliau
+          }
+        }
       } else {
         // CHANGE: Naudojame naują get_or_create endpoint'ą
         response = await api.post('/grades/grades/get_or_create/', gradeData);
-
       }
 
       // Informuojame parent komponentą apie atnaujintą/sukurtą vertinimą
@@ -207,6 +222,9 @@ export default function GradeSelector({
           const errorData = axiosError.response.data;
           console.error('❌ GradeSelector: 400 klaidos detalės:', errorData);
           setError(`Vertinimas jau egzistuoja arba neteisingi duomenys: ${JSON.stringify(errorData)}`);
+        } else if (axiosError.response?.status === 404) {
+          console.error('❌ GradeSelector: 404 klaida - vertinimas nerastas');
+          setError('Vertinimas nerastas. Bandykite iš naujo.');
         } else {
           setError((axiosError.response?.data as { error?: string })?.error || 'Nepavyko išsaugoti vertinimo');
         }

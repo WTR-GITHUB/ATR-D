@@ -20,36 +20,42 @@ interface BaseNavigationProps {
 }
 
 const BaseNavigation: React.FC<BaseNavigationProps> = ({ isMobile = false }) => {
-  const { user, isAuthenticated, getCurrentRole } = useAuth();
+  const { user, isAuthenticated, currentRole } = useAuth();
   // usePathname();
+
+  // CHANGE: Naudoti currentRole tiesiogiai iš useAuth state
+  // Event-based role synchronization užtikrina, kad visi komponentai gauna atnaujinimus
 
   if (!isAuthenticated || !user) {
     return null;
   }
 
-  // CHANGE: Naudoti useAuth hook'o getCurrentRole funkciją vietoj atskiros logikos
-  const currentRole = getCurrentRole();
+  // CHANGE: Naudoti currentRole tiesiogiai iš useAuth state vietoj getCurrentRole funkcijos
+  // Tai užtikrins, kad komponentas per-renderinamas kai currentRole keičiasi
 
   // Rodyti atitinkamą navigation komponentą pagal rolę
   const renderNavigation = () => {
     switch (currentRole) {
       case 'manager':
-        return <ManagerNavigation isMobile={isMobile} />;
+        return <ManagerNavigation key="manager" isMobile={isMobile} />;
       case 'curator':
-        return <CuratorNavigation isMobile={isMobile} />;
+        return <CuratorNavigation key="curator" isMobile={isMobile} />;
       case 'mentor':
-        return <MentorNavigation isMobile={isMobile} />;
+        return <MentorNavigation key="mentor" isMobile={isMobile} />;
       case 'student':
-        return <StudentNavigation isMobile={isMobile} />;
+        return <StudentNavigation key="student" isMobile={isMobile} />;
       case 'parent':
-        return <ParentNavigation isMobile={isMobile} />;
+        return <ParentNavigation key="parent" isMobile={isMobile} />;
       default:
         return null;
     }
   };
 
   return (
-    <nav className={isMobile ? "flex flex-col space-y-2" : "hidden md:flex space-x-8"}>
+    <nav 
+      key={currentRole} 
+      className={isMobile ? "flex flex-col space-y-2" : "hidden md:flex space-x-8"}
+    >
       {renderNavigation()}
     </nav>
   );

@@ -20,11 +20,11 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load environment variables from .env file
-# CHANGE: Optimized for hybrid development mode
+# CHANGE: Optimized for production deployment
 # Try multiple .env file locations for flexibility
 env_paths = [
     os.path.join(os.path.dirname(__file__), '../../.env'),  # Docker mode
-    os.path.join(BASE_DIR.parent, '.env'),  # Hybrid mode (parent of backend/)
+    os.path.join(BASE_DIR.parent, '.env'),  # Production mode (parent of backend/)
     os.path.join(BASE_DIR, '.env'),  # Alternative location
 ]
 
@@ -50,51 +50,67 @@ if len(SECRET_KEY) < 50:
     raise ValueError("SECRET_KEY must be at least 50 characters long for security!")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# CHANGE: Optimized DEBUG setting for hybrid development
-DEBUG = os.getenv('DEBUG', 'True').lower() == 'true'
+# CHANGE: Production-optimized DEBUG setting
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-# Hybrid development mode detection
-HYBRID_DEV_MODE = os.getenv('HYBRID_DEV_MODE', 'True').lower() == 'true'
-if HYBRID_DEV_MODE:
-    print(f"🔄 Running in HYBRID DEVELOPMENT mode (DEBUG={DEBUG})")
+# Production mode detection
+PRODUCTION_MODE = os.getenv('PRODUCTION_MODE', 'True').lower() == 'true'
+if PRODUCTION_MODE:
+    print(f"🚀 Running in PRODUCTION mode (DEBUG={DEBUG})")
 else:
-    print(f"🐳 Running in DOCKER mode (DEBUG={DEBUG})")
+    print(f"🔄 Running in DEVELOPMENT mode (DEBUG={DEBUG})")
 
-# CHANGE: Optimized ALLOWED_HOSTS for hybrid development
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+# CHANGE: Production-optimized ALLOWED_HOSTS
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'dienynas.mokyklaatradimai.lt').split(',')
 
-# Add localhost variations for hybrid development
-if HYBRID_DEV_MODE:
-    local_hosts = ['localhost', '127.0.0.1', '0.0.0.0', 'dienynas.mokyklaatradimai.lt', 'a-dienynas-backend', 'a-dienynas-frontend', 'a-dienynas-nginx']
+# Add production domain and localhost for development
+if not PRODUCTION_MODE:
+    local_hosts = ['localhost', '127.0.0.1', '0.0.0.0', 'a-dienynas-backend', 'a-dienynas-frontend', 'a-dienynas-nginx']
     for host in local_hosts:
         if host not in ALLOWED_HOSTS:
             ALLOWED_HOSTS.append(host)
     print(f"🌐 ALLOWED_HOSTS: {ALLOWED_HOSTS}")
 
-# CHANGE: Optimized CORS for hybrid development
-CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True').lower() == 'true'
+# Always add localhost for Docker health checks
+if 'localhost' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('localhost')
+if '127.0.0.1' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('127.0.0.1')
+
+# CHANGE: Production-optimized CORS settings
+CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False').lower() == 'true'
 CORS_ALLOW_CREDENTIALS = os.getenv('CORS_ALLOW_CREDENTIALS', 'True').lower() == 'true'
 
-# CSRF Configuration for HTTPS domains
+# CSRF Configuration for production HTTPS domains
 CSRF_TRUSTED_ORIGINS = [
     "https://dienynas.mokyklaatradimai.lt",
     "http://dienynas.mokyklaatradimai.lt",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
 ]
 
-# Additional CORS settings for hybrid development
-if HYBRID_DEV_MODE:
-    CORS_ALLOWED_ORIGINS = [
+# Add development origins if not in production
+if not PRODUCTION_MODE:
+    CSRF_TRUSTED_ORIGINS.extend([
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
         "http://localhost:3000",
-        "http://127.0.0.1:3000", 
+        "http://127.0.0.1:3000",
+    ])
+
+# Production CORS settings
+if not CORS_ALLOW_ALL_ORIGINS:
+    CORS_ALLOWED_ORIGINS = [
         "https://dienynas.mokyklaatradimai.lt",
         "http://dienynas.mokyklaatradimai.lt",
     ]
-    if not CORS_ALLOW_ALL_ORIGINS:
-        print(f"🔗 CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
-    else:
-        print("🔗 CORS: Allowing all origins (development mode)")
+    # Add development origins if not in production
+    if not PRODUCTION_MODE:
+        CORS_ALLOWED_ORIGINS.extend([
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+        ])
+    print(f"🔗 CORS_ALLOWED_ORIGINS: {CORS_ALLOWED_ORIGINS}")
+else:
+    print("🔗 CORS: Allowing all origins (development mode)")
 
 # Application definition
 
@@ -132,29 +148,42 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'users.middleware.RoleValidationMiddleware',  # SEC-011: Secure role validation (after auth)
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.middleware.common.BrokenLinkEmailsMiddleware',  # CHANGE: Broken link notifications for production
 ]
+
+# Add production-specific middleware
+if PRODUCTION_MODE:
+    MIDDLEWARE.append('django.middleware.common.BrokenLinkEmailsMiddleware')  # Broken link notifications for production
 
 # SEC-001: Security headers configuration
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
-# SEC-001: HSTS headers for production
-if not DEBUG:
-    # CHANGE: Configure SSL proxy headers for nginx reverse proxy
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_SSL_REDIRECT = False  # CHANGE: Disable SSL redirect - handled by nginx
+# SEC-001: Production security settings
+if PRODUCTION_MODE:
+    # Configure SSL proxy headers for nginx reverse proxy
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')  # Trust nginx proxy headers
+    SECURE_SSL_REDIRECT = False  # Disable SSL redirect - handled by nginx
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'  # Control referrer information
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'  # COOP security header
 
-# SEC-001: Content Security Policy
+# SEC-001: Content Security Policy - Production optimized
 CSP_DEFAULT_SRC = ("'self'",)
-CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'")  # Allow inline scripts for development
-CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")  # Allow inline styles for development
+if PRODUCTION_MODE:
+    # Strict CSP for production
+    CSP_SCRIPT_SRC = ("'self'",)  # No inline scripts in production
+    CSP_STYLE_SRC = ("'self'",)   # No inline styles in production
+else:
+    # Relaxed CSP for development
+    CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'")  # Allow inline scripts for development
+    CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")   # Allow inline styles for development
+
 CSP_IMG_SRC = ("'self'", "data:", "https:")
 CSP_CONNECT_SRC = ("'self'",)
 CSP_FONT_SRC = ("'self'",)
@@ -186,20 +215,20 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Database configuration optimized for hybrid development
+# Database configuration optimized for production
 DATABASES = {
     'default': {
         'ENGINE': os.getenv('DATABASE_ENGINE', 'django.db.backends.postgresql'),
         'NAME': os.getenv('DATABASE_NAME', 'a_dienynas'),
         'USER': os.getenv('POSTGRES_USER', 'a_dienynas_user'),
         'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-        'HOST': os.getenv('DATABASE_HOST', 'localhost'),  # Works for both Docker and hybrid mode
+        'HOST': os.getenv('DATABASE_HOST', 'localhost'),
         'PORT': os.getenv('DATABASE_PORT', '5432'),
         'OPTIONS': {
             'connect_timeout': 20,  # Helpful for Docker connections
-            # CHANGE: SSL only for external databases, not for Docker containers
-            'sslmode': 'require' if not DEBUG and os.getenv('DATABASE_HOST') not in ['postgres', 'localhost', '127.0.0.1'] else 'prefer',
-        } if not DEBUG else {},
+            # Production SSL configuration
+            'sslmode': 'require' if PRODUCTION_MODE and os.getenv('DATABASE_HOST') not in ['postgres', 'localhost', '127.0.0.1'] else 'prefer',
+        } if PRODUCTION_MODE else {},
     }
 }
 
@@ -228,7 +257,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',  # JWT authentication
+        'users.authentication.JWTCookieAuthentication',  # SEC-001: Cookie-based authentication
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Fallback to header-based
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -265,10 +295,17 @@ SIMPLE_JWT = {
     
     'JTI_CLAIM': 'jti',
     
-    # Cookie Security Configuration
-    'AUTH_COOKIE_SECURE': not DEBUG,  # True in production, False in development
-    'AUTH_COOKIE_HTTP_ONLY': True,
-    'AUTH_COOKIE_SAMESITE': 'Lax',
+    # SEC-001: Cookie-based authentication settings
+    'AUTH_COOKIE_NAME': 'access_token',
+    'AUTH_COOKIE_REFRESH_NAME': 'refresh_token',
+    'AUTH_COOKIE_ACCESS_MAX_AGE': timedelta(minutes=15),  # Same as ACCESS_TOKEN_LIFETIME
+    'AUTH_COOKIE_REFRESH_MAX_AGE': timedelta(days=1),    # Same as REFRESH_TOKEN_LIFETIME
+    'AUTH_COOKIE_SECURE': PRODUCTION_MODE,  # True in production, False in development
+    'AUTH_COOKIE_HTTP_ONLY': True,   # Prevent XSS attacks
+    'AUTH_COOKIE_SAMESITE': 'Lax', # Prevent CSRF attacks, but allow cross-site requests in development
+    'AUTH_COOKIE_DOMAIN': None,      # Will be set to production domain in production
+    # SEC-001: Allow cookies to work with IP addresses in development
+    'AUTH_COOKIE_DOMAIN_DEV': None,  # No domain restriction for development
 }
 
 # Internationalization
@@ -294,7 +331,7 @@ STATICFILES_DIRS = [
     BASE_DIR / 'staticfiles',
 ]
 
-# CHANGE: Add static files security settings for production
+# Production static files security settings
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.FileSystemFinder',
@@ -310,10 +347,10 @@ MEDIA_ROOT = BASE_DIR / os.getenv('MEDIA_ROOT', 'media')  # Perkelta į .env fai
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Email configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend' if not DEBUG else 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend' if PRODUCTION_MODE else 'django.core.mail.backends.console.EmailBackend'
 
-# CHANGE: Add production email configuration
-if not DEBUG:
+# Production email configuration
+if PRODUCTION_MODE:
     EMAIL_HOST = os.getenv('EMAIL_HOST', 'localhost')
     EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
     EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
@@ -322,61 +359,41 @@ if not DEBUG:
     EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
     DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@mokyklaatradimai.lt')
     SERVER_EMAIL = DEFAULT_FROM_EMAIL
-    # CHANGE: Broken link email notifications for production
+    # Broken link email notifications for production
     MANAGERS = [
         ('Admin', os.getenv('ADMIN_EMAIL', 'admin@mokyklaatradimai.lt')),
     ]
-
-# CHANGE: Email configuration for both development and production
-EMAIL_HOST = os.getenv('EMAIL_HOST', 'localhost')
-EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
-EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@mokyklaatradimai.lt')
-SERVER_EMAIL = DEFAULT_FROM_EMAIL
+else:
+    # Development email configuration
+    EMAIL_HOST = os.getenv('EMAIL_HOST', 'localhost')
+    EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+    EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+    EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False').lower() == 'true'
+    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@mokyklaatradimai.lt')
+    SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 # Authentication settings
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
+    'users.backends.JWTAuthenticationBackend',       # JWT authentication for middleware
+    'django.contrib.auth.backends.ModelBackend',     # Traditional Django auth
 ]
 
 # SEC-001: Session cookie security settings
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = not DEBUG  # True in production, False in development
+SESSION_COOKIE_SECURE = PRODUCTION_MODE  # True in production, False in development
 SESSION_COOKIE_SAMESITE = 'Strict'
 SESSION_COOKIE_AGE = 86400  # 24 hours
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # CHANGE: Session expires when browser closes for better security
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Session expires when browser closes for better security
 
 # SEC-001: CSRF cookie security settings
 CSRF_COOKIE_HTTPONLY = True
-CSRF_COOKIE_SECURE = not DEBUG  # True in production, False in development
+CSRF_COOKIE_SECURE = PRODUCTION_MODE  # True in production, False in development
 CSRF_COOKIE_SAMESITE = 'Strict'
-CSRF_TRUSTED_ORIGINS = [
-    "https://dienynas.mokyklaatradimai.lt",
-    "http://dienynas.mokyklaatradimai.lt",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-]
 
 # SEC-001: Enhanced CORS configuration for cookie support
-CORS_ALLOW_CREDENTIALS = os.getenv('CORS_ALLOW_CREDENTIALS', 'False').lower() == 'true'
-
-# CHANGE: Use environment variable for CORS_ALLOWED_ORIGINS
-if not CORS_ALLOW_ALL_ORIGINS:
-    cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
-    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins if origin.strip()]
-    if not CORS_ALLOWED_ORIGINS:
-        # Fallback to default origins if none specified
-        CORS_ALLOWED_ORIGINS = [
-            "https://dienynas.mokyklaatradimai.lt",
-            "http://dienynas.mokyklaatradimai.lt",
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-        ]
+CORS_ALLOW_CREDENTIALS = os.getenv('CORS_ALLOW_CREDENTIALS', 'True').lower() == 'true'
 
 # Logging configuration
 LOGGING = {
@@ -400,7 +417,7 @@ LOGGING = {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'detailed',
-            'level': 'INFO' if not DEBUG else 'DEBUG',  # CHANGE: Production-safe logging level
+            'level': 'INFO' if PRODUCTION_MODE else 'DEBUG',  # Production-safe logging level
         },
     },
     'loggers': {
@@ -411,42 +428,42 @@ LOGGING = {
         },
         'django.request': {
             'handlers': ['console'],
-            'level': 'INFO' if not DEBUG else 'DEBUG',  # CHANGE: Production-safe logging level
+            'level': 'INFO' if PRODUCTION_MODE else 'DEBUG',  # Production-safe logging level
             'propagate': False,
         },
         'django.db.backends': {
             'handlers': ['console'],
-            'level': 'WARNING' if not DEBUG else 'DEBUG',  # CHANGE: Hide SQL queries in production
+            'level': 'WARNING' if PRODUCTION_MODE else 'DEBUG',  # Hide SQL queries in production
             'propagate': False,
         },
         'django.security': {
             'handlers': ['console'],
-            'level': 'INFO' if not DEBUG else 'DEBUG',  # CHANGE: Production-safe logging level
+            'level': 'INFO' if PRODUCTION_MODE else 'DEBUG',  # Production-safe logging level
             'propagate': False,
         },
         'rest_framework': {
             'handlers': ['console'],
-            'level': 'INFO' if not DEBUG else 'DEBUG',  # CHANGE: Production-safe logging level
+            'level': 'INFO' if PRODUCTION_MODE else 'DEBUG',  # Production-safe logging level
             'propagate': False,
         },
         'plans': {
             'handlers': ['console'],
-            'level': 'INFO' if not DEBUG else 'DEBUG',  # CHANGE: Production-safe logging level
+            'level': 'INFO' if PRODUCTION_MODE else 'DEBUG',  # Production-safe logging level
             'propagate': False,
         },
         'curriculum': {
             'handlers': ['console'],
-            'level': 'INFO' if not DEBUG else 'DEBUG',  # CHANGE: Production-safe logging level
+            'level': 'INFO' if PRODUCTION_MODE else 'DEBUG',  # Production-safe logging level
             'propagate': False,
         },
         'users': {
             'handlers': ['console'],
-            'level': 'INFO' if not DEBUG else 'DEBUG',  # CHANGE: Production-safe logging level
+            'level': 'INFO' if PRODUCTION_MODE else 'DEBUG',  # Production-safe logging level
             'propagate': False,
         },
         'violation': {
             'handlers': ['console'],
-            'level': 'INFO' if not DEBUG else 'DEBUG',  # CHANGE: Production-safe logging level
+            'level': 'INFO' if PRODUCTION_MODE else 'DEBUG',  # Production-safe logging level
             'propagate': False,
         },
     },
@@ -455,17 +472,12 @@ LOGGING = {
         'level': 'INFO',
     },
 }
-
-# CHANGE: Add additional security settings for production
-SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'  # Control referrer information
-SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'  # COOP security header
-
-# CHANGE: Add file upload security settings
+# Production file upload security settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB limit
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB limit
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 1000  # Prevent DoS via form fields
 
-# CHANGE: Add password hashing security
+# Production password hashing security
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.Argon2PasswordHasher',  # Most secure
     'django.contrib.auth.hashers.PBKDF2PasswordHasher',

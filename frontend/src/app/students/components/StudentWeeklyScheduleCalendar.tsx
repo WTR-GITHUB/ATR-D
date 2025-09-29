@@ -14,6 +14,7 @@ import useStudentWeeklySchedule from '@/hooks/useStudentWeeklySchedule';
 // import useSubjects from '@/hooks/useSubjects';
 import usePeriods from '@/hooks/usePeriods';
 import { useWeekInfoContext } from '@/contexts/WeekInfoContext';
+import { useAuth } from '@/hooks/useAuth';
 // CHANGE: Pataisytas import'as - ScheduleItem importuojamas iš useSchedule hook'o
 import { ScheduleItem } from '@/hooks/useSchedule';
 // CHANGE: Pridėtas import'as studentų spalvų konstantoms
@@ -173,6 +174,7 @@ const StudentWeeklyScheduleCalendar = forwardRef<WeeklyScheduleCalendarRef, Week
   // API hooks duomenų gavimui
   // useSubjects();
   const { periods } = usePeriods();
+  const { user } = useAuth();
   // Pašalinta lessonDetails logika - naudojama activities puslapyje
   
   // Savaitės informacija - use context if available
@@ -205,6 +207,7 @@ const StudentWeeklyScheduleCalendar = forwardRef<WeeklyScheduleCalendarRef, Week
   
   // CHANGE: Naudojame useStudentWeeklySchedule vietoj useWeeklySchedule
   const { scheduleItems: allScheduleItems, isLoading, error, refetch, studentInfo } = useStudentWeeklySchedule({
+    studentId: user?.id || 0,
     weekStartDate: mondayDate,
     enabled: true
   });

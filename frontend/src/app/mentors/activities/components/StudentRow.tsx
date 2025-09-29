@@ -70,6 +70,8 @@ const StudentRow: React.FC<StudentRowProps> = ({
   // CHANGE: Gaunome prisijungusio vartotojo duomenis mentorId nustatymui
   const { user } = useAuth();
   
+  // CHANGE: Debug informacija apie props (pašalinta dėl initialization error)
+  
   // CHANGE: Nustatyti ar eilutė disabled - disabled kai planned arba completed
   const isDisabled = planStatus === 'planned' || planStatus === 'completed';
   
@@ -77,9 +79,11 @@ const StudentRow: React.FC<StudentRowProps> = ({
   
   // CHANGE: Apskaičiuojame lessonId komponento lygyje
   const getLessonId = React.useCallback((): number => {
+    // CHANGE: Pirmiausia naudojame perduotą lessonId prop'ą
     if (lessonId) return lessonId;
     
-    if ('lesson' in student) {
+    // CHANGE: Jei student yra IMUPlan tipas, bandome gauti lesson iš jo
+    if (isIMUPlan && 'lesson' in student) {
       // Jei lesson yra objektas, paimame id
       if (typeof student.lesson === 'object' && student.lesson?.id) {
         return student.lesson.id;
@@ -90,23 +94,34 @@ const StudentRow: React.FC<StudentRowProps> = ({
       }
     }
     
-    return 1; // Default reikšmė
-  }, [lessonId, student]);
+    // CHANGE: Jei nieko neradome, grąžiname null vietoj default 1
+    // Tai leis backend'ui gauti tinkamą klaidą vietoj neteisingų duomenų
+    throw new Error('LessonId not found - cannot determine lesson for grade saving');
+  }, [lessonId, student, isIMUPlan]);
   
   // Pagalbinės funkcijos duomenų gavimui iš skirtingų tipų
   const getStudentId = React.useCallback((): number => {
     if (isIMUPlan) {
-      return (student as IMUPlan).student;
+      // CHANGE: Jei student yra konvertuotas iš IMUPlan, naudojame id lauką
+      const studentWithImuPlan = student as Student & { imuPlanId: number };
+      return studentWithImuPlan.id;
     }
-    return (student as Student).id;
+    const regularStudent = student as Student;
+    return regularStudent.id;
   }, [isIMUPlan, student]);
 
   const getStudentName = (): string => {
     if (isIMUPlan) {
-      return (student as IMUPlan).student_name;
+      // CHANGE: Jei student yra konvertuotas iš IMUPlan, naudojame first_name ir last_name
+      const studentWithImuPlan = student as Student & { imuPlanId: number };
+      const firstName = studentWithImuPlan.first_name || '';
+      const lastName = studentWithImuPlan.last_name || '';
+      return `${firstName} ${lastName}`.trim() || 'Nežinomas mokinys';
     }
     const s = student as Student;
-    return `${s.first_name} ${s.last_name}`;
+    const firstName = s.first_name || '';
+    const lastName = s.last_name || '';
+    return `${firstName} ${lastName}`.trim() || 'Nežinomas mokinys';
   };
 
   const getStudentStatus = (): string => {
@@ -162,14 +177,19 @@ const StudentRow: React.FC<StudentRowProps> = ({
 
         
         const studentId = getStudentId();
-        const imuPlanId = isIMUPlan ? student.id : undefined;
+        const imuPlanId = isIMUPlan ? (student as Student & { imuPlanId: number }).imuPlanId : undefined;
         
         try {
-          const grade = await getStudentGrade(studentId, getLessonId(), imuPlanId);
+          const lessonId = getLessonId();
+          const grade = await getStudentGrade(studentId, lessonId, imuPlanId);
           
           setCurrentGrade(grade);
         } catch (error) {
           console.error('❌ StudentRow: Klaida gaunant vertinimą:', error);
+          // CHANGE: Jei lessonId nerastas, nenustatome currentGrade
+          if (error instanceof Error && error.message.includes('LessonId not found')) {
+            console.warn('⚠️ StudentRow: LessonId nerastas - vertinimas negalimas');
+          }
         }
       }
     };
@@ -218,22 +238,20 @@ const StudentRow: React.FC<StudentRowProps> = ({
   // Lankomumo keitimo valdymas
   const handleAttendanceChange = async (status: AttendanceStatus) => {
     try {
-      // CHANGE: Iškviečiame backend API lankomumo statusui atnaujinti
-      const accessToken = localStorage.getItem('access_token');
-      if (!accessToken) {
-        console.error('Nėra autentifikacijos token\'o');
-        return;
-      }
+      // SEC-001: Updated for cookie-based authentication
+      // No need to check for access token - cookies handle authentication automatically
 
       // Ieškome IMU planą pagal studento ID ir global_schedule ID
       if (isIMUPlan) {
         const imuPlan = student as IMUPlan;
+        // SEC-001: Updated for cookie-based authentication
         const response = await fetch(`/api/plans/imu-plans/${imuPlan.id}/update_attendance/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
+            // SEC-001: Remove Authorization header - cookies handle authentication
           },
+          credentials: 'include', // SEC-001: Include cookies for authentication
           body: JSON.stringify({
             attendance_status: status
           })
@@ -347,18 +365,33 @@ const StudentRow: React.FC<StudentRowProps> = ({
           <div className="pt-4">
 
             
-            <GradeSelector
-              currentGrade={currentGrade} // CHANGE: Dabar perduodame tikrą esamą vertinimą
-              onGradeChange={(grade: unknown) => {
-        
-                // CHANGE: Atnaujiname local state su nauju vertinimu
-                setCurrentGrade(grade as Grade);
-              }}
-              studentId={getStudentId()}
-                                    lessonId={getLessonId()} // CHANGE: Naudojame apskaičiuotą lessonId
-              imuPlanId={isIMUPlan ? student.id : undefined}
-              mentorId={user?.id || 82} // CHANGE: Naudojame tikrojo prisijungusio vartotojo ID, fallback 82
-            />
+            {(() => {
+              try {
+                const lessonId = getLessonId();
+                return (
+                  <GradeSelector
+                    currentGrade={currentGrade} // CHANGE: Dabar perduodame tikrą esamą vertinimą
+                    onGradeChange={(grade: unknown) => {
+              
+                      // CHANGE: Atnaujiname local state su nauju vertinimu
+                      setCurrentGrade(grade as Grade);
+                    }}
+                    studentId={getStudentId()}
+                    lessonId={lessonId} // CHANGE: Naudojame apskaičiuotą lessonId
+                    imuPlanId={isIMUPlan ? (student as Student & { imuPlanId: number }).imuPlanId : undefined} // CHANGE: Teisingai nustatome IMUPlan ID iš student objekto
+                    mentorId={user?.id || 82} // CHANGE: Naudojame tikrojo prisijungusio vartotojo ID, fallback 82
+                  />
+                );
+              } catch {
+                return (
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-700">
+                      ⚠️ Vertinimas negalimas: nepavyko nustatyti pamokos ID
+                    </p>
+                  </div>
+                );
+              }
+            })()}
           </div>
         </div>
       )}

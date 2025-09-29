@@ -133,4 +133,5 @@ test.json
 .cursor/
 .claude/
 .serena/
-DOCs/
+DOCS/
+docker/nginx/ssl/

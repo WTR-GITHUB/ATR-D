@@ -7,8 +7,22 @@
 // CHANGE: Integrated sequence validation and visual feedback for lesson ordering
 // CHANGE: Removed individual lesson removal functionality - pamokos can only be moved back via control buttons
 // CHANGE: Lessons remain in available list when moved to sequence - allows repeating same lesson multiple times
+// CHANGE: Automatiškai filtruojamos ištrintos pamokos iš selectedLessons - nereikia vartotojo patvirtinimo
+// ATNAUJINTA LOGIKA (2024-12-19):
+// - Pridėtas subjectId ir levelId filtravimas pagal dalyką ir lygį
+// - Filtruojamos availableLessons pagal dalyką ir lygį (internalAvailable)
+// - Tikrinamos tikrai ištrintos pamokos iš DB (nėra availableLessons sąraše)
+// - Rodyti įspėjimą tik apie tikrai ištrintas pamokas iš DB
+// - Automatiškai pašalinti ištrintas pamokas iš sekos
+// - Pašalintas dubliavimasis filtravimas - edit/[id]/page.tsx nefiltruoja availableLessons
+// - Pašalintas onSelectionChange iš useEffect dependency array (sukėlė begalinį ciklą)
+// - Pridėtas userModifiedRef - useEffect neperrašo internalSelected jei vartotojas keičė
+// - Ištaisytas duomenų struktūros neatitikimas - handleLessonSequenceChange naudoja item.lesson
+// - Pašalintas selectedLessons iš useEffect dependency array - išvengtas begalinis ciklas
+// - Atskiras useEffect selectedLessons inicializavimui
+// CHANGE: Parodomas informacinis įspėjimas apie automatiškai pašalintas pamokas
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronRight, ChevronLeft, ChevronsRight, ChevronsLeft, GripVertical } from 'lucide-react';
 
 interface Lesson {
@@ -22,6 +36,7 @@ interface Lesson {
 
 interface LessonSequenceItem {
   id: number;
+  lesson?: number; // Optional lesson ID field for compatibility
   title: string;
   subject: string;
   levels: string;
@@ -37,7 +52,10 @@ interface LessonDualListTransferProps {
   selectedTitle?: string;
   isLoading?: boolean;
   showDeletedWarning?: boolean; // Naujas prop įspėjimui apie ištrintas pamokas
-  deletedLessonsCount?: number; // Ištrintų pamokų skaičius
+  subjectId?: string; // Dalyko ID filtravimui
+  levelId?: string; // Lygio ID filtravimui
+  subjects?: Array<{id: number; name: string}>; // Dalykų sąrašas pavadinimų gavimui
+  levels?: Array<{id: number; name: string}>; // Lygių sąrašas pavadinimų gavimui
 }
 
 interface LessonItemProps {
@@ -47,7 +65,7 @@ interface LessonItemProps {
 }
 
 interface SequenceItemProps {
-  item: LessonSequenceItem;
+  item: LessonSequenceItem | Record<string, unknown>;
   isSelected: boolean;
   onSelect: (itemId: number) => void;
   onDragStart: (e: React.DragEvent, position: number) => void;
@@ -109,31 +127,39 @@ const SequenceItem: React.FC<SequenceItemProps> = ({
   draggedPosition,
   dropTargetPosition
 }) => {
+  // Type guard to handle both LessonSequenceItem and Record<string, unknown>
+  const itemId = (item as LessonSequenceItem).id || Number((item as Record<string, unknown>).id);
+  const itemPosition = (item as LessonSequenceItem).position || Number((item as Record<string, unknown>).position);
+  const itemTitle = (item as LessonSequenceItem).title || String((item as Record<string, unknown>).title);
+  const itemSubject = (item as LessonSequenceItem).subject || String((item as Record<string, unknown>).subject);
+  const itemLevels = (item as LessonSequenceItem).levels || String((item as Record<string, unknown>).levels || 'Nenurodyta');
+  const itemTopic = (item as LessonSequenceItem).topic || String((item as Record<string, unknown>).topic);
+
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    onSelect(item.id);
+    onSelect(itemId);
   };
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
-    onSelect(item.id);
+    onSelect(itemId);
   };
 
   return (
     <div
       className={`p-3 border rounded-lg flex items-center space-x-3 transition-all duration-200 cursor-move ${
-        draggedPosition === item.position
+        draggedPosition === itemPosition
           ? 'border-blue-500 bg-blue-50 shadow-lg scale-105'
-          : dropTargetPosition === item.position
+          : dropTargetPosition === itemPosition
           ? 'border-blue-400 bg-blue-100'
           : isSelected
           ? 'bg-blue-50 border-blue-300 shadow-sm'
           : 'border-gray-200 bg-white hover:bg-gray-50'
       }`}
       draggable
-      onDragStart={(e) => onDragStart(e, item.position)}
-      onDragOver={(e) => onDragOver(e, item.position)}
-      onDrop={(e) => onDrop(e, item.position)}
+      onDragStart={(e) => onDragStart(e, itemPosition)}
+      onDragOver={(e) => onDragOver(e, itemPosition)}
+      onDrop={(e) => onDrop(e, itemPosition)}
       onDragEnd={onDragEnd}
       onClick={handleClick}
     >
@@ -146,14 +172,14 @@ const SequenceItem: React.FC<SequenceItemProps> = ({
       />
       <div className="flex-1 min-w-0">
         <h4 className="font-medium text-gray-900 truncate">
-          {item.title}
+          {itemTitle}
         </h4>
         <p className="text-sm text-gray-600 truncate">
-          {item.subject} • {item.levels} • {item.topic}
+          {itemSubject} • {itemLevels} • {itemTopic}
         </p>
       </div>
       <div className="flex items-center flex-shrink-0">
-        <span className="text-sm font-medium text-gray-500">#{item.position}</span>
+        <span className="text-sm font-medium text-gray-500">#{itemPosition}</span>
       </div>
     </div>
   );
@@ -167,7 +193,10 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
   selectedTitle = "Pasirinktos pamokos",
   isLoading = false,
   showDeletedWarning = false,
-  deletedLessonsCount = 0
+  subjectId,
+  levelId,
+  subjects = [],
+  levels = []
 }) => {
   const [internalAvailable, setInternalAvailable] = useState<Lesson[]>([]);
   const [internalSelected, setInternalSelected] = useState<LessonSequenceItem[] | Record<string, unknown>[]>(selectedLessons);
@@ -175,29 +204,110 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
   const [selectedSelected, setSelectedSelected] = useState<number[]>([]);
   const [draggedPosition, setDraggedPosition] = useState<number | null>(null);
   const [dropTargetPosition, setDropTargetPosition] = useState<number | null>(null);
+  
+  // Ref to track if internalSelected was modified by user actions
+  const userModifiedRef = useRef(false);
 
   // Get scroll style based on items count
   const getScrollStyle = (itemsLength: number) => {
-    if (itemsLength <= 8) {
+    // Maksimalus aukštis ekrane - neleidžiame išsikišti iš ribų
+    const maxAllowedHeight = '560px';
+    
+    if (itemsLength <= 20) {
       const itemHeight = 70;
       const calculatedHeight = Math.max(itemsLength * itemHeight, 120);
+      
+      // Jei apskaičiuotas aukštis didesnis nei leistinas, naudojame scroll
+      if (calculatedHeight > 560) {
+        return {
+          maxHeight: maxAllowedHeight,
+          overflowY: 'auto' as const
+        };
+      }
+      
       return {
         maxHeight: `${calculatedHeight}px`,
         overflowY: 'visible' as const
       };
     }
+    
+    // Daugiau nei 20 pamokų - visada scroll
     return {
-      maxHeight: '560px',
+      maxHeight: maxAllowedHeight,
       overflowY: 'auto' as const
     };
   };
 
   // Update internal state when props change
   useEffect(() => {
-    // Keep all available lessons - don't filter out selected ones (allow repeating lessons)
-    setInternalAvailable(availableLessons);
-    setInternalSelected(selectedLessons);
-  }, [availableLessons, selectedLessons]);
+    
+    // NAUJA LOGIKA: Pirmiausia filtruojame availableLessons pagal dalyką ir lygį
+    let filteredAvailableLessons = availableLessons;
+    
+    // Jei nurodytas dalykas ar lygis, filtruojame availableLessons
+    if (subjectId || levelId) {
+      
+      filteredAvailableLessons = availableLessons.filter(lesson => {
+        // Patikriname ar pamoka atitinka dalyką (jei nurodytas)
+        // Rasti dalyko pavadinimą pagal ID
+        const subjectName = subjects.find(s => s.id.toString() === subjectId)?.name;
+        const subjectMatch = !subjectId || lesson.subject === subjectName;
+        
+        // Patikriname ar pamoka atitinka lygį (jei nurodytas)
+        // Rasti lygio pavadinimą pagal ID
+        const levelName = levels.find(l => l.id.toString() === levelId)?.name;
+        const levelMatch = !levelId || lesson.levels === levelName;
+        
+        
+        return subjectMatch && levelMatch;
+      });
+      
+    }
+    
+    // Nustatome internalAvailable su filtruotais duomenimis
+    setInternalAvailable(filteredAvailableLessons);
+    
+    // Tikriname ar pamokos iš selectedLessons yra tikrai ištrintos iš DB (nėra availableLessons sąraše)
+    const actuallyDeletedFromDB = selectedLessons.filter(item => {
+      const lessonId = (item as Record<string, unknown>).lesson as number || (item as LessonSequenceItem).id || Number((item as Record<string, unknown>).id);
+      
+      // Patikriname ar pamoka egzistuoja originaliame availableLessons sąraše (ne filtruotame)
+      const isDeleted = !availableLessons.some(available => available.id === lessonId);
+      
+      
+      return isDeleted;
+    });
+    
+    // Jei rasta tikrai ištrintų pamokų iš DB, pašaliname jas iš selectedLessons
+    if (actuallyDeletedFromDB.length > 0) {
+      
+      // Pašaliname tikrai ištrintas pamokas iš selectedLessons
+      const validLessons = selectedLessons.filter(item => {
+        const lessonId = (item as Record<string, unknown>).lesson as number || (item as LessonSequenceItem).id || Number((item as Record<string, unknown>).id);
+        
+        // Patikriname ar pamoka egzistuoja originaliame availableLessons sąraše (ne filtruotame)
+        const isValid = availableLessons.some(available => available.id === lessonId);
+        
+        
+        return isValid;
+      });
+      
+      // Iškviečiame onSelectionChange su išfiltruotais duomenimis
+      onSelectionChange(validLessons as LessonSequenceItem[]);
+      setInternalSelected(validLessons as LessonSequenceItem[]);
+      userModifiedRef.current = false; // Reset flag after external change
+    }
+    // selectedLessons atnaujinimas dabar vykdomas atskirame useEffect
+  }, [availableLessons, subjectId, levelId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Pašalintas onSelectionChange iš dependency array - sukėlė begalinį ciklą
+
+  // Separate useEffect for initializing internalSelected with selectedLessons
+  useEffect(() => {
+    // Only initialize if we haven't been modified by user and selectedLessons changed
+    if (!userModifiedRef.current) {
+      setInternalSelected(selectedLessons);
+    }
+  }, [selectedLessons]);
 
   // Convert lesson to sequence item
   const lessonToSequenceItem = (lesson: Lesson, position: number): LessonSequenceItem | null => {
@@ -215,7 +325,7 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
     
     const result = {
       id: lesson.id,
-      lesson: lesson.id, // Išlaikome lesson ID
+      lesson: lesson.id, // Išlaikome lesson ID for compatibility
       title: lesson.title || '',
       subject: lesson.subject || '',
       levels: lesson.levels || '',
@@ -237,12 +347,16 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
     // Keep lessons in available list (don't remove them)
     setInternalSelected(newSelected as LessonSequenceItem[]);
     setAvailableSelected([]);
+    userModifiedRef.current = true; // Mark as user modified
     onSelectionChange(newSelected as LessonSequenceItem[]);
   };
 
   // Move selected sequence items back to available (remove from sequence)
   const moveToAvailable = () => {
-    const newSelected = internalSelected.filter(item => !selectedSelected.includes((item as LessonSequenceItem).id));
+    const newSelected = internalSelected.filter(item => {
+      const itemId = (item as LessonSequenceItem).id || Number((item as Record<string, unknown>).id);
+      return !selectedSelected.includes(itemId);
+    });
     
     // Reorder positions
     const reorderedSelected = newSelected.map((item, index) => ({ ...item, position: index + 1 }));
@@ -250,6 +364,7 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
     // Don't add items back to available - they're already there
     setInternalSelected(reorderedSelected as LessonSequenceItem[]);
     setSelectedSelected([]);
+    userModifiedRef.current = true; // Mark as user modified
     onSelectionChange(reorderedSelected);
   };
 
@@ -314,6 +429,7 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
         // Keep lessons in available list (don't remove them)
         setInternalSelected(newSelected as LessonSequenceItem[]);
         setAvailableSelected([]);
+        userModifiedRef.current = true; // Mark as user modified
         
         try {
           onSelectionChange(newSelected as LessonSequenceItem[]);
@@ -335,6 +451,7 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
     // Just clear the sequence
     setInternalSelected([]);
     setSelectedSelected([]);
+    userModifiedRef.current = true; // Mark as user modified
     onSelectionChange([]);
   };
 
@@ -384,6 +501,7 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
       const reorderedList = newList.map((item, index) => ({ ...item, position: index + 1 }));
       
       setInternalSelected(reorderedList);
+      userModifiedRef.current = true; // Mark as user modified
       onSelectionChange(reorderedList);
     }
     setDraggedPosition(null);
@@ -394,6 +512,14 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
     setDraggedPosition(null);
     setDropTargetPosition(null);
   };
+
+  // Apskaičiuojame tikrai ištrintų pamokų skaičių (tik iš DB)
+  const actuallyDeletedCount = selectedLessons.filter(item => {
+    const lessonId = (item as Record<string, unknown>).lesson as number || (item as LessonSequenceItem).id || Number((item as Record<string, unknown>).id);
+    
+    // Patikriname ar pamoka egzistuoja originaliame availableLessons sąraše (ne filtruotame)
+    return !availableLessons.some(available => available.id === lessonId);
+  }).length;
 
   if (isLoading) {
     return (
@@ -406,8 +532,8 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Warning about deleted lessons */}
-      {showDeletedWarning && deletedLessonsCount > 0 && (
+      {/* Warning about automatically removed deleted lessons */}
+      {showDeletedWarning && actuallyDeletedCount > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
           <div className="flex">
             <div className="flex-shrink-0">
@@ -417,12 +543,12 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-yellow-800">
-                Dėmesio: Rasta ištrintų pamokų
+                Informacija: Automatiškai pašalintos ištrintos pamokos
               </h3>
               <div className="mt-2 text-sm text-yellow-700">
                 <p>
-                  Jūsų plane yra {deletedLessonsCount} pamokų, kurios buvo ištrintos. 
-                  Jos bus automatiškai pašalintos iš plano išsaugant.
+                  Iš jūsų plano automatiškai pašalinta {actuallyDeletedCount} pamokų, kurios buvo ištrintos iš sistemos. 
+                  Planas bus išsaugotas su galiojančiomis pamokomis.
                 </p>
               </div>
             </div>
@@ -445,7 +571,7 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
               className="space-y-2"
               style={{
                 ...getScrollStyle(internalAvailable.length),
-                ...(internalAvailable.length > 8 && {
+                ...(getScrollStyle(internalAvailable.length).overflowY === 'auto' && {
                   scrollbarWidth: 'thin',
                   scrollbarColor: '#cbd5e1 #f1f5f9'
                 })
@@ -523,7 +649,7 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
               className="space-y-2"
               style={{
                 ...getScrollStyle(internalSelected.length),
-                ...(internalSelected.length > 8 && {
+                ...(getScrollStyle(internalSelected.length).overflowY === 'auto' && {
                   scrollbarWidth: 'thin',
                   scrollbarColor: '#cbd5e1 #f1f5f9'
                 })
@@ -536,20 +662,25 @@ const LessonDualListTransfer: React.FC<LessonDualListTransferProps> = ({
                   </p>
                 </div>
               ) : (
-                internalSelected.map(item => (
-                  <SequenceItem
-                    key={(item as LessonSequenceItem).position}
-                    item={item as LessonSequenceItem}
-                    isSelected={selectedSelected.includes((item as LessonSequenceItem).id)}
-                    onSelect={handleSelectedSelect}
-                    onDragStart={handleDragStart}
-                    onDragOver={handleDragOver}
-                    onDrop={handleDrop}
-                    onDragEnd={handleDragEnd}
-                    draggedPosition={draggedPosition}
-                    dropTargetPosition={dropTargetPosition}
-                  />
-                ))
+                internalSelected.map(item => {
+                  const itemId = (item as LessonSequenceItem).id || Number((item as Record<string, unknown>).id);
+                  const itemPosition = (item as LessonSequenceItem).position || Number((item as Record<string, unknown>).position);
+                  
+                  return (
+                    <SequenceItem
+                      key={itemPosition || itemId}
+                      item={item}
+                      isSelected={selectedSelected.includes(itemId)}
+                      onSelect={handleSelectedSelect}
+                      onDragStart={handleDragStart}
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                      onDragEnd={handleDragEnd}
+                      draggedPosition={draggedPosition}
+                      dropTargetPosition={dropTargetPosition}
+                    />
+                  );
+                })
               )}
             </div>
           </div>

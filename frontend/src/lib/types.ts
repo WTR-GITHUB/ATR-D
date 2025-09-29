@@ -10,8 +10,9 @@ export interface User {
   email: string;
   first_name: string;
   last_name: string;
-  roles: UserRole[]; // Pakeista iš role į roles
-  default_role?: UserRole; // Numatytoji rolė prisijungimo metu
+  roles: UserRole[]; // Visos leidžiamos rolės (iš DB)
+  default_role: UserRole; // Numatytoji rolė prisijungimo metu (iš DB)
+  current_role?: UserRole; // Dabartinė aktyvi rolė (iš token'o)
   birth_date?: string;
   phone_number?: string;
   contract_number?: string;

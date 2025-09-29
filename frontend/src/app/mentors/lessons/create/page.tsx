@@ -4,6 +4,12 @@
 import React from 'react';
 import LessonForm from '@/components/forms/LessonForm';
 
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
+
 export default function CreateLessonPage() {
-  return <LessonForm mode="create" />;
+  return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
+      <LessonForm mode="create" />
+    </ClientAuthGuard>
+  );
 }

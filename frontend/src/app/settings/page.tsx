@@ -12,9 +12,10 @@ import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { User, Lock, Eye, EyeOff, UserCheck } from 'lucide-react';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 
 export default function SettingsPage() {
-  const { user, token } = useAuth();
+  const { user } = useAuth(); // SEC-001: Remove token - handled by cookies
   const { changePassword, isLoading, error, clearError } = useSettings();
   
   // Slaptažodžio keitimo būsenos
@@ -95,17 +96,18 @@ export default function SettingsPage() {
     return roleNames[role] || role;
   };
 
-  // Numatytosios rolės išsaugojimas
+  // Numatytosios rolės išsaugojimas DB
   const handleDefaultRoleSubmit = async () => {
     if (!selectedDefaultRole) return;
     
     try {
+      // DEFAULT ROLE LOGIC: Naudoti settings API DB keitimui
       const response = await fetch('/api/users/settings/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify({ 
           default_role: selectedDefaultRole 
         }),
@@ -116,21 +118,21 @@ export default function SettingsPage() {
       if (data.success) {
         setRoleMessage({ 
           type: 'success', 
-          text: data.message || `Numatytoji rolė "${getRoleDisplayName(selectedDefaultRole)}" sėkmingai išsaugota!` 
+          text: data.message || `Numatytoji rolė "${getRoleDisplayName(selectedDefaultRole)}" sėkmingai išsaugota DB!` 
         });
         
         setTimeout(() => setRoleMessage(null), 3000);
       } else {
         setRoleMessage({ 
           type: 'error', 
-          text: data.message || 'Klaida išsaugojant numatytąją rolę' 
+          text: data.message || 'Klaida išsaugojant numatytąją rolę DB' 
         });
       }
     } catch (error) {
       console.error('Error saving default role:', error);
       setRoleMessage({ 
         type: 'error', 
-        text: 'Klaida išsaugojant numatytąją rolę' 
+        text: 'Klaida išsaugojant numatytąją rolę DB' 
       });
     }
   };
@@ -146,6 +148,7 @@ export default function SettingsPage() {
   }
 
   return (
+    <ClientAuthGuard requireAuth={true}>
     <div className="max-w-7xl mx-auto space-y-6 px-4 sm:px-6 lg:px-8">
       {/* Puslapio antraštė */}
       <div className="border-b border-gray-200 pb-4">
@@ -323,8 +326,8 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Rolių pasirinkimo kortelė */}
-        {user.roles && user.roles.length > 0 && (
+        {/* Numatytosios rolės nustatymo kortelė */}
+        {user.roles && user.roles.length > 1 && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
@@ -335,13 +338,11 @@ export default function SettingsPage() {
             <CardContent>
               <div className="space-y-4">
                 <p className="text-gray-600">
-                  {user.roles.length > 1 
-                    ? 'Pasirinkite su kuria role norite prisijungti pagal nutylėjimą:' 
-                    : 'Jūsų dabartinė rolė:'}
+                  Pasirinkite su kuria role norite prisijungti pagal nutylėjimą (išsaugoma DB):
                 </p>
                 
                 <div className="space-y-2">
-                  {user.roles.map((role) => (
+                  {user.roles.map((role: string) => (
                     <div 
                       key={role}
                       className={`border-2 rounded-lg p-4 cursor-pointer transition-all duration-200 ${
@@ -383,20 +384,19 @@ export default function SettingsPage() {
                   </div>
                 )}
 
-                {user.roles.length > 1 && (
-                  <Button
-                    onClick={handleDefaultRoleSubmit}
-                    disabled={!selectedDefaultRole}
-                    className="w-full bg-gray-600 hover:bg-gray-700 text-white"
-                  >
-                    Patvirtinti pasirinkimą
-                  </Button>
-                )}
+                <Button
+                  onClick={handleDefaultRoleSubmit}
+                  disabled={!selectedDefaultRole}
+                  className="w-full bg-gray-600 hover:bg-gray-700 text-white"
+                >
+                  Išsaugoti numatytąją rolę DB
+                </Button>
               </div>
             </CardContent>
           </Card>
         )}
       </div>
     </div>
+    </ClientAuthGuard>
   );
 }

@@ -32,7 +32,7 @@ interface StudentCurator {
 }
 
 export const useCuratorStudents = () => {
-  const { token, isAuthenticated } = useAuth();
+  const { isAuthenticated, currentRole } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,17 +40,13 @@ export const useCuratorStudents = () => {
   useEffect(() => {
     const fetchStudents = async () => {
 
-      if (!isAuthenticated || !token) {
-        setLoading(false);
-        return;
-      }
-
       try {
         setLoading(true);
         setError(null);
 
-
+        console.log('🔍 DEBUG: Starting API call to /crm/student-curators/');
         const response = await api.get('/crm/student-curators/');
+        console.log('🔍 DEBUG: API response:', response.data);
 
 
         const data: StudentCurator[] = response.data;
@@ -73,7 +69,7 @@ export const useCuratorStudents = () => {
     };
 
     fetchStudents();
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated]); // LOOP FIX: Remove currentRole dependency to prevent infinite loop
 
   return {
     students,

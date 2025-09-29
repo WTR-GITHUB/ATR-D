@@ -7,10 +7,12 @@
 'use client';
 
 import React from 'react';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 
 export default function CuratorsDashboardPage() {
 
   return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['curator']}>
     <div className="flex items-center justify-center min-h-[60vh]">
       <div className="text-center">
         <div className="bg-gray-100 rounded-lg p-8 max-w-md mx-auto">
@@ -26,5 +28,6 @@ export default function CuratorsDashboardPage() {
         </div>
       </div>
     </div>
+    </ClientAuthGuard>
   );
 }

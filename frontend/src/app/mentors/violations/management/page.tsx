@@ -7,7 +7,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-// import { useAuth } from '@/hooks/useAuth';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
+import { useAuth } from '@/hooks/useAuth';
 import { ReactDataTable } from '@/components/DataTable';
 import { violationAPI } from '@/lib/api';
 import { PenaltyStatus, TodoItem } from '@/lib/types';
@@ -32,7 +33,7 @@ import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import NotificationModal from '@/components/ui/NotificationModal';
 
 export default function MentorViolationsManagementPage() {
-  // useAuth();
+  useAuth(); // ROLE SWITCHING FIX: Iškviečia useAuth hook'ą
   const [violations, setViolations] = useState<Violation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -409,6 +410,7 @@ export default function MentorViolationsManagementPage() {
   }
 
   return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200">
@@ -576,5 +578,6 @@ export default function MentorViolationsManagementPage() {
         autoCloseDelay={notificationModal.options.autoCloseDelay}
       />
     </div>
+    </ClientAuthGuard>
   );
 }

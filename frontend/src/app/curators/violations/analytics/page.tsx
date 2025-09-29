@@ -1,4 +1,4 @@
-// /home/vilkas/atradimai/dienynas/frontend/src/app/curators/violations/analytics/page.tsx
+// /home/master/DIENYNAS/frontend/src/app/curators/violations/analytics/page.tsx
 
 // Kuratorių skolų analizės puslapis - šiuo metu kuriamas
 // Rodo pranešimą, kad funkcionalumas bus sukurtas ateityje
@@ -6,12 +6,17 @@
 
 'use client';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 import React from 'react';
 import { ArrowLeft, Construction } from 'lucide-react';
 import Link from 'next/link';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 
 export default function CuratorViolationsAnalyticsPage() {
   return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['curator']}>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200">
@@ -52,5 +57,6 @@ export default function CuratorViolationsAnalyticsPage() {
         </div>
       </div>
     </div>
+    </ClientAuthGuard>
   );
 }

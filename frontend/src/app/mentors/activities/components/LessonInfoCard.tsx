@@ -72,20 +72,26 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
   // CHANGE: Atnaujinti students state kai keičiasi studentsForThisLesson
   useEffect(() => {
     if (studentsForThisLesson) {
-      // Konvertuoti IMUPlan į Student formatą
-      const convertedStudents: Student[] = studentsForThisLesson.map(imuPlan => ({
-        id: imuPlan.student, // student yra number, ne objektas
-        first_name: imuPlan.student_name.split(' ')[0] || '',
-        last_name: imuPlan.student_name.split(' ').slice(1).join(' ') || '',
-        email: '', // IMUPlan neturi email
-        attendance_status: imuPlan.attendance_status as AttendanceStatus,
-        activity_level: 'medium' as const,
-        task_completion: 'not_started' as const,
-        understanding: 'fair' as const,
-        notes: imuPlan.notes || '',
-        tasks_completed: 0,
-        total_tasks: 0
-      }));
+      // CHANGE: Konvertuoti IMUPlan į Student formatą su IMUPlan ID išsaugojimu
+      const convertedStudents: Student[] = studentsForThisLesson.map(imuPlan => {
+        const studentName = imuPlan.student_name || 'Nežinomas mokinys';
+        const nameParts = studentName.split(' ');
+        return {
+          id: imuPlan.student, // student yra number, ne objektas
+          first_name: nameParts[0] || '',
+          last_name: nameParts.slice(1).join(' ') || '',
+          email: '', // IMUPlan neturi email
+          attendance_status: imuPlan.attendance_status as AttendanceStatus,
+          activity_level: 'medium' as const,
+          task_completion: 'not_started' as const,
+          understanding: 'fair' as const,
+          notes: imuPlan.notes || '',
+          tasks_completed: 0,
+          total_tasks: 0,
+          // CHANGE: Pridėti IMUPlan ID kaip papildomą lauką
+          imuPlanId: imuPlan.id
+        } as Student & { imuPlanId: number };
+      });
       setStudents(convertedStudents);
     }
   }, [studentsForThisLesson]);
@@ -147,12 +153,14 @@ const LessonInfoCard: React.FC<LessonInfoCardProps> = ({
       
       if (imuPlan && newStatus) {
         // CHANGE: Iškvieti backend'o API lankomumo keitimui
+        // SEC-001: Use API instance instead of direct fetch with localStorage
         const response = await fetch(`/api/plans/imu-plans/${imuPlan.id}/update_attendance/`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+            // SEC-001: Remove Authorization header - cookies handle authentication
           },
+          credentials: 'include', // SEC-001: Include cookies for authentication
           body: JSON.stringify({
             attendance_status: newStatus
           })

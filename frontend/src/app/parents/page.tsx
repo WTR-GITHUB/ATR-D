@@ -1,5 +1,10 @@
 import ParentsDashboard from './dashboard/page';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 
 export default function ParentsPage() {
-  return <ParentsDashboard />;
+  return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['parent']}>
+      <ParentsDashboard />
+    </ClientAuthGuard>
+  );
 }

@@ -7,7 +7,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-// import { useAuth } from '@/hooks/useAuth';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
+import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { violationAPI } from '@/lib/api';
 import { 
@@ -26,7 +27,7 @@ import ViolationFormModal from '@/components/ui/ViolationFormModal';
 import { ViolationStats, ViolationCategoryStats } from '@/lib/types';
 
 export default function MentorViolationsPage() {
-  // useAuth();
+  useAuth(); // ROLE SWITCHING FIX: Iškviečia useAuth hook'ą
   const [stats, setStats] = useState<ViolationStats | null>(null);
   const [categoryStats, setCategoryStats] = useState<ViolationCategoryStats[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -171,6 +172,7 @@ export default function MentorViolationsPage() {
   }
 
   return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
     <div className="min-h-screen bg-gray-50">
 
       {/* Main Content */}
@@ -492,5 +494,6 @@ export default function MentorViolationsPage() {
         }}
       />
     </div>
+    </ClientAuthGuard>
   );
 }

@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-// import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuth';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { ReactDataTable } from '@/components/DataTable';
 import { GraduationCap, BookOpen, Plus, Users, Edit, Trash2, Eye, X } from 'lucide-react';
@@ -33,8 +33,10 @@ interface LessonSequenceItem {
   position: number;
 }
 
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
+
 export default function MentorPlansPage() {
-  // useAuth();
+  useAuth(); // ROLE SWITCHING FIX: Iškviečia useAuth hook'ą
   
   const [plans, setPlans] = useState<LessonSequence[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -125,34 +127,39 @@ export default function MentorPlansPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
+        <div className="space-y-6">
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+          </div>
         </div>
-      </div>
+      </ClientAuthGuard>
     );
   }
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <Card>
-          <CardContent>
-            <div className="text-center py-12">
-              <div className="text-red-600 mb-4">
-                <GraduationCap className="mx-auto h-12 w-12" />
+      <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
+        <div className="space-y-6">
+          <Card>
+            <CardContent>
+              <div className="text-center py-12">
+                <div className="text-red-600 mb-4">
+                  <GraduationCap className="mx-auto h-12 w-12" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Klaida</h3>
+                <p className="text-sm text-gray-500">{error}</p>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Klaida</h3>
-              <p className="text-sm text-gray-500">{error}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      </ClientAuthGuard>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <ClientAuthGuard requireAuth={true} allowedRoles={['mentor']}>
+      <div className="space-y-6">
       {/* Greitos veiklos kortelė */}
       <Card>
         <CardHeader>
@@ -367,7 +374,8 @@ export default function MentorPlansPage() {
         autoClose={notificationModal.options.autoClose}
         autoCloseDelay={notificationModal.options.autoCloseDelay}
       />
-    </div>
+      </div>
+    </ClientAuthGuard>
   );
 }
 

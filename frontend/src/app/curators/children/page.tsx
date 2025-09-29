@@ -7,20 +7,24 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 import { StudentCard } from './components';
 import { useCuratorStudents } from '@/hooks/useCuratorStudents';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function CuratorsChildrenPage() {
   const { students, loading, error } = useCuratorStudents();
-  const { setCurrentRole } = useAuth();
+  const { switchRole, currentRole, isRoleSwitching } = useAuth();
 
-  // CHANGE: Nustatyti curator rolę kai puslapis kraunasi
+  // LOOP FIX: Nustatyti curator rolę tik vieną kartą kai puslapis kraunasi
   useEffect(() => {
-    setCurrentRole('curator');
-  }, [setCurrentRole]);
+    if (currentRole !== 'curator' && !isRoleSwitching) {
+      switchRole('curator');
+    }
+  }, []); // LOOP FIX: Remove currentRole dependency to prevent infinite loop
 
-  if (loading) {
+  // TIMING FIX: Show loading while switching role or fetching data
+  if (loading || isRoleSwitching || currentRole !== 'curator') {
     return (
       <div className="space-y-6">
         <div className="border-b border-gray-200 pb-4">
@@ -31,7 +35,9 @@ export default function CuratorsChildrenPage() {
         <div className="flex items-center justify-center min-h-[calc(100vh-300px)]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Kraunama...</p>
+            <p className="text-gray-600">
+              {isRoleSwitching ? 'Keičiama rolė...' : 'Kraunama...'}
+            </p>
           </div>
         </div>
       </div>
@@ -57,6 +63,7 @@ export default function CuratorsChildrenPage() {
   }
 
   return (
+    <ClientAuthGuard requireAuth={true} allowedRoles={['curator']}>
     <div className="space-y-6">
       {/* Puslapio antraštė */}
       <div className="border-b border-gray-200 pb-4">
@@ -91,5 +98,6 @@ export default function CuratorsChildrenPage() {
         </div>
       )}
     </div>
+    </ClientAuthGuard>
   );
 }

@@ -1,11 +1,12 @@
 // /home/master/DIENYNAS/frontend/src/app/students/components/achievementCard.tsx
 // UgdisCard komponentas studentų puslapyje
 // Purpose: Rodo mokinio pasiekimų kortelę su dalykų pasirinkimu ir pamokų lentele
-// Updates: Sukurtas naujas komponentas su realiais duomenimis iš backend API
+// Updates: Atnaujintas su filtravimo funkcionalumu ir nauju lentelės stiliumi pagal ReactDataTable pavyzdį
+// Updates: Pašalinti TIK "Data" ir "Pamokos laikas" filtravimo laukai, bet palikti visi stulpeliai lentelėje
 // NOTE: Niekada netriname senų pastabų
 
-import React, { useState } from 'react';
-import { ChevronDown, Loader2, AlertCircle } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { ChevronDown, ChevronUp, Loader2, AlertCircle } from 'lucide-react';
 import { useSubjects } from '@/hooks/useSubjects';
 import { useStudentIMUPlans } from '@/hooks/useStudentIMUPlans';
 import { useStudentGrades } from '@/hooks/useStudentGrades';
@@ -14,6 +15,13 @@ import { useAuth } from '@/hooks/useAuth';
 const AchievementCard = () => {
   const { getCurrentUserId } = useAuth();
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
+  
+  // Filtravimo state
+  const [filters, setFilters] = useState<{ [key: string]: string }>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const itemsPerPage = 100;
   
   // Gauname dabartinio mokinio ID
   const currentStudentId = getCurrentUserId();
@@ -29,37 +37,39 @@ const AchievementCard = () => {
     subjectId: selectedSubjectId || undefined 
   });
   
-  // Gauname vertinimus visoms pamokoms
-  const lessonIds = imuPlans
-    .filter(plan => plan.lesson)
-    .map(plan => plan.lesson!.id);
-  
+  // Gauname vertinimus visoms pamokoms - be lesson filtro, kad gautume visus vertinimus
   const { 
     grades, 
     loading: gradesLoading, 
     error: gradesError 
   } = useStudentGrades({ 
-    studentId: currentStudentId || undefined,
-    lessonId: lessonIds.length > 0 ? lessonIds[0] : undefined // Pirmas lesson ID, arba undefined
+    studentId: currentStudentId || undefined
+    // Pašaliname lessonId filtro, kad gautume visus mokinio vertinimus
   });
 
   // Nustatome tuščią pasirinkimą - nėra numatytojo dalyko
   // useEffect nereikalingas - selectedSubjectId lieka null
 
   // Sujungiame IMUPlan ir Grade duomenis
-  const getLessonsWithGrades = (): Array<{
+  const getLessonsWithGrades = useCallback((): Array<{
     id: number;
     date: string;
     time: string;
     title: string;
     attendance: string;
     grade: string;
+    achievementLevel: string | null;
+    achievementLevelCode: string | null;
+    achievementLevelName: string | null;
+    achievementLevelColor: string | null;
+    percentage: number | null;
     isPast: boolean;
   }> => {
+    
     return imuPlans.map(plan => {
-      // Gauname vertinimą šiai pamokai
+      // Gauname vertinimą šiai pamokai per IMUPlan ryšį
       const grade = grades.find(g => 
-        g.lesson.id === plan.lesson?.id && 
+        g.imu_plan === plan.id && 
         g.student === currentStudentId
       );
       
@@ -80,10 +90,15 @@ const AchievementCard = () => {
         title: plan.lesson_title || 'Pamoka be pavadinimo',
         attendance: plan.attendance_status_display || '-',
         grade: grade ? `${grade.percentage}% (${grade.grade_letter})` : '-',
+        achievementLevel: grade?.achievement_level?.code || null,
+        achievementLevelCode: grade?.achievement_level?.code || null,
+        achievementLevelName: grade?.achievement_level?.name || null,
+        achievementLevelColor: grade?.achievement_level?.color || null,
+        percentage: grade?.percentage || null,
         isPast: isPast
       };
     });
-  };
+  }, [imuPlans, grades, currentStudentId]);
 
   // Formatuoti datą lietuvių kalba
   const formatDate = (dateString: string) => {
@@ -94,6 +109,111 @@ const AchievementCard = () => {
       year: 'numeric'
     });
   };
+
+  // Filtruoti duomenis
+  const filteredLessons = useMemo(() => {
+    const lessons = getLessonsWithGrades();
+    return lessons.filter(lesson => {
+      return Object.keys(filters).every(key => {
+        const filterValue = filters[key];
+        if (!filterValue) return true;
+        
+        let cellValue = '';
+        switch (key) {
+          case 'title':
+            cellValue = lesson.title;
+            break;
+          case 'attendance':
+            cellValue = lesson.attendance;
+            break;
+          case 'grade':
+            cellValue = lesson.achievementLevelCode || '';
+            break;
+          default:
+            return true;
+        }
+        
+        return cellValue.toString().toLowerCase().includes(filterValue.toLowerCase());
+      });
+    });
+  }, [getLessonsWithGrades, filters]);
+
+  // Rūšiuoti duomenis
+  const sortedLessons = useMemo(() => {
+    if (!sortColumn) return filteredLessons;
+    
+    return [...filteredLessons].sort((a, b) => {
+      let aValue = '';
+      let bValue = '';
+      
+      switch (sortColumn) {
+        case 'date':
+          aValue = a.date;
+          bValue = b.date;
+          break;
+        case 'time':
+          aValue = a.time;
+          bValue = b.time;
+          break;
+        case 'title':
+          aValue = a.title;
+          bValue = b.title;
+          break;
+        case 'attendance':
+          aValue = a.attendance;
+          bValue = b.attendance;
+          break;
+        case 'grade':
+          aValue = a.achievementLevelCode || '';
+          bValue = b.achievementLevelCode || '';
+          break;
+        default:
+          return 0;
+      }
+      
+      const comparison = aValue.toString().localeCompare(bValue.toString());
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredLessons, sortColumn, sortDirection]);
+
+  // Puslapiavimas
+  const totalPages = Math.ceil(sortedLessons.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedLessons = sortedLessons.slice(startIndex, endIndex);
+
+  // Filtravimo funkcija
+  const handleFilterChange = (columnKey: string, value: string) => {
+    setFilters(prev => ({
+      ...prev,
+      [columnKey]: value
+    }));
+    setCurrentPage(1); // Grįžti į pirmą puslapį
+  };
+
+  // Išvalyti filtrus
+  const clearFilters = () => {
+    setFilters({});
+    setCurrentPage(1);
+  };
+
+  // Rūšiavimo funkcija
+  const handleSort = (columnKey: string) => {
+    if (sortColumn === columnKey) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(columnKey);
+      setSortDirection('asc');
+    }
+  };
+
+  // Puslapiavimo funkcijos
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  const goToPreviousPage = () => goToPage(currentPage - 1);
+  const goToNextPage = () => goToPage(currentPage + 1);
 
   // Loading ir error states
   const isLoading = subjectsLoading || imuPlansLoading || gradesLoading;
@@ -157,88 +277,260 @@ const AchievementCard = () => {
           <p className="text-gray-500">Šiam dalykui nėra pamokų</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="border border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Data</th>
-                <th className="border border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Pamokos laikas</th>
-                <th className="border border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Pamokos pavadinimas</th>
-                <th className="border border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Lankomumas</th>
-                <th className="border border-gray-200 px-4 py-3 text-left font-semibold text-gray-700">Atsiskaitymo įvertinimas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {getLessonsWithGrades().map((lesson) => (
-                <tr
-                  key={lesson.id}
-                  className={`${
-                    lesson.isPast 
-                      ? 'bg-blue-50 hover:bg-blue-100' 
-                      : 'bg-green-50 hover:bg-green-100'
-                  } transition-colors duration-200`}
+        <div className="space-y-4">
+          {/* Filtravimo laukeliai */}
+          <div className="filter-container mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <div className="filter-row flex flex-wrap gap-4 items-center justify-center">
+              <div className="w-[150px]">
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Pavadinimas</label>
+                <input
+                  placeholder="Ieškoti Pavadinimas"
+                  value={filters.title || ''}
+                  onChange={(e) => handleFilterChange('title', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  type="text"
+                />
+              </div>
+              <div className="w-[150px]">
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Lankomumas</label>
+                <input
+                  placeholder="Ieškoti Lankomumas"
+                  value={filters.attendance || ''}
+                  onChange={(e) => handleFilterChange('attendance', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  type="text"
+                />
+              </div>
+              <div className="w-[150px]">
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Įvertinimas</label>
+                <input
+                  placeholder="Ieškoti Įvertinimas"
+                  value={filters.grade || ''}
+                  onChange={(e) => handleFilterChange('grade', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  type="text"
+                />
+              </div>
+              <div className="w-[150px]">
+                <div className="h-6 mb-1"></div>
+                <button
+                  onClick={clearFilters}
+                  className="w-full px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors text-sm font-medium"
                 >
-                  <td className="border border-gray-200 px-4 py-3 text-gray-800">
-                    {formatDate(lesson.date)}
-                  </td>
-                  <td className="border border-gray-200 px-4 py-3 text-gray-800">
-                    {lesson.time}
-                  </td>
-                  <td className="border border-gray-200 px-4 py-3 text-gray-800 font-medium">
-                    {lesson.title}
-                  </td>
-                  <td className="border border-gray-200 px-4 py-3">
-                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                      lesson.attendance === 'Dalyvavo' 
-                        ? 'bg-green-200 text-green-800'
-                        : lesson.attendance === 'Nedalyvavo'
-                        ? 'bg-red-200 text-red-800'
-                        : lesson.attendance === 'Pateisinta'
-                        ? 'bg-yellow-200 text-yellow-800'
-                        : lesson.attendance === 'Paliko'
-                        ? 'bg-orange-200 text-orange-800'
-                        : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {lesson.attendance}
-                    </span>
-                  </td>
-                  <td className="border border-gray-200 px-4 py-3">
-                    {lesson.grade !== '-' ? (
+                  Išvalyti filtrus
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Lentelė */}
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse border border-gray-200">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th 
+                    className="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('date')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>Data</span>
+                      {sortColumn === 'date' && (
+                        <span className="ml-2">
+                          {sortDirection === 'asc' ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('time')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>Pamokos laikas</span>
+                      {sortColumn === 'time' && (
+                        <span className="ml-2">
+                          {sortDirection === 'asc' ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('title')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>Pamokos pavadinimas</span>
+                      {sortColumn === 'title' && (
+                        <span className="ml-2">
+                          {sortDirection === 'asc' ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('attendance')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>Lankomumas</span>
+                      {sortColumn === 'attendance' && (
+                        <span className="ml-2">
+                          {sortDirection === 'asc' ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="border border-gray-200 px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100"
+                    onClick={() => handleSort('grade')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>Atsiskaitymo įvertinimas</span>
+                      {sortColumn === 'grade' && (
+                        <span className="ml-2">
+                          {sortDirection === 'asc' ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedLessons.map((lesson, rowIndex) => (
+                  <tr
+                    key={lesson.id}
+                    className={`border-b border-gray-200 hover:bg-gray-50 ${
+                      rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                    }`}
+                  >
+                    <td className="border border-gray-200 px-4 py-3 text-sm text-gray-900">
+                      {formatDate(lesson.date)}
+                    </td>
+                    <td className="border border-gray-200 px-4 py-3 text-sm text-gray-900">
+                      {lesson.time}
+                    </td>
+                    <td className="border border-gray-200 px-4 py-3 text-sm text-gray-900">
+                      {lesson.title}
+                    </td>
+                    <td className="border border-gray-200 px-4 py-3 text-sm text-gray-900">
                       <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                        lesson.grade.includes('A') 
+                        lesson.attendance === 'Dalyvavo' 
                           ? 'bg-green-200 text-green-800'
-                          : lesson.grade.includes('P')
-                          ? 'bg-blue-200 text-blue-800'
-                          : lesson.grade.includes('B')
-                          ? 'bg-yellow-200 text-yellow-800'
-                          : lesson.grade.includes('S')
+                          : lesson.attendance === 'Nedalyvavo'
                           ? 'bg-red-200 text-red-800'
+                          : lesson.attendance === 'Pateisinta'
+                          ? 'bg-yellow-200 text-yellow-800'
+                          : lesson.attendance === 'Paliko'
+                          ? 'bg-orange-200 text-orange-800'
                           : 'bg-gray-200 text-gray-600'
                       }`}>
-                        {lesson.grade}
+                        {lesson.attendance}
                       </span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </td>
+                    <td className="border border-gray-200 px-4 py-3 text-sm text-gray-900">
+                      {lesson.achievementLevelCode ? (
+                        <button 
+                          className="w-12 h-9 rounded-xl border-2 font-bold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+                          title={`${lesson.achievementLevelName} (${lesson.percentage}%)`}
+                        >
+                          {lesson.achievementLevelCode}
+                        </button>
+                      ) : (
+                        <span></span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Puslapiavimas */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-gray-700">
+                Rodomi įrašai nuo {startIndex + 1} iki {Math.min(endIndex, sortedLessons.length)} iš {sortedLessons.length}
+                {Object.values(filters).some(f => f) && (
+                  <span className="ml-2 text-gray-500">
+                    (atrinkta iš {getLessonsWithGrades().length} įrašų)
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={goToPreviousPage}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  ‹
+                </button>
+                
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const page = i + 1;
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => goToPage(page)}
+                      className={`px-3 py-1 text-sm border rounded-md ${
+                        currentPage === page
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+                
+                {totalPages > 5 && (
+                  <span className="px-2 text-gray-500">...</span>
+                )}
+                
+                <button
+                  onClick={goToNextPage}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 text-sm border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Statistika */}
+          <div className="mt-4 text-sm text-gray-600">
+            Iš viso: {sortedLessons.length} įrašų
+            {Object.values(filters).some(f => f) && (
+              <span className="ml-2">
+                (filtruota iš {getLessonsWithGrades().length} įrašų)
+              </span>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Legenda */}
-      <div className="mt-4 flex gap-6 text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-blue-100 rounded border"></div>
-          <span className="text-gray-600">Praėjusios pamokos</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-green-100 rounded border"></div>
-          <span className="text-gray-600">Būsimos pamokos</span>
-        </div>
-      </div>
+
     </div>
   );
 };

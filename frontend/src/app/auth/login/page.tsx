@@ -1,54 +1,46 @@
 // frontend/src/app/auth/login/page.tsx
+// SEC-001: Login page with simple authentication
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation'; // Not used
 import { useAuth } from '@/hooks/useAuth';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Card, { CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { authAPI } from '@/lib/api';
+import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 
 export default function LoginPage() {
-  const router = useRouter();
-  const { login, isLoading, error } = useAuth();
+  const { login, isLoading, error, redirectToDashboard, user, isAuthenticated } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
+  const [justLoggedIn, setJustLoggedIn] = useState(false);
+
+  // Auto-redirect when user data is loaded after login
+  React.  useEffect(() => {
+    if (justLoggedIn && user && isAuthenticated) {
+      redirectToDashboard();
+      setJustLoggedIn(false);
+    }
+  }, [justLoggedIn, user, isAuthenticated, redirectToDashboard]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      await login(formData);
-      // Nukreipimas pagal aukščiausią rolę
-      const user = await authAPI.me();
-      
-      // PRIORITY: Use default_role if it exists AND is valid, otherwise use first role
-      let roleToUse: string;
-      if (user.data.default_role && user.data.roles.includes(user.data.default_role)) {
-        roleToUse = user.data.default_role;
-      } else {
-        roleToUse = user.data.roles[0];
+      const success = await login(formData);
+
+      if (success) {
+        // Mark that we just logged in - useEffect will handle redirect when user data loads
+        setJustLoggedIn(true);
       }
-      
-      const roleToPath: Record<string, string> = {
-        manager: 'managers',
-        curator: 'curators', 
-        mentor: 'mentors',
-        parent: 'parents',
-        student: 'students'
-      };
-      
-      const dashboardUrl = `/${roleToPath[roleToUse as keyof typeof roleToPath] || roleToUse}`;
-      
-      router.push(dashboardUrl);
     } catch (error) {
-      // Error is handled by useAuth hook
-      console.error('❌ LOGIN ERROR:', error);
+      console.error('🔐 LOGIN_PAGE: Login failed', error);
+      // Error is already handled by useAuth hook and displayed
     }
   };
 
@@ -60,6 +52,7 @@ export default function LoginPage() {
   };
 
   return (
+    <ClientAuthGuard requireAuth={false}>
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
@@ -137,5 +130,6 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
+    </ClientAuthGuard>
   );
 } 

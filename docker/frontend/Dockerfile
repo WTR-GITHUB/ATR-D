@@ -31,4 +31,6 @@ EXPOSE 3000
 # ENV NODE_ENV=production  # Set by docker-compose.yml environment
 
 # Start production server (build will happen at runtime)
-CMD ["sh", "-c", "npm run build && npm run start"]
+# CHANGE: Fixed CMD for standalone output configuration with proper static file serving
+# COPY static files and public files to standalone directory for proper serving
+CMD ["sh", "-c", "npm run build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && cd .next/standalone && PORT=3000 HOSTNAME=0.0.0.0 node server.js"]
