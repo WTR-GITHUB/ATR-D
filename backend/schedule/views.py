@@ -1,4 +1,7 @@
 # backend/schedule/views.py
+# Schedule views - tvarkaraščio valdymas
+# PURPOSE: Valdo Period, Classroom, GlobalSchedule modelius ir jų endpoint'us
+# UPDATES: Pataisytas student_schedule endpoint'as - dabar teisingai gauna student_id parametrą
 from django.shortcuts import render
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
@@ -375,23 +378,49 @@ class GlobalScheduleViewSet(viewsets.ModelViewSet):
         Grąžina studento tvarkaraštį pagal jo subject levels
         CHANGE: Sukurtas naujas endpoint studento tvarkaraščio duomenims gauti
         PURPOSE: Filtruoja GlobalSchedule pagal studento StudentSubjectLevel duomenis
+        FIX: Pataisyta student_id parametro gavimas ir curator teisių tikrinimas
         """
         from datetime import datetime, timedelta
-        from crm.models import StudentSubjectLevel
+        from crm.models import StudentSubjectLevel, StudentCurator
+        from users.models import User
         
-        student = request.user
+        # FIX: Gauti student_id iš URL parametro vietoj request.user
+        student_id = request.query_params.get('student_id')
+        if not student_id:
+            return Response(
+                {"error": "Būtina nurodyti student_id parametrą"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            student = User.objects.get(id=student_id)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "Studentas nerastas"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
         week_start = request.query_params.get('week_start')  # YYYY-MM-DD formatas (pirmadienio data)
         
-        # Tikriname, ar vartotojas yra studentas
+        # Tikriname, ar vartotojas turi teisę gauti tvarkaraščio duomenis
         current_role = getattr(request, 'current_role', None)
         if not current_role:
-            current_role = getattr(student, 'default_role', None)
+            current_role = getattr(request.user, 'default_role', None)
         
         if current_role not in ['student', 'curator', 'manager', 'mentor']:
             return Response(
                 {"error": "Tik studentai, kuratoriai, vadovai ir mentoriai gali gauti tvarkaraštį"},
                 status=status.HTTP_403_FORBIDDEN
             )
+        
+        # FIX: Jei vartotojas yra curator, tikrinti ar jis kuruoja šį studentą
+        if current_role == 'curator':
+            curated_students = StudentCurator.objects.filter(curator=request.user).values_list('student', flat=True)
+            if int(student_id) not in curated_students:
+                return Response(
+                    {"error": "Neturite teisių matyti šio studento duomenis"}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
         
         if not week_start:
             return Response(

@@ -79,11 +79,24 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 class UserSerializer(serializers.ModelSerializer):
     """
     User serializer for CRUD operations
+    FIX: Pridėtas current_role laukas iš middleware
     """
+    current_role = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
-        fields = ['id', 'email', 'first_name', 'last_name', 'roles', 'default_role', 'is_active', 'date_joined']
+        fields = ['id', 'email', 'first_name', 'last_name', 'roles', 'default_role', 'current_role', 'is_active', 'date_joined']
         read_only_fields = ['id', 'date_joined']
+    
+    def get_current_role(self, obj):
+        """
+        FIX: Gauti current_role iš request middleware
+        Jei middleware nėra, naudoti default_role
+        """
+        request = self.context.get('request')
+        if request:
+            return getattr(request, 'current_role', obj.default_role)
+        return obj.default_role
 
 class ChangePasswordSerializer(serializers.Serializer):
     """

@@ -3,6 +3,7 @@
 // Purpose: Rodo mokinio pasiekimų kortelę su dalykų pasirinkimu ir pamokų lentele
 // Updates: Atnaujintas su filtravimo funkcionalumu ir nauju lentelės stiliumi pagal ReactDataTable pavyzdį
 // Updates: Pašalinti TIK "Data" ir "Pamokos laikas" filtravimo laukai, bet palikti visi stulpeliai lentelėje
+// FIX: Pridėtas user loading state - komponentas laukia kol user bus užkrautas prieš kviečiant API
 // NOTE: Niekada netriname senų pastabų
 
 import React, { useState, useMemo, useCallback } from 'react';
@@ -13,7 +14,7 @@ import { useStudentGrades } from '@/hooks/useStudentGrades';
 import { useAuth } from '@/hooks/useAuth';
 
 const AchievementCard = () => {
-  const { getCurrentUserId } = useAuth();
+  const { getCurrentUserId, isLoading: userLoading } = useAuth(); // FIX: Pridėtas user loading state
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | null>(null);
   
   // Filtravimo state
@@ -214,6 +215,22 @@ const AchievementCard = () => {
 
   const goToPreviousPage = () => goToPage(currentPage - 1);
   const goToNextPage = () => goToPage(currentPage + 1);
+
+  // FIX: Early return jei user dar kraunasi arba currentStudentId nėra
+  if (userLoading || !currentStudentId) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+            <div className="text-gray-500">
+              {userLoading ? 'Kraunami vartotojo duomenys...' : 'Laukiama vartotojo duomenų...'}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Loading ir error states
   const isLoading = subjectsLoading || imuPlansLoading || gradesLoading;

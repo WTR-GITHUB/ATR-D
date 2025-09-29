@@ -3,6 +3,7 @@
 // CuratorsChildrenPage - kuratoriaus vaikų valdymo puslapis
 // Rodo vaikų sąrašą su StudentCard komponentais
 // CHANGE: Integruotas StudentCard komponentas ir useCuratorStudents hook
+// FIX: Pataisyta loading sąlyga - neblokuoja duomenų rodymo kai currentRole dar nėra nustatyta
 
 'use client';
 
@@ -23,8 +24,9 @@ export default function CuratorsChildrenPage() {
     }
   }, []); // LOOP FIX: Remove currentRole dependency to prevent infinite loop
 
-  // TIMING FIX: Show loading while switching role or fetching data
-  if (loading || isRoleSwitching || currentRole !== 'curator') {
+  // TIMING FIX: Show loading only while actually loading data or switching role
+  // Don't block rendering if currentRole is not yet set - data might already be available
+  if (loading || isRoleSwitching) {
     return (
       <div className="space-y-6">
         <div className="border-b border-gray-200 pb-4">

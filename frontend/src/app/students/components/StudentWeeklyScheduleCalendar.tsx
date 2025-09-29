@@ -5,6 +5,7 @@
 // PURPOSE: Rodo tik studento pamokas pagal jo subject levels, ne visų mentorių pamokas
 // CHANGE: Naudojamos dalykų spalvų konstantos iš subjectColors.ts
 // CHANGE: Kortelės stilius keičiasi pagal pamokos statusą (planned/in_progress/completed)
+// FIX: Pataisyta user loading logika - dabar laukia kol user bus užkrautas prieš kviečiant API
 
 'use client';
 
@@ -174,7 +175,7 @@ const StudentWeeklyScheduleCalendar = forwardRef<WeeklyScheduleCalendarRef, Week
   // API hooks duomenų gavimui
   // useSubjects();
   const { periods } = usePeriods();
-  const { user } = useAuth();
+  const { user, isLoading: userLoading } = useAuth(); // FIX: Gauname user loading state
   // Pašalinta lessonDetails logika - naudojama activities puslapyje
   
   // Savaitės informacija - use context if available
@@ -206,10 +207,11 @@ const StudentWeeklyScheduleCalendar = forwardRef<WeeklyScheduleCalendarRef, Week
   const mondayDate = weekDates[0].toISOString().split('T')[0];
   
   // CHANGE: Naudojame useStudentWeeklySchedule vietoj useWeeklySchedule
+  // FIX: Laukiame kol user bus užkrautas prieš kviečiant API
   const { scheduleItems: allScheduleItems, isLoading, error, refetch, studentInfo } = useStudentWeeklySchedule({
     studentId: user?.id || 0,
     weekStartDate: mondayDate,
-    enabled: true
+    enabled: !!(user?.id) // FIX: Tik jei user.id egzistuoja
   });
 
   // Expose refetch function to parent component via ref
@@ -240,14 +242,17 @@ const StudentWeeklyScheduleCalendar = forwardRef<WeeklyScheduleCalendarRef, Week
 
   // Statistikos skaičiavimas pašalintas - nebereikalingas
 
-  if (isLoading && allScheduleItems.length === 0) {
+  // FIX: Rodyti loading jei user kraunasi ARBA schedule kraunasi
+  if ((userLoading || (isLoading && allScheduleItems.length === 0))) {
     return (
       <div className={`bg-white rounded-lg shadow-lg ${className}`}>
         <div className="p-6">
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <div className="text-gray-500">Kraunamas tvarkaraštis...</div>
+              <div className="text-gray-500">
+                {userLoading ? 'Kraunami vartotojo duomenys...' : 'Kraunamas tvarkaraštis...'}
+              </div>
             </div>
           </div>
         </div>
