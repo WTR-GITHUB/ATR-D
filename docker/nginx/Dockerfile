@@ -8,7 +8,7 @@ FROM nginx:alpine
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
-COPY sites-enabled/ /etc/nginx/sites-enabled/
+# Note: sites-enabled/ directory is mounted via docker-compose volume
 
 # Create SSL directory
 RUN mkdir -p /etc/nginx/ssl
@@ -16,8 +16,7 @@ RUN mkdir -p /etc/nginx/ssl
 # Set permissions
 RUN chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /etc/nginx/conf.d && \
-    chmod 755 /etc/nginx/sites-enabled/
+    chown -R nginx:nginx /etc/nginx/conf.d
 
 # Expose ports
 EXPOSE 80 443

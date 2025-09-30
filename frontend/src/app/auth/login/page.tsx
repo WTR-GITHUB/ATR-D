@@ -14,6 +14,7 @@ import ClientAuthGuard from '@/components/auth/ClientAuthGuard';
 export default function LoginPage() {
   const { login, isLoading, error, redirectToDashboard, user, isAuthenticated } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [isAutoFilled, setIsAutoFilled] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -21,12 +22,36 @@ export default function LoginPage() {
   const [justLoggedIn, setJustLoggedIn] = useState(false);
 
   // Auto-redirect when user data is loaded after login
-  React.  useEffect(() => {
+  React.useEffect(() => {
     if (justLoggedIn && user && isAuthenticated) {
       redirectToDashboard();
       setJustLoggedIn(false);
     }
   }, [justLoggedIn, user, isAuthenticated, redirectToDashboard]);
+
+  // Detect if password was auto-filled by browser
+  React.useEffect(() => {
+    const checkAutoFill = () => {
+      const passwordInput = document.querySelector('input[name="password"]') as HTMLInputElement;
+      if (passwordInput && passwordInput.value && !formData.password) {
+        setIsAutoFilled(true);
+      }
+    };
+
+    // Check after component mounts
+    const timer = setTimeout(checkAutoFill, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Auto-mask password after 5 seconds when shown
+  React.useEffect(() => {
+    if (showPassword && !isAutoFilled) {
+      const timer = setTimeout(() => {
+        setShowPassword(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showPassword, isAutoFilled]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,8 +129,15 @@ export default function LoginPage() {
                   rightIcon={
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="text-gray-400 hover:text-gray-600"
+                      onClick={() => {
+                        // Neleisti rodyti slaptažodžio, jei jis buvo automatiškai užpildytas
+                        if (!isAutoFilled) {
+                          setShowPassword(!showPassword);
+                        }
+                      }}
+                      className={`${isAutoFilled ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-gray-600'}`}
+                      disabled={isAutoFilled}
+                      title={isAutoFilled ? 'Slaptažodis automatiškai užpildytas - matomumas išjungtas saugumo sumetimais' : 'Perjungti slaptažodžio matomumą'}
                     >
                       {showPassword ? (
                         <EyeOff className="w-4 h-4" />
@@ -116,6 +148,15 @@ export default function LoginPage() {
                   }
                 />
               </div>
+
+              {/* Įspėjimas, kai slaptažodis matomas */}
+              {showPassword && !isAutoFilled && (
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <p className="text-sm text-blue-700">
+                    ℹ️ Slaptažodis matomas. Užtikrinkite, kad niekas jo nemato. Automatiškai užmaskuojamas po 5 sekundžių.
+                  </p>
+                </div>
+              )}
 
               <Button
                 type="submit"

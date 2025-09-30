@@ -1560,6 +1560,7 @@ docker compose exec backend python manage.py collectstatic --noinput
 - [ ] Docker Engine installed
 - [ ] Docker Compose installed
 - [ ] Environment variables configured
+- [ ] Google OAuth credentials configured
 - [ ] Firewall configured
 - [ ] SSL certificates ready (production)
 
@@ -1567,10 +1568,12 @@ docker compose exec backend python manage.py collectstatic --noinput
 - [ ] Containers start successfully
 - [ ] Database migrations complete
 - [ ] Static files collected
+- [ ] Google OAuth setup completed
 - [ ] Health checks pass
 - [ ] Services accessible
 
 ### **Post-Deployment**
+- [ ] Google OAuth login tested
 - [ ] Backup scripts working
 - [ ] Monitoring active
 - [ ] Logs being collected
@@ -1578,6 +1581,28 @@ docker compose exec backend python manage.py collectstatic --noinput
 - [ ] Security verified
 
 ## 🌐 **Production Deployment**
+
+### **Google OAuth Setup**
+
+Sistema naudoja Google OAuth prisijungimą. Po deployment reikia sukonfigūruoti OAuth:
+
+```bash
+# Automatinis OAuth setup
+./scripts/setup-oauth.sh
+
+# Arba rankiniu būdu:
+docker-compose exec backend python manage.py setup_oauth
+docker-compose exec backend python manage.py migrate sites
+docker-compose restart nginx backend
+```
+
+**OAuth URLs:**
+- Login: `https://dienynas.mokyklaatradimai.lt/accounts/google/login/`
+- Callback: `https://dienynas.mokyklaatradimai.lt/accounts/google/login/callback/`
+
+**Google Console konfigūracija:**
+- Authorized JavaScript origins: `https://dienynas.mokyklaatradimai.lt`
+- Authorized redirect URIs: `https://dienynas.mokyklaatradimai.lt/accounts/google/login/callback/`
 
 ### **SSL Configuration**
 ```bash

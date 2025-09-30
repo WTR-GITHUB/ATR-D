@@ -15,8 +15,8 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Server IP configurations
-CURRENT_IP="test.mokyklaatradimai.lt"
-FUTURE_IP="test.mokyklaatradimai.lt"
+CURRENT_IP="dienynas.mokyklaatradimai.lt"
+FUTURE_IP="dienynas.mokyklaatradimai.lt"
 
 # Function to display usage
 usage() {

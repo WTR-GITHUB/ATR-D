@@ -109,16 +109,19 @@ services:
     build:
       context: .
       dockerfile: ./docker/frontend/Dockerfile
+      args:
+        - NODE_ENV=production
+        - NEXT_PUBLIC_API_URL=/api
     container_name: a-dienynas-frontend
     # user: "1000:1000"  # Frontend reikalauja root teisių build procesui
     environment:
-      # CRITICAL FIX: Remove NEXT_PUBLIC_API_URL to prevent redirect loops
-      # Frontend now uses relative URLs (/api) which get proxied by Nginx
+      # CRITICAL FIX: Add NEXT_PUBLIC_API_URL for production API routing
+      # Frontend uses relative URLs (/api) which get proxied by Nginx
       - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=/api
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      # - /app/.next  # Užkomentuota - neperrašyti build direktorijos
+      # - ./frontend:/app  # UŽKOMENTUOTA - perrašo build rezultatus!
+      # - /app/node_modules  # Nereikalinga - node_modules jau image'e
       - ./logs/frontend:/app/logs
     # ports:
       # - "3000:3000"  # UŽKOMENTUOTA - Frontend prieinamas tik per Nginx

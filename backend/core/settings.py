@@ -61,7 +61,7 @@ else:
     print(f"🔄 Running in DEVELOPMENT mode (DEBUG={DEBUG})")
 
 # CHANGE: Production-optimized ALLOWED_HOSTS
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'test.mokyklaatradimai.lt').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'dienynas.mokyklaatradimai.lt').split(',')
 
 # Add production domain and localhost for development
 if not PRODUCTION_MODE:
@@ -83,8 +83,8 @@ CORS_ALLOW_CREDENTIALS = os.getenv('CORS_ALLOW_CREDENTIALS', 'True').lower() == 
 
 # CSRF Configuration for production HTTPS domains
 CSRF_TRUSTED_ORIGINS = [
-    "https://test.mokyklaatradimai.lt",
-    "http://test.mokyklaatradimai.lt",
+    f"https://{os.getenv('ALLOWED_HOSTS', 'localhost')}",
+    f"http://{os.getenv('ALLOWED_HOSTS', 'localhost')}",
 ]
 
 # Add development origins if not in production
@@ -99,8 +99,8 @@ if not PRODUCTION_MODE:
 # Production CORS settings
 if not CORS_ALLOW_ALL_ORIGINS:
     CORS_ALLOWED_ORIGINS = [
-        "https://test.mokyklaatradimai.lt",
-        "http://test.mokyklaatradimai.lt",
+        f"https://{os.getenv('ALLOWED_HOSTS', 'localhost')}",
+        f"http://{os.getenv('ALLOWED_HOSTS', 'localhost')}",
     ]
     # Add development origins if not in production
     if not PRODUCTION_MODE:
@@ -543,13 +543,13 @@ SOCIALACCOUNT_QUERY_EMAIL = True
 SOCIALACCOUNT_EMAIL_REQUIRED = True
 SOCIALACCOUNT_ONLY_EMAIL = True
 
-# Login/logout redirect URLs
-LOGIN_REDIRECT_URL = 'https://test.mokyklaatradimai.lt/' if PRODUCTION_MODE else 'http://localhost:3000/'
-LOGOUT_REDIRECT_URL = 'https://test.mokyklaatradimai.lt/' if PRODUCTION_MODE else 'http://localhost:3000/'
+# Login/logout redirect URLs - Dynamic based on environment
+LOGIN_REDIRECT_URL = f'https://{os.getenv("ALLOWED_HOSTS", "localhost")}/' if PRODUCTION_MODE else 'http://localhost:3000/'
+LOGOUT_REDIRECT_URL = f'https://{os.getenv("ALLOWED_HOSTS", "localhost")}/' if PRODUCTION_MODE else 'http://localhost:3000/'
 
-# django-allauth redirect URLs
-ACCOUNT_LOGIN_REDIRECT_URL = 'https://test.mokyklaatradimai.lt/' if PRODUCTION_MODE else 'http://localhost:3000/'
-ACCOUNT_LOGOUT_REDIRECT_URL = 'https://test.mokyklaatradimai.lt/' if PRODUCTION_MODE else 'http://localhost:3000/'
+# django-allauth redirect URLs - Dynamic based on environment
+ACCOUNT_LOGIN_REDIRECT_URL = f'https://{os.getenv("ALLOWED_HOSTS", "localhost")}/' if PRODUCTION_MODE else 'http://localhost:3000/'
+ACCOUNT_LOGOUT_REDIRECT_URL = f'https://{os.getenv("ALLOWED_HOSTS", "localhost")}/' if PRODUCTION_MODE else 'http://localhost:3000/'
 SOCIALACCOUNT_LOGIN_ON_GET = True  # Allow GET requests for social login redirect
 
 # Custom adapters for user management

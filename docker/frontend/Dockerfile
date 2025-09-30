@@ -28,9 +28,16 @@ RUN mkdir -p /app/logs
 EXPOSE 3000
 
 # Build for production with NODE_ENV set by docker-compose.yml
-# ENV NODE_ENV=production  # Set by docker-compose.yml environment
+ARG NODE_ENV=production
+ARG NEXT_PUBLIC_API_URL=/api
+ENV NODE_ENV=$NODE_ENV
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-# Start production server (build will happen at runtime)
-# CHANGE: Fixed CMD for standalone output configuration with proper static file serving
-# COPY static files and public files to standalone directory for proper serving
-CMD ["sh", "-c", "npm run build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && cd .next/standalone && PORT=3000 HOSTNAME=0.0.0.0 node server.js"]
+# Build the application during image creation (not at runtime)
+RUN npm run build
+
+# Copy static files and public files to standalone directory for proper serving
+RUN cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/
+
+# Start production server (no build at runtime)
+CMD ["sh", "-c", "cd .next/standalone && PORT=3000 HOSTNAME=0.0.0.0 node server.js"]
