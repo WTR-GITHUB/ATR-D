@@ -6,7 +6,7 @@ import axios from 'axios';
 // Frontend should use /api/ which gets proxied by Nginx to backend
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
   ? '/api'  // Use relative URL in production - Nginx handles proxy
-  : (process.env.NEXT_PUBLIC_API_URL || 'http://192.168.88.167:8000/api');
+  : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api');
 
 // CHANGE: Helper for token refresh - use internal API route in hybrid mode
 // const getTokenRefreshUrl = () => { // Commented out as not used

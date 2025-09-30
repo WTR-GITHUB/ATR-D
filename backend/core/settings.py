@@ -61,7 +61,7 @@ else:
     print(f"🔄 Running in DEVELOPMENT mode (DEBUG={DEBUG})")
 
 # CHANGE: Production-optimized ALLOWED_HOSTS
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'dienynas.mokyklaatradimai.lt').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'test.mokyklaatradimai.lt').split(',')
 
 # Add production domain and localhost for development
 if not PRODUCTION_MODE:
@@ -83,8 +83,8 @@ CORS_ALLOW_CREDENTIALS = os.getenv('CORS_ALLOW_CREDENTIALS', 'True').lower() == 
 
 # CSRF Configuration for production HTTPS domains
 CSRF_TRUSTED_ORIGINS = [
-    "https://dienynas.mokyklaatradimai.lt",
-    "http://dienynas.mokyklaatradimai.lt",
+    "https://test.mokyklaatradimai.lt",
+    "http://test.mokyklaatradimai.lt",
 ]
 
 # Add development origins if not in production
@@ -99,8 +99,8 @@ if not PRODUCTION_MODE:
 # Production CORS settings
 if not CORS_ALLOW_ALL_ORIGINS:
     CORS_ALLOWED_ORIGINS = [
-        "https://dienynas.mokyklaatradimai.lt",
-        "http://dienynas.mokyklaatradimai.lt",
+        "https://test.mokyklaatradimai.lt",
+        "http://test.mokyklaatradimai.lt",
     ]
     # Add development origins if not in production
     if not PRODUCTION_MODE:
@@ -121,6 +121,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',  # Required for django-allauth
     
     # Local apps
     'users',
@@ -136,6 +137,12 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    
+    # django-allauth apps
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
 ]
 
 # Custom User Model
@@ -148,7 +155,9 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',  # django-allauth middleware
     'users.middleware.RoleValidationMiddleware',  # SEC-011: Secure role validation (after auth)
+    'users.oauth_middleware.OAuthCallbackMiddleware',  # OAuth JWT token generation
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -324,7 +333,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / os.getenv('STATIC_ROOT', 'static')  # Perkelta į .env failą
+STATIC_ROOT = '/var/www/static'  # Docker volume mount point
 
 # Additional static files directories for development
 STATICFILES_DIRS = [
@@ -485,3 +494,64 @@ PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
     'django.contrib.auth.hashers.ScryptPasswordHasher',
 ]
+
+# django-allauth configuration
+SITE_ID = 1
+
+# Google OAuth credentials from environment variables
+GOOGLE_OAUTH_CLIENT_ID = os.getenv('GOOGLE_OAUTH_CLIENT_ID')
+GOOGLE_OAUTH_CLIENT_SECRET = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET')
+
+# Authentication backends
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # Traditional Django auth
+    'allauth.account.auth_backends.AuthenticationBackend',  # django-allauth
+]
+
+# django-allauth settings
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_EMAIL_VERIFICATION = 'none'  # Disable email verification for OAuth
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_LOGOUT_ON_GET = True
+ACCOUNT_SESSION_REMEMBER = True
+
+# Social account settings
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'OAUTH_PKCE_ENABLED': True,  # Enhanced security
+    }
+}
+
+# Custom OAuth callback URL
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# Override the default callback URL for Google OAuth
+SOCIALACCOUNT_PROVIDERS['google']['CALLBACK_URL'] = '/api/users/oauth/google/callback/'
+
+SOCIALACCOUNT_AUTO_SIGNUP = False  # Prevent automatic user creation
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
+SOCIALACCOUNT_QUERY_EMAIL = True
+SOCIALACCOUNT_EMAIL_REQUIRED = True
+SOCIALACCOUNT_ONLY_EMAIL = True
+
+# Login/logout redirect URLs
+LOGIN_REDIRECT_URL = 'https://test.mokyklaatradimai.lt/' if PRODUCTION_MODE else 'http://localhost:3000/'
+LOGOUT_REDIRECT_URL = 'https://test.mokyklaatradimai.lt/' if PRODUCTION_MODE else 'http://localhost:3000/'
+
+# django-allauth redirect URLs
+ACCOUNT_LOGIN_REDIRECT_URL = 'https://test.mokyklaatradimai.lt/' if PRODUCTION_MODE else 'http://localhost:3000/'
+ACCOUNT_LOGOUT_REDIRECT_URL = 'https://test.mokyklaatradimai.lt/' if PRODUCTION_MODE else 'http://localhost:3000/'
+SOCIALACCOUNT_LOGIN_ON_GET = True  # Allow GET requests for social login redirect
+
+# Custom adapters for user management
+ACCOUNT_ADAPTER = 'users.adapters.NoNewUsersAccountAdapter'
+SOCIALACCOUNT_ADAPTER = 'users.adapters.NoNewSocialUsersAccountAdapter'

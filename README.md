@@ -185,7 +185,7 @@ DEBUG=False docker compose up -d
 - **Backend API:** https://dienynas.mokyklaatradimai.lt/api
 - **Local Access:** http://localhost (for development)
 - **Admin Access:** https://dienynas.mokyklaatradimai.lt/admin
-- **Admin Access:** admin@example.com / admin123
+- **Admin Access:** Use `docker compose exec backend python manage.py createsuperuser` to create admin user
 
 ## 👥 **Rolių Sistema**
 

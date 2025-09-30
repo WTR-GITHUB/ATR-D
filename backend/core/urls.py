@@ -17,6 +17,8 @@ urlpatterns = [
     path("api/grades/", include("grades.urls")),
     path("api/plans/", include("plans.urls")),
     path("api/violations/", include("violation.urls")),
+    # django-allauth URLs
+    path("accounts/", include("allauth.urls")),
 ]
 
 # Add static files serving

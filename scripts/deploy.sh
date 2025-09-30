@@ -203,20 +203,9 @@ else:
 "; then
         log "ℹ️  Superuser already exists"
     else
-        # Create superuser
-        if docker compose exec -T backend python manage.py shell -c "
-from django.contrib.auth import get_user_model
-User = get_user_model()
-User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
-print('Superuser created: admin/admin123')
-"; then
-            log "✅ Superuser created successfully"
-            log "👤 Username: admin"
-            log "🔑 Password: admin123"
-            log "📧 Email: admin@example.com"
-        else
-            warn "Failed to create superuser"
-        fi
+        # Superuser creation removed for security reasons
+        log "⚠️  Superuser creation skipped for security"
+        log "💡 Use: docker compose exec backend python manage.py createsuperuser"
     fi
 }
 
@@ -295,7 +284,7 @@ show_summary() {
     echo ""
     echo -e "${BLUE}👤 Admin Access:${NC}"
     echo -e "   Username: admin"
-    echo -e "   Password: admin123"
+    echo -e "   Password: Use 'docker compose exec backend python manage.py createsuperuser' to create admin"
     echo -e "   Email: admin@example.com"
     echo ""
     echo -e "${BLUE}📁 Logs:${NC} ./logs/"

@@ -278,7 +278,7 @@ show_deployment_info() {
     echo ""
     echo "🔑 Admin Login:"
     echo "   Email: admin@example.com"
-    echo "   Password: admin123"
+    echo "   Password: Use 'docker compose exec backend python manage.py createsuperuser' to create admin"
     echo ""
     echo "📊 Service Status:"
     docker compose ps

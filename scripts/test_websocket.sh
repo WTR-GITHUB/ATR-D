@@ -10,7 +10,7 @@ set -e
 # Configuration
 LOG_FILE="./logs/websocket_test.log"
 DEVELOPMENT_WS_URL="ws://localhost:8000/ws/schedule/"
-PRODUCTION_WS_URL="wss://dienynas.mokyklaatradimai.lt/ws/schedule/"
+PRODUCTION_WS_URL="wss://test.mokyklaatradimai.lt/ws/schedule/"
 
 # Colors for output
 RED='\033[0;31m'
@@ -93,7 +93,7 @@ test_production() {
     log "🌐 Testing production WebSocket..."
     
     # Check if production site is accessible
-    if ! curl -s https://dienynas.mokyklaatradimai.lt/api/health/ > /dev/null 2>&1; then
+    if ! curl -s https://test.mokyklaatradimai.lt/api/health/ > /dev/null 2>&1; then
         error "Production site is not accessible"
         return 1
     fi

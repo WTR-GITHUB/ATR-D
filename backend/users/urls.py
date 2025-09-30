@@ -3,6 +3,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import UserViewSet, me, CustomTokenObtainPairView, CustomTokenRefreshView, logout_view, user_settings, student_details, validate_auth, debug_role, switch_role
+from .oauth_views import GoogleOAuthCallbackView, oauth_success_view, CustomGoogleOAuth2LoginView
 
 # Router konfigūracija - registruoja vartotojų viewset'us
 router = DefaultRouter()
@@ -25,4 +26,9 @@ urlpatterns = [
     
     # Studento detalių endpoint'as
     path('students/<int:student_id>/', student_details, name='student_details'),
+    
+    # OAuth endpoints
+    path('oauth/google/login/', CustomGoogleOAuth2LoginView.as_view(), name='custom_google_login'),
+    path('oauth/google/callback/', GoogleOAuthCallbackView.as_view(), name='google_oauth_callback'),
+    path('oauth/success/', oauth_success_view, name='oauth_success'),
 ] 

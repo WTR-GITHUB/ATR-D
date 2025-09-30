@@ -37,15 +37,9 @@ python manage.py collectstatic --noinput
 
 # Create superuser if not exists
 echo "👤 Checking superuser..."
-python manage.py shell -c "
-from django.contrib.auth import get_user_model
-User = get_user_model()
-if not User.objects.filter(is_superuser=True).exists():
-    User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
-    print('Superuser created: admin/admin123')
-else:
-    print('Superuser already exists')
-"
+# Superuser creation removed for security reasons
+# Use: python manage.py createsuperuser
+echo "Superuser creation skipped - use 'python manage.py createsuperuser' manually"
 
 # Start Gunicorn server
 echo "🚀 Starting Gunicorn server..."
