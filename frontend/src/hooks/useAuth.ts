@@ -39,12 +39,23 @@ export function useAuth() {
 
   const validateAuth = useCallback(async () => {
     try {
-      // OPTIMIZATION: Skip validation if role switching is in progress
-      if (authState.isRoleSwitching) {
+      // CRITICAL FIX: Use ref to check role switching state without dependency
+      // This prevents infinite loop caused by authState.isRoleSwitching dependency
+      setAuthState(prev => {
+        // Skip validation if role switching is in progress
+        if (prev.isRoleSwitching) {
+          return prev; // Return unchanged state
+        }
+        
+        // Start validation
+        return { ...prev, isLoading: true, error: null };
+      });
+
+      // Check if we should skip validation due to role switching
+      const currentState = authState;
+      if (currentState.isRoleSwitching) {
         return;
       }
-
-      setAuthState(prev => ({ ...prev, isLoading: true, error: null }));
 
       // Check cookies for debugging (no console log)
       // const hasCookies = document.cookie.length > 0;
@@ -101,7 +112,7 @@ export function useAuth() {
         isRoleSwitching: false,
       });
     }
-  }, [authState.isRoleSwitching]);
+  }, []); // CRITICAL FIX: Remove dependency to prevent infinite loop
 
   // Validate authentication on mount
   useEffect(() => {

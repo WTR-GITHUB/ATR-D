@@ -157,6 +157,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'allauth.account.middleware.AccountMiddleware',  # django-allauth middleware
     'users.middleware.RoleValidationMiddleware',  # SEC-011: Secure role validation (after auth)
+    'users.enhanced_logging_middleware.EnhancedLoggingMiddleware',  # Enhanced logging with user details
+    'users.auth_logging_middleware.AuthLoggingMiddleware',  # Authentication-specific logging
     'users.oauth_middleware.OAuthCallbackMiddleware',  # OAuth JWT token generation
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -281,9 +283,9 @@ REST_FRAMEWORK = {
 
 # JWT settings with httpOnly cookie support
 SIMPLE_JWT = {
-    # SEC-001: Shortened access token lifetime for better security
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME', 15))),  # Reduced from 60 to 15 minutes
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME', 1))),  # Perkelta į .env failą
+    # SEC-001: Access token lifetime set to 1 hour (3600 seconds) for better user experience
+    'ACCESS_TOKEN_LIFETIME': timedelta(seconds=int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME', 3600))),  # Changed to 3600 seconds (1 hour)
+    'REFRESH_TOKEN_LIFETIME': timedelta(seconds=int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME', 86400))),  # Changed to 86400 seconds (24 hours)
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': True,
@@ -307,8 +309,8 @@ SIMPLE_JWT = {
     # SEC-001: Cookie-based authentication settings
     'AUTH_COOKIE_NAME': 'access_token',
     'AUTH_COOKIE_REFRESH_NAME': 'refresh_token',
-    'AUTH_COOKIE_ACCESS_MAX_AGE': timedelta(minutes=15),  # Same as ACCESS_TOKEN_LIFETIME
-    'AUTH_COOKIE_REFRESH_MAX_AGE': timedelta(days=1),    # Same as REFRESH_TOKEN_LIFETIME
+    'AUTH_COOKIE_ACCESS_MAX_AGE': timedelta(seconds=3600),  # Same as ACCESS_TOKEN_LIFETIME (1 hour)
+    'AUTH_COOKIE_REFRESH_MAX_AGE': timedelta(seconds=86400),    # Same as REFRESH_TOKEN_LIFETIME (24 hours)
     'AUTH_COOKIE_SECURE': PRODUCTION_MODE,  # True in production, False in development
     'AUTH_COOKIE_HTTP_ONLY': True,   # Prevent XSS attacks
     'AUTH_COOKIE_SAMESITE': 'Lax', # Prevent CSRF attacks, but allow cross-site requests in development
@@ -421,11 +423,15 @@ LOGGING = {
             'format': '[{asctime}] {levelname} {name} {funcName}:{lineno} - {message}',
             'style': '{',
         },
+        'enhanced': {
+            'format': '[{asctime}] {levelname} | {name} | {process:d} | {thread:d} | {funcName}:{lineno} | {message}',
+            'style': '{',
+        },
     },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'detailed',
+            'formatter': 'enhanced',
             'level': 'INFO' if PRODUCTION_MODE else 'DEBUG',  # Production-safe logging level
         },
     },
@@ -468,6 +474,16 @@ LOGGING = {
         'users': {
             'handlers': ['console'],
             'level': 'INFO' if PRODUCTION_MODE else 'DEBUG',  # Production-safe logging level
+            'propagate': False,
+        },
+        'users.enhanced_logging_middleware': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'users.auth_logging_middleware': {
+            'handlers': ['console'],
+            'level': 'INFO',
             'propagate': False,
         },
         'violation': {

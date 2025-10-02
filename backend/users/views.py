@@ -1,7 +1,7 @@
 # backend/users/views.py
 from django.shortcuts import render
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -139,12 +139,13 @@ class CustomTokenRefreshView(TokenRefreshView):
         return response
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])  # CRITICAL FIX: Allow logout without authentication
 def logout_view(request):
     """
     SEC-001: Logout view that clears cookies
+    CRITICAL FIX: Allow logout without authentication to prevent 401 loops
     """
-    response = HttpResponse({'message': 'Successfully logged out'})
+    response = Response({'message': 'Successfully logged out'})
     
     # Clear authentication cookies
     response.delete_cookie('access_token')

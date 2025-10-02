@@ -43,19 +43,45 @@ api.interceptors.request.use(
   }
 );
 
-// SEC-001: Response interceptor with simple redirect handling
+// SEC-001: Response interceptor with automatic token refresh handling
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Handle 401 (Unauthorized) - simple auto-logout
+    // Handle 401 (Unauthorized) - attempt token refresh before logout
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       // Prevent redirect loops - only redirect if not already on login page
       if (typeof window !== 'undefined' && !window.location.pathname.includes('/auth/login')) {
-        // Simple logout - clear cookies and redirect
+        
+        // CRITICAL FIX: Attempt token refresh before logout
+        // Use separate fetch to avoid infinite loops with api instance
+        try {
+          console.log('🔄 Attempting token refresh due to 401 error...');
+          
+          // CRITICAL FIX: Use separate fetch instead of api instance to prevent loops
+          const refreshResponse = await fetch('/api/users/token/refresh/', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+          });
+          
+          if (refreshResponse.ok) {
+            console.log('✅ Token refresh successful, retrying original request');
+            // Token refresh successful - retry the original request
+            return api(originalRequest);
+          }
+        } catch (refreshError) {
+          console.log('❌ Token refresh failed:', refreshError);
+          // Token refresh failed - proceed with logout
+        }
+
+        // Token refresh failed or not attempted - proceed with logout
         try {
           await api.post('/users/logout/');
         } catch {
@@ -64,7 +90,6 @@ api.interceptors.response.use(
 
         // Direct redirect to login
         window.location.href = '/auth/login';
-      } else {
       }
       return Promise.reject(error);
     }

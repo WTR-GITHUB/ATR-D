@@ -289,11 +289,8 @@ const ViolationFormModal: React.FC<ViolationFormModalProps> = ({
             </div>
             <div>
               <h2 className="text-xl font-semibold text-gray-900">
-                {editMode ? 'Redaguoti skolą' : 'Skirti skolą'}
+                {editMode ? 'Redaguoti įrašą' : 'Sukurti įrašą'}
               </h2>
-              <p className="text-sm text-gray-500">
-                {editMode ? 'Redaguoti esamą pažeidimą' : 'Sukurti naują pažeidimą mokiniams'}
-              </p>
             </div>
           </div>
           <button

@@ -217,11 +217,24 @@ export default function ManagerViolationsManagementPage() {
       data: 'id',
       render: (data: unknown, row: unknown) => {
         const violation = row as Violation;
-        // Hide buttons only if BOTH conditions are met: completed AND paid
-        if (violation.status === 'completed' && violation.penalty_status === 'paid') {
-          return <span className="text-green-600 font-medium">Atlikta</span>;
-        }
         
+        // CHANGE: If status is completed, show only edit button + "Atlikta" text
+        if (violation.status === 'completed') {
+          return (
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => handleEdit(data as number)}
+                className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
+                title="Redaguoti"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+              <span className="text-green-600 font-medium">Atlikta</span>
+            </div>
+          );
+        }
+
+        // CHANGE: For non-completed status, show all buttons
         return (
           <div className="flex items-center space-x-2">
             <button
@@ -231,7 +244,7 @@ export default function ManagerViolationsManagementPage() {
             >
               <Edit className="w-4 h-4" />
             </button>
-            
+
             <button
               onClick={() => handleOpenTodoModal(violation)}
               className="p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded transition-colors"
@@ -239,7 +252,7 @@ export default function ManagerViolationsManagementPage() {
             >
               <CheckCircle className="w-4 h-4" />
             </button>
-            
+
             <button
               onClick={() => handleDelete(data as number)}
               className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded transition-colors"
