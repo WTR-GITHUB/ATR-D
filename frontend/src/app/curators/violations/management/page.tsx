@@ -13,7 +13,6 @@ import { violationAPI } from '@/lib/api';
 import TodoCompletionModal from '@/components/ui/TodoCompletionModal';
 import ViolationFormModal from '@/components/ui/ViolationFormModal';
 import StatusFilter from '@/components/ui/StatusFilter';
-import PenaltyStatusFilter from '@/components/ui/PenaltyStatusFilter';
 import { 
   ArrowLeft, 
   AlertTriangle, 
@@ -59,7 +58,6 @@ export default function CuratorViolationsManagementPage() {
   
   // Filter states for modern switches
   const [statusFilter, setStatusFilter] = useState(0); // -1, 0, 1
-  const [penaltyStatusFilter, setPenaltyStatusFilter] = useState(0); // -1, 0, 1
 
   // Fetch violations data
   useEffect(() => {
@@ -151,14 +149,10 @@ export default function CuratorViolationsManagementPage() {
   const stats = violations.reduce((acc, v) => {
     acc.totalViolations++;
     if (v.status === 'completed') acc.completedViolations++;
-    if (v.penalty_status === 'paid') acc.paidPenalties++;
-    acc.totalPenalty += parseFloat(String(v.penalty_amount)) || 0;
     return acc;
   }, {
     totalViolations: 0,
-    completedViolations: 0,
-    paidPenalties: 0,
-    totalPenalty: 0
+    completedViolations: 0
   });
 
   // Table columns
@@ -189,17 +183,9 @@ export default function CuratorViolationsManagementPage() {
       render: (data: unknown) => getStatusBadge(data as string)
     },
     {
-      title: 'Mokesčio statusas',
-      data: 'penalty_status',
-      render: (data: unknown) => getPenaltyStatusBadge(data as string)
-    },
-    {
-      title: 'Mokestis (€)',
-      data: 'penalty_amount',
-      render: (data: unknown) => {
-        const amount = parseFloat(String(data)) || 0;
-        return `${amount.toFixed(2)}€`;
-      }
+      title: 'Inicijavo',
+      data: 'created_by_name',
+      render: (data: unknown) => (data as string) || '-'
     },
     {
       title: 'Data',
@@ -215,16 +201,16 @@ export default function CuratorViolationsManagementPage() {
       render: (data: unknown, row: unknown) => {
         const violation = row as Violation;
         
-        // CHANGE: If status is completed, show only edit button + "Atlikta" text
+        // CHANGE: If status is completed, show green CheckCircle icon + "Atlikta" text
         if (violation.status === 'completed') {
           return (
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => handleEdit(data as number)}
-                className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
-                title="Redaguoti"
+                onClick={() => handleOpenTodoModal(violation)}
+                className="p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded transition-colors"
+                title="Valdyti užduotis"
               >
-                <Edit className="w-4 h-4" />
+                <CheckCircle className="w-4 h-4" />
               </button>
               <span className="text-green-600 font-medium">Atlikta</span>
             </div>
@@ -440,7 +426,7 @@ export default function CuratorViolationsManagementPage() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -464,30 +450,6 @@ export default function CuratorViolationsManagementPage() {
               </div>
             </div>
           </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <DollarSign className="h-8 w-8 text-yellow-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Apmokėta</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.paidPenalties}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <TrendingUp className="h-8 w-8 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Bendra suma</p>
-                <p className="text-xl font-bold text-gray-900">{stats.totalPenalty.toFixed(2)}€</p>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Data Table */}
@@ -498,14 +460,10 @@ export default function CuratorViolationsManagementPage() {
               if (statusFilter === 1 && violation.status !== 'completed') return false;
               if (statusFilter === -1 && violation.status !== 'pending') return false;
 
-              // Penalty status filter logic
-              if (penaltyStatusFilter === 1 && violation.penalty_status !== 'paid') return false;
-              if (penaltyStatusFilter === -1 && violation.penalty_status !== 'unpaid') return false;
-
               return true;
             }) as unknown as Record<string, unknown>[]}
             columns={columns}
-            filterableColumns={['student_name', 'category', 'penalty_amount']}
+            filterableColumns={['student_name', 'category', 'created_by_name']}
             customFilters={{
               status: (
                 <StatusFilter
@@ -515,25 +473,17 @@ export default function CuratorViolationsManagementPage() {
                   negativeLabel="Neatlikti"
                   positiveLabel="Atlikti"
                 />
-              ),
-              penalty_status: (
-                <PenaltyStatusFilter
-                  value={penaltyStatusFilter}
-                  onChange={setPenaltyStatusFilter}
-                />
               )
             }}
             onFiltersChange={(filters, customFilters) => {
               // Reset custom filter states when clear filters is called
               if (Object.keys(filters).length === 0 && Object.keys(customFilters).length === 0) {
                 setStatusFilter(0);
-                setPenaltyStatusFilter(0);
               }
             }}
             onClearFilters={() => {
               // Reset switches to neutral position (0)
               setStatusFilter(0);
-              setPenaltyStatusFilter(0);
             }}
           />
         </div>
