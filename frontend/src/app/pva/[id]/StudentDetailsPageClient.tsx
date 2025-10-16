@@ -10,6 +10,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useStudentDetails } from '@/hooks/useStudentDetails';
 import { useAuth } from '@/hooks/useAuth';
+import { useStudentGrades } from '@/hooks/useStudentGrades';
 import CuratorStudentScheduleCalendar from '../components/CuratorStudentScheduleCalendar';
 import { ReactDataTable } from '@/components/DataTable';
 import api, { violationAPI } from '@/lib/api';
@@ -39,6 +40,15 @@ const StudentDetailsPageClient = () => {
   const studentId = params.id as string;
   useAuth();
   const { student, loading, error, accessDenied } = useStudentDetails(studentId);
+  
+  // Gauname mokinio vertinimus
+  const { 
+    grades, 
+    loading: gradesLoading, 
+    error: gradesError 
+  } = useStudentGrades({ 
+    studentId: parseInt(studentId) 
+  });
   
   // Tvarkaraščio valdymas
   const [selectedScheduleId, setSelectedScheduleId] = useState<number | null>(null);
@@ -80,6 +90,22 @@ const StudentDetailsPageClient = () => {
   
   // Attendance filter state
   const [attendanceFilter, setAttendanceFilter] = useState<string | null>(null);
+
+  // Sujungiame IMU planus su vertinimais
+  const getImuPlansWithGrades = () => {
+    return imuPlans.map((plan: any) => {
+      // Gauname vertinimą šiai pamokai per IMUPlan ryšį
+      const grade = grades.find(g => 
+        g.imu_plan === plan.id && 
+        g.student === parseInt(studentId)
+      );
+      
+      return {
+        ...plan,
+        grade: grade || null
+      };
+    });
+  };
 
   // Fetch violations data for this student
   useEffect(() => {
@@ -168,10 +194,10 @@ const StudentDetailsPageClient = () => {
         try {
           setIsDeletingPlan(planId);
           await api.delete(`/plans/imu-plans/${planId}/`);
-          setImuPlans(prev => prev.filter(plan => plan.id !== planId));
+          setImuPlans((prev: any) => prev.filter((plan: any) => plan.id !== planId));
           
           // Atnaujinti tvarkaraštį - pakeisti key, kad komponentas atsinaujintų
-          setScheduleRefreshKey(prev => prev + 1);
+          setScheduleRefreshKey((prev: number) => prev + 1);
           showSuccess('Ugdymo planas sėkmingai ištrintas');
         } catch (err) {
           console.error('Error deleting IMU plan:', err);
@@ -376,7 +402,7 @@ const StudentDetailsPageClient = () => {
             </div>
           ) : (
             <ReactDataTable
-              data={imuPlans.filter(plan => {
+              data={getImuPlansWithGrades().filter((plan: any) => {
                 // Apply attendance filter
                 if (attendanceFilter === null) return true; // Show all data when no filter selected
                 
@@ -387,7 +413,7 @@ const StudentDetailsPageClient = () => {
                 
                 return plan.attendance_status === attendanceFilter;
               })}
-              filterableColumnIndexes={[0, 1, 2, 5]} // Pamoka, Dalykas, Lygis, Klasė (be Lankomumas)
+              filterableColumnIndexes={[0, 1, 2, 5]} // Pamoka, Dalykas, Lygis, Klasė (be Atsiskaitymai ir Lankomumas)
               customFilters={{
                 attendance: (
                   <div className="w-full">
@@ -500,6 +526,28 @@ const StudentDetailsPageClient = () => {
                   render: (_data: unknown, row: unknown): string => (((row as Record<string, unknown>).global_schedule as Record<string, unknown>)?.classroom as Record<string, unknown>)?.name as string || '-'
                 },
                 {
+                  title: 'Atsiskaitymai',
+                  data: 'grade',
+                  render: (data: unknown) => {
+                    const grade = data as any;
+                    if (!grade?.achievement_level?.code) return <span></span>;
+                    
+                    return (
+                      <button 
+                        className="w-12 h-9 rounded-xl border-2 font-bold text-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg bg-white text-gray-500 border-gray-200 hover:border-gray-300"
+                        style={{ 
+                          backgroundColor: grade.achievement_level.color,
+                          color: 'white',
+                          borderColor: grade.achievement_level.color 
+                        }}
+                        title={`${grade.achievement_level.name} (${grade.percentage}%)`}
+                      >
+                        {grade.achievement_level.code}
+                      </button>
+                    );
+                  }
+                },
+                {
                   title: 'Lankomumas',
                   data: 'attendance_status',
                   render: (data: unknown) => {
@@ -570,7 +618,7 @@ const StudentDetailsPageClient = () => {
                 }
               ]}
               filterableColumns={['lesson_title', 'subject_name', 'level_name', 'classroom_name']}
-              onFiltersChange={(filters, customFilters) => {
+              onFiltersChange={(filters: any, customFilters: any) => {
                 // Handle custom attendance filter
                 if (customFilters.attendance !== undefined) {
                   setAttendanceFilter(customFilters.attendance as string | null);
